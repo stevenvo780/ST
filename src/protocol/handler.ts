@@ -557,6 +557,64 @@ export class ProtocolHandler {
         detail: 'F(φ) = Finally — "eventualmente φ" (LTL temporal)',
         insertText: '<>(${1:formula})',
       },
+      {
+        label: 'next',
+        kind: 'operator',
+        detail: 'X(φ) = Next — "en el siguiente estado φ" (LTL temporal)',
+        insertText: 'next (${1:formula})',
+      },
+      {
+        label: 'until',
+        kind: 'operator',
+        detail: 'φ U ψ = Until — "φ vale hasta que ψ" (LTL temporal)',
+        insertText: '${1:A} until ${2:B}',
+      },
+
+      // ── Import ──────────────────────────────────────────────────
+      {
+        label: 'import',
+        kind: 'keyword',
+        detail: 'Importar archivo .st externo',
+        insertText: 'import "${1:path.st}"',
+      },
+      {
+        label: 'importar',
+        kind: 'keyword',
+        detail: 'Importar archivo .st (español)',
+        insertText: 'importar "${1:ruta.st}"',
+      },
+
+      // ── Proof blocks ────────────────────────────────────────────
+      {
+        label: 'assume',
+        kind: 'keyword',
+        detail: 'Asumir hipótesis para proof block',
+        insertText: 'assume ${1:name} : ${2:formula}',
+      },
+      {
+        label: 'asumir',
+        kind: 'keyword',
+        detail: 'Asumir hipótesis (español)',
+        insertText: 'asumir ${1:nombre} : ${2:formula}',
+      },
+      {
+        label: 'show',
+        kind: 'keyword',
+        detail: 'Declarar goal de un proof block',
+        insertText: 'show ${1:formula}',
+      },
+      {
+        label: 'demostrar',
+        kind: 'keyword',
+        detail: 'Declarar goal de un proof block (español)',
+        insertText: 'demostrar ${1:formula}',
+      },
+      {
+        label: 'qed',
+        kind: 'keyword',
+        detail: 'Cerrar proof block',
+        insertText: 'qed',
+      },
     ];
 
     return { id: request.id, result: items };

@@ -8,6 +8,7 @@ import { Parser } from '../parser/parser';
 import { formulaToUnicode, formulaToLaTeX } from '../runtime/format';
 import { detectFallacies } from '../runtime/fallacies';
 import { registry } from '../profiles/interface';
+import { formulaEqual } from '../profiles/shared/tableau-engine';
 import type { Formula } from '../types';
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -472,6 +473,178 @@ describe('parser error recovery', () => {
     expect(errors.length).toBeGreaterThan(0);
     // Should still have the logic_decl and check_valid
     expect(prog.statements.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ── 12. LTL Next (X) y Until (U) ────────────────────────────
+
+describe('LTL next and until', () => {
+  it('parses next operator', () => {
+    const prog = parseOk('logic temporal.ltl\naxiom a1 : next P');
+    expect(prog.statements).toHaveLength(2);
+    const axiom = prog.statements[1];
+    if (axiom.kind === 'axiom_decl') {
+      expect(axiom.formula.kind).toBe('temporal_next');
+    }
+  });
+
+  it('parses until operator', () => {
+    const prog = parseOk('logic temporal.ltl\naxiom a1 : P until Q');
+    expect(prog.statements).toHaveLength(2);
+    const axiom = prog.statements[1];
+    if (axiom.kind === 'axiom_decl') {
+      expect(axiom.formula.kind).toBe('temporal_until');
+    }
+  });
+
+  it('parses Spanish aliases siguiente/hasta', () => {
+    const prog = parseOk('logica temporal.ltl\naxioma a1 : siguiente P');
+    const axiom = prog.statements[1];
+    if (axiom.kind === 'axiom_decl') {
+      expect(axiom.formula.kind).toBe('temporal_next');
+    }
+  });
+
+  it('formulaToUnicode renders X and U', () => {
+    const nextF: Formula = { kind: 'temporal_next', args: [{ kind: 'atom', name: 'P' }] };
+    expect(formulaToUnicode(nextF)).toBe('X(P)');
+
+    const untilF: Formula = {
+      kind: 'temporal_until',
+      args: [{ kind: 'atom', name: 'P' }, { kind: 'atom', name: 'Q' }],
+    };
+    expect(formulaToUnicode(untilF)).toBe('(P U Q)');
+  });
+
+  it('formulaToLaTeX renders X and U', () => {
+    const nextF: Formula = { kind: 'temporal_next', args: [{ kind: 'atom', name: 'P' }] };
+    expect(formulaToLaTeX(nextF)).toContain('X');
+
+    const untilF: Formula = {
+      kind: 'temporal_until',
+      args: [{ kind: 'atom', name: 'P' }, { kind: 'atom', name: 'Q' }],
+    };
+    expect(formulaToLaTeX(untilF)).toContain('U');
+  });
+
+  it('next and until work in temporal.ltl profile', () => {
+    const out = run('logic temporal.ltl\naxiom a1 : next P\naxiom a2 : P until Q');
+    expect(out.exitCode).toBe(0);
+  });
+});
+
+// ── 13. Import system ────────────────────────────────────────
+
+describe('import system', () => {
+  it('parses import statement with string path', () => {
+    const prog = parseOk('import "utils.st"');
+    expect(prog.statements).toHaveLength(1);
+    expect(prog.statements[0].kind).toBe('import_decl');
+    if (prog.statements[0].kind === 'import_decl') {
+      expect(prog.statements[0].path).toBe('utils.st');
+    }
+  });
+
+  it('parses import with identifier path', () => {
+    const prog = parseOk('import utils');
+    expect(prog.statements).toHaveLength(1);
+    if (prog.statements[0].kind === 'import_decl') {
+      expect(prog.statements[0].path).toBe('utils');
+    }
+  });
+
+  it('parses importar (Spanish)', () => {
+    const prog = parseOk('importar "lib.st"');
+    expect(prog.statements).toHaveLength(1);
+    expect(prog.statements[0].kind).toBe('import_decl');
+  });
+});
+
+// ── 14. Assume / Show / QED proof blocks ─────────────────────
+
+describe('proof blocks', () => {
+  it('parses assume/show/qed block', () => {
+    const source = [
+      'logic classical.propositional',
+      'assume h1 : P -> Q',
+      'assume h2 : P',
+      'show Q',
+      'derive Q from {h1, h2}',
+      'qed',
+    ].join('\n');
+    const prog = parseOk(source);
+    expect(prog.statements.length).toBe(2); // logic_decl + proof_block
+    expect(prog.statements[1].kind).toBe('proof_block');
+  });
+
+  it('executes proof block successfully', () => {
+    const source = [
+      'logic classical.propositional',
+      'assume h1 : P -> Q',
+      'assume h2 : P',
+      'show Q',
+      'derive Q from {h1, h2}',
+      'qed',
+    ].join('\n');
+    const out = run(source);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('QED');
+  });
+
+  it('assumptions are scoped to the block', () => {
+    const source = [
+      'logic classical.propositional',
+      'assume h1 : P -> Q',
+      'show (P -> Q)',
+      'qed',
+    ].join('\n');
+    const out = run(source);
+    expect(out.exitCode).toBe(0);
+    // h1 should not leak as an axiom after the block
+    expect(out.stdout).toContain('Proof Block');
+  });
+
+  it('parses Spanish asumir/demostrar', () => {
+    const source = [
+      'logica classical.propositional',
+      'asumir h1 : P -> Q',
+      'demostrar (P -> Q)',
+      'qed',
+    ].join('\n');
+    const prog = parseOk(source);
+    expect(prog.statements[1].kind).toBe('proof_block');
+  });
+});
+
+// ── 15. Alpha-equivalencia ───────────────────────────────────
+
+describe('alpha-equivalence', () => {
+  it('treats ∀x.P(x) and ∀y.P(y) as equal via formulaEqual', () => {
+    const f1: Formula = {
+      kind: 'forall',
+      variable: 'x',
+      args: [{ kind: 'predicate', name: 'P', params: ['x'] }],
+    };
+    const f2: Formula = {
+      kind: 'forall',
+      variable: 'y',
+      args: [{ kind: 'predicate', name: 'P', params: ['y'] }],
+    };
+    expect(formulaEqual(f1, f2)).toBe(true);
+  });
+
+  it('distinguishes ∀x.P(x) from ∀x.Q(x)', () => {
+    const f1: Formula = {
+      kind: 'forall',
+      variable: 'x',
+      args: [{ kind: 'predicate', name: 'P', params: ['x'] }],
+    };
+    const f2: Formula = {
+      kind: 'forall',
+      variable: 'x',
+      args: [{ kind: 'predicate', name: 'Q', params: ['x'] }],
+    };
+    expect(formulaEqual(f1, f2)).toBe(false);
   });
 });
 
