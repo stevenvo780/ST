@@ -114,6 +114,77 @@ export function formulaToString(f: Formula): string {
   }
 }
 
+export function toNNF(f: Formula): Formula {
+  const simplify = (node: Formula, negated: boolean): Formula => {
+    const k = node.kind;
+    const args = node.args || [];
+
+    if (!negated) {
+      switch (k) {
+        case 'atom':
+        case 'predicate':
+          return node;
+        case 'not':
+          return simplify(args[0], true);
+        case 'and':
+        case 'or':
+        case 'implies':
+        case 'biconditional':
+        case 'modal_necessity':
+        case 'modal_possibility':
+        case 'forall':
+        case 'exists':
+          return { ...node, args: args.map((a) => simplify(a, false)) };
+      }
+    } else {
+      switch (k) {
+        case 'atom':
+        case 'predicate':
+          return { kind: 'not', args: [node] };
+        case 'not':
+          return simplify(args[0], false);
+        case 'and':
+          return { kind: 'or', args: args.map((a) => simplify(a, true)) };
+        case 'or':
+          return { kind: 'and', args: args.map((a) => simplify(a, true)) };
+        case 'implies':
+          // !(A -> B)  =>  A & !B
+          return { kind: 'and', args: [simplify(args[0], false), simplify(args[1], true)] };
+        case 'biconditional':
+          // !(A <-> B) => (A & !B) | (!A & B)
+          return simplify(
+            {
+              kind: 'or',
+              args: [
+                { kind: 'and', args: [args[0], { kind: 'not', args: [args[1]] }] },
+                { kind: 'and', args: [{ kind: 'not', args: [args[0]] }, args[1]] },
+              ],
+            },
+            false,
+          );
+        case 'modal_necessity':
+          return { kind: 'modal_possibility', args: [simplify(args[0], true)] };
+        case 'modal_possibility':
+          return { kind: 'modal_necessity', args: [simplify(args[0], true)] };
+        case 'forall':
+          return {
+            kind: 'exists',
+            variable: node.variable,
+            args: [simplify(args[0], true)],
+          };
+        case 'exists':
+          return {
+            kind: 'forall',
+            variable: node.variable,
+            args: [simplify(args[0], true)],
+          };
+      }
+    }
+    return node;
+  };
+  return simplify(f, false);
+}
+
 function formulasEqual(a: Formula, b: Formula): boolean {
   if (a.kind !== b.kind) return false;
   if (a.kind === 'atom' && b.kind === 'atom') return a.name === b.name;
