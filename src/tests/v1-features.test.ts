@@ -318,3 +318,160 @@ describe('interpreter Unicode output', () => {
     }
   });
 });
+
+// ── 6. let FORMULA alias ─────────────────────────────────────
+
+describe('let formula alias', () => {
+  it('parses let name = formula', () => {
+    const prog = parseOk('logic classical.propositional\nlet phi = (P -> Q)');
+    expect(prog.statements).toHaveLength(2);
+    expect(prog.statements[1].kind).toBe('let_decl');
+  });
+
+  it('let formula registers as axiom and can be derived from', () => {
+    const out = run(
+      'logic classical.propositional\n' +
+        'let h1 = P -> Q\n' +
+        'let h2 = P\n' +
+        'derive Q from {h1, h2}',
+    );
+    expect(out.exitCode).toBe(0);
+    expect(out.results[0].status).toMatch(/valid|provable/);
+  });
+
+  it('let formula output shows Unicode', () => {
+    const out = run('logic classical.propositional\nlet phi = (P -> Q)');
+    expect(out.stdout).toContain('Let phi');
+    expect(out.stdout).toContain('→');
+  });
+
+  it('let passage still works', () => {
+    const out = run('logic classical.propositional\nlet p = passage([[doc.md#h1]])');
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('Passage p');
+  });
+
+  it('let formalize still works', () => {
+    const out = run(
+      'logic classical.propositional\n' +
+        'let p = passage([[doc.md#b1]])\n' +
+        'let f = formalize p as (P -> Q)',
+    );
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('Formalizacion f');
+  });
+});
+
+// ── 7. Block comments /* ... */ ──────────────────────────────
+
+describe('block comments', () => {
+  it('ignores single-line block comment', () => {
+    const out = run(
+      'logic classical.propositional\n/* esto es un comentario */\ncheck valid (P -> P)',
+    );
+    expect(out.exitCode).toBe(0);
+    expect(out.results[0].status).toBe('valid');
+  });
+
+  it('ignores multi-line block comment', () => {
+    const source = [
+      'logic classical.propositional',
+      '/* esto es',
+      '   un comentario',
+      '   de varias líneas */',
+      'check valid (P | !P)',
+    ].join('\n');
+    const out = run(source);
+    expect(out.exitCode).toBe(0);
+    expect(out.results[0].status).toBe('valid');
+  });
+
+  it('reports error on unclosed block comment', () => {
+    const parser = new Parser('<test>');
+    parser.parse('logic classical.propositional\n/* unclosed comment');
+    const errors = parser.diagnostics.filter((d) => d.severity === 'error');
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0].message).toContain('Comentario');
+  });
+});
+
+// ── 8. refute / refutar alias ────────────────────────────────
+
+describe('refute alias', () => {
+  it('refute works as countermodel', () => {
+    const out = run('logic classical.propositional\nrefute (P & !P)');
+    expect(out.exitCode).toBe(0);
+  });
+
+  it('refutar works in Spanish', () => {
+    const out = run('logica classical.propositional\nrefutar P');
+    expect(out.exitCode).toBe(0);
+  });
+});
+
+// ── 9. FOL equality x = y ───────────────────────────────────
+
+describe('FOL equality', () => {
+  it('parses x = y as equals formula', () => {
+    const prog = parseOk('logic classical.first_order\naxiom eq1 : x = y');
+    expect(prog.statements).toHaveLength(2);
+    const axiom = prog.statements[1];
+    if (axiom.kind === 'axiom_decl') {
+      expect(axiom.formula.kind).toBe('equals');
+    }
+  });
+
+  it('formulaToUnicode renders equals', () => {
+    const f: Formula = {
+      kind: 'equals',
+      args: [
+        { kind: 'atom', name: 'x' },
+        { kind: 'atom', name: 'y' },
+      ],
+    };
+    expect(formulaToUnicode(f)).toContain('=');
+    expect(formulaToUnicode(f)).toContain('x');
+    expect(formulaToUnicode(f)).toContain('y');
+  });
+});
+
+// ── 10. Render mejorado ──────────────────────────────────────
+
+describe('render command', () => {
+  it('render theory shows axioms', () => {
+    const out = run('logic classical.propositional\n' + 'axiom a1 : P -> Q\n' + 'render theory');
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('Render: theory');
+    expect(out.stdout).toContain('a1');
+  });
+
+  it('render claims shows registered claims', () => {
+    const out = run(
+      'logic classical.propositional\n' +
+        'let p = passage([[doc.md#h1]])\n' +
+        'let f = formalize p as (P -> Q)\n' +
+        'claim c1 = f\n' +
+        'confidence c1 = 0.9\n' +
+        'render claims',
+    );
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('Render: claims');
+  });
+});
+
+// ── 11. Parser error recovery ────────────────────────────────
+
+describe('parser error recovery', () => {
+  it('continues after syntax error to parse next statement', () => {
+    const parser = new Parser('<test>');
+    const prog = parser.parse(
+      'logic classical.propositional\n' + 'invalid garbage here\n' + 'check valid (P -> P)',
+    );
+    // Should have errors but also parsed statements
+    const errors = parser.diagnostics.filter((d) => d.severity === 'error');
+    expect(errors.length).toBeGreaterThan(0);
+    // Should still have the logic_decl and check_valid
+    expect(prog.statements.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
