@@ -1,0 +1,27 @@
+{
+  "name": "st-lang",
+  "version": "0.1.0",
+  "description": "ST — Lenguaje ejecutable con nucleo logico y capa textual",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "st": "./bin/st"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli/index.js",
+    "test": "node --experimental-vm-modules dist/tests/runner.js",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["logic", "formal", "propositional", "language", "cli", "repl"],
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

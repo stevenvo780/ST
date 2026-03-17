@@ -1,0 +1,45 @@
+import { Diagnostic } from '../types';
+import { Program } from '../ast/nodes';
+export declare class Parser {
+    private tokens;
+    private pos;
+    private file;
+    diagnostics: Diagnostic[];
+    constructor(file?: string);
+    parse(source: string): Program;
+    private parseStatement;
+    private parseLogicDecl;
+    private parseAxiomDecl;
+    private parseTheoremDecl;
+    private parseDeriveCmd;
+    private parseCheckCmd;
+    private parseProveCmd;
+    private parseCountermodelCmd;
+    private parseTruthTableCmd;
+    private parseLetDecl;
+    private parseClaimDecl;
+    private parseSupportDecl;
+    private parseConfidenceDecl;
+    private parseContextDecl;
+    private parseRenderCmd;
+    private parseFormula;
+    private parseBiconditional;
+    private parseImplication;
+    private parseDisjunction;
+    private parseConjunction;
+    private parseUnary;
+    private parseAtom;
+    private parseIdList;
+    private formulaToString;
+    private current;
+    private advance;
+    private isAtEnd;
+    private checkType;
+    private match;
+    private expect;
+    private expectIdent;
+    private loc;
+    private skipNewlines;
+    private advanceToNextStatement;
+}
+//# sourceMappingURL=parser.d.ts.map
