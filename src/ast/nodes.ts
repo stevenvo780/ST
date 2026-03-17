@@ -118,6 +118,7 @@ export interface ClaimDeclNode extends ASTNode {
   name: string;
   value: string; // nombre de variable o fórmula serializada
   formula?: Formula;
+  formalization?: string;
 }
 
 export interface SupportDeclNode extends ASTNode {

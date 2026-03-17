@@ -10,6 +10,8 @@ import {
   LogicProfile,
   Claim,
   TruthTableResult,
+  TextLayerState,
+  Formula,
 } from '../types';
 import { Parser } from '../parser/parser';
 import {
@@ -37,7 +39,6 @@ import { ClassicalFirstOrder } from '../profiles/classical/first-order';
 import { ModalK } from '../profiles/modal/k';
 import { ParaconsistentBelnap } from '../profiles/paraconsistent/belnap';
 import {
-  TextLayerState,
   createTextLayerState,
   registerPassage,
   registerFormalization,
@@ -227,10 +228,11 @@ export class Interpreter {
   }
 
   private requireProfile(): LogicProfile {
-    if (!this.profile) {
+    const p = this.profile;
+    if (!p) {
       throw new Error('No se ha declarado un perfil logico. Use: logic <perfil>');
     }
-    return this.profile;
+    return p;
   }
 
   private execLogicDecl(stmt: LogicDeclNode): void {
@@ -311,47 +313,43 @@ export class Interpreter {
     if (!profile.truthTable) {
       throw new Error('Este perfil no soporta truth_table');
     }
-    const tt = profile.truthTable(stmt.formula);
+    const formula = stmt.formula;
+    const tt = profile.truthTable(formula);
     const result: RunResult = {
       status: tt.isTautology ? 'valid' : tt.isSatisfiable ? 'satisfiable' : 'unsatisfiable',
-      output: this.formatTruthTable(stmt.formula, tt),
+      output: this.formatTruthTable(formula, tt),
       truthTable: tt,
       diagnostics: [],
-      formula: stmt.formula,
+      formula: formula,
     };
     this.results.push(result);
     if (result.output) this.emit(result.output);
   }
 
   private execLetDecl(stmt: LetDeclNode): void {
-    if (stmt.letType === 'passage' && stmt.anchorPath) {
+    if (stmt.letType === 'passage') {
       const diags = registerPassage(this.textLayer, stmt.name, stmt.anchorPath);
       this.diagnostics.push(...diags);
       this.emit(`Passage ${stmt.name} = [[${stmt.anchorPath}]]`);
     } else if (stmt.letType === 'formalize' && stmt.passageName && stmt.formula) {
-      const diags = registerFormalization(
-        this.textLayer,
-        stmt.name,
-        stmt.passageName,
-        stmt.formula,
-      );
+      const formula = stmt.formula;
+      const diags = registerFormalization(this.textLayer, stmt.name, stmt.passageName, formula);
       this.diagnostics.push(...diags);
-      this.emit(
-        `Formalizacion ${stmt.name}: ${stmt.passageName} -> ${formulaToString(stmt.formula)}`,
-      );
+      this.emit(`Formalizacion ${stmt.name}: ${stmt.passageName} -> ${formulaToString(formula)}`);
     }
   }
 
   private execClaimDecl(stmt: ClaimDeclNode): void {
-    const formula = stmt.formula as Formula;
-    const diags = registerClaim(this.textLayer, stmt.name, formula, stmt.formalization);
+    const formula = stmt.formula;
+    const formalization = stmt.formalization;
+    const diags = registerClaim(this.textLayer, stmt.name, formula, formalization);
     this.diagnostics.push(...diags);
 
     // También agregar al theory.claims
     const claim: Claim = {
       name: stmt.name,
       formula: formula,
-      formalization: stmt.formalization,
+      formalization: formalization,
     };
     this.theory.claims.set(stmt.name, claim);
     this.emit(`Claim ${stmt.name} registrado`);
@@ -392,9 +390,10 @@ export class Interpreter {
     const statusIcon = this.statusIcon(result.status);
     this.emit(`${statusIcon} [${cmd}] ${result.output || result.status}`);
 
-    if (result.proof && result.proof.steps.length > 0) {
+    const proof = result.proof;
+    if (proof && proof.steps.length > 0) {
       this.emit('  Prueba:');
-      for (const step of result.proof.steps) {
+      for (const step of proof.steps) {
         const premisesStr = step.premises.length > 0 ? ` [de ${step.premises.join(', ')}]` : '';
         this.emit(
           `    ${step.stepNumber}. ${formulaToString(step.formula)}  — ${step.justification}${premisesStr}`,
@@ -402,9 +401,10 @@ export class Interpreter {
       }
     }
 
-    if (result.model && result.model.valuation) {
+    const model = result.model;
+    if (model && model.valuation) {
       this.emit('  Modelo:');
-      for (const [k, v] of Object.entries(result.model.valuation)) {
+      for (const [k, v] of Object.entries(model.valuation)) {
         this.emit(`    ${k} = ${String(v)}`);
       }
     }

@@ -33,11 +33,13 @@ export class REPL {
 
     this.rl.on('line', (line: string) => {
       const trimmed = line.trim();
+      const rl = this.rl;
+      if (!rl) return;
 
       // Comandos especiales del REPL
       if (trimmed.startsWith(':')) {
         this.handleMetaCommand(trimmed);
-        this.rl!.prompt();
+        rl.prompt();
         return;
       }
 
@@ -45,21 +47,20 @@ export class REPL {
       if (trimmed === '' && buffer !== '') {
         this.executeBuffer(buffer);
         buffer = '';
-        this.rl!.prompt();
+        rl.prompt();
         return;
       }
 
       if (trimmed === '') {
-        this.rl!.prompt();
+        rl.prompt();
         return;
       }
 
       // Acumular o ejecutar directo
-      // Si la línea parece un statement completo, ejecutar directo
       buffer = trimmed;
       this.executeBuffer(buffer);
       buffer = '';
-      this.rl!.prompt();
+      rl.prompt();
     });
 
     this.rl.on('close', () => {
@@ -118,7 +119,7 @@ export class REPL {
         console.log('Estado reiniciado.');
         break;
 
-      case ':profile':
+      case ':profile': {
         const p = this.interpreter.getProfile();
         if (p) {
           console.log(`Perfil actual: ${p.name}`);
@@ -126,6 +127,7 @@ export class REPL {
           console.log('No hay perfil activo. Use: logic <perfil>');
         }
         break;
+      }
 
       case ':claims':
         this.printClaims();

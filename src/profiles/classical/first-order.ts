@@ -71,7 +71,9 @@ export class ClassicalFirstOrder implements LogicProfile {
   }
 
   derive(goal: Formula, premises: string[], theory: Theory): RunResult {
-    const premiseFormulas = premises.map((p) => theory.axioms.get(p)!).filter((f) => f);
+    const premiseFormulas = premises
+      .map((p) => theory.axioms.get(p))
+      .filter((f): f is Formula => f !== undefined);
     const nodes: FOTableauNode[] = [
       ...premiseFormulas.map((a) => ({ formula: a, sign: true })),
       { formula: goal, sign: false },
@@ -121,63 +123,70 @@ export class ClassicalFirstOrder implements LogicProfile {
     const node = nodes[idx];
     const rest = nodes.filter((_, i) => i !== idx);
     const { formula: f, sign: s } = node;
+    const args = f.args || [];
 
     switch (f.kind) {
       case 'not':
-        return this.solve([{ formula: f.args![0], sign: !s }, ...rest], constants, depth + 1);
+        if (!args[0]) return false;
+        return this.solve([{ formula: args[0], sign: !s }, ...rest], constants, depth + 1);
       case 'and':
+        if (!args[0] || !args[1]) return false;
         if (s)
           return this.solve(
-            [{ formula: f.args![0], sign: true }, { formula: f.args![1], sign: true }, ...rest],
+            [{ formula: args[0], sign: true }, { formula: args[1], sign: true }, ...rest],
             constants,
             depth + 1,
           );
         else
           return (
-            this.solve([{ formula: f.args![0], sign: false }, ...rest], constants, depth + 1) &&
-            this.solve([{ formula: f.args![1], sign: false }, ...rest], constants, depth + 1)
+            this.solve([{ formula: args[0], sign: false }, ...rest], constants, depth + 1) &&
+            this.solve([{ formula: args[1], sign: false }, ...rest], constants, depth + 1)
           );
       case 'or':
+        if (!args[0] || !args[1]) return false;
         if (s)
           return (
-            this.solve([{ formula: f.args![0], sign: true }, ...rest], constants, depth + 1) &&
-            this.solve([{ formula: f.args![1], sign: true }, ...rest], constants, depth + 1)
+            this.solve([{ formula: args[0], sign: true }, ...rest], constants, depth + 1) &&
+            this.solve([{ formula: args[1], sign: true }, ...rest], constants, depth + 1)
           );
         else
           return this.solve(
-            [{ formula: f.args![0], sign: false }, { formula: f.args![1], sign: false }, ...rest],
+            [{ formula: args[0], sign: false }, { formula: args[1], sign: false }, ...rest],
             constants,
             depth + 1,
           );
       case 'implies':
+        if (!args[0] || !args[1]) return false;
         if (s)
           return (
-            this.solve([{ formula: f.args![0], sign: false }, ...rest], constants, depth + 1) &&
-            this.solve([{ formula: f.args![1], sign: true }, ...rest], constants, depth + 1)
+            this.solve([{ formula: args[0], sign: false }, ...rest], constants, depth + 1) &&
+            this.solve([{ formula: args[1], sign: true }, ...rest], constants, depth + 1)
           );
         else
           return this.solve(
-            [{ formula: f.args![0], sign: true }, { formula: f.args![1], sign: false }, ...rest],
+            [{ formula: args[0], sign: true }, { formula: args[1], sign: false }, ...rest],
             constants,
             depth + 1,
           );
-      case 'forall':
+      case 'forall': {
+        const variable = f.variable;
+        if (!args[0] || !variable) return false;
         if (s) {
-          // Gamma: forall x P(x) is true
+          // Gamma
           const instantiated = Array.from(constants).map((c) => ({
-            formula: this.substitute(f.args![0], f.variable!, c),
+            formula: this.substitute(args[0], variable, c),
             sign: true,
           }));
           if (instantiated.length === 0 && rest.every((n) => findType(n) === 'gamma')) return false;
           return this.solve([...rest, ...instantiated], constants, depth + 1);
         } else {
-          // Delta: forall x P(x) is false -> exists x !P(x) is true
+          // Delta
           const newC = `c${constants.size}`;
           const newCons = new Set(constants).add(newC);
           const gammas = nodes.filter((n) => findType(n) === 'gamma');
           return this.solve(
             [
-              { formula: this.substitute(f.args![0], f.variable!, newC), sign: false },
+              { formula: this.substitute(args[0], variable, newC), sign: false },
               ...rest,
               ...gammas,
             ],
@@ -185,7 +194,10 @@ export class ClassicalFirstOrder implements LogicProfile {
             depth + 1,
           );
         }
-      case 'exists':
+      }
+      case 'exists': {
+        const variable = f.variable;
+        if (!args[0] || !variable) return false;
         if (s) {
           // Delta
           const newC = `c${constants.size}`;
@@ -193,7 +205,7 @@ export class ClassicalFirstOrder implements LogicProfile {
           const gammas = nodes.filter((n) => findType(n) === 'gamma');
           return this.solve(
             [
-              { formula: this.substitute(f.args![0], f.variable!, newC), sign: true },
+              { formula: this.substitute(args[0], variable, newC), sign: true },
               ...rest,
               ...gammas,
             ],
@@ -203,27 +215,24 @@ export class ClassicalFirstOrder implements LogicProfile {
         } else {
           // Gamma
           const instantiated = Array.from(constants).map((c) => ({
-            formula: this.substitute(f.args![0], f.variable!, c),
+            formula: this.substitute(args[0], variable, c),
             sign: false,
           }));
           if (instantiated.length === 0 && rest.every((n) => findType(n) === 'gamma')) return false;
           return this.solve([...rest, ...instantiated], constants, depth + 1);
         }
+      }
     }
     return false;
   }
 
   private substitute(f: Formula, variable: string, constant: string): Formula {
     const sub = (node: Formula): Formula => {
-      if (node.kind === 'predicate' && node.params) {
+      if (node.kind === 'predicate' && node.params)
         return { ...node, params: node.params.map((p) => (p === variable ? constant : p)) };
-      }
-      if ((node.kind === 'forall' || node.kind === 'exists') && node.variable === variable) {
+      if ((node.kind === 'forall' || node.kind === 'exists') && node.variable === variable)
         return node;
-      }
-      if (node.args) {
-        return { ...node, args: node.args.map((a) => sub(a)) };
-      }
+      if (node.args) return { ...node, args: node.args.map((a) => sub(a)) };
       return node;
     };
     return sub(f);

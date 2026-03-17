@@ -184,20 +184,25 @@ export class ParaconsistentBelnap implements LogicProfile {
   }
 
   private evaluateBelnap(f: Formula, v: Record<string, BelnapValue>): BelnapValue {
+    const args = f.args || [];
     switch (f.kind) {
       case 'atom':
         return f.name ? (v[f.name] ?? 'N') : 'N';
       case 'not':
-        return BELNAP_NOT[this.evaluateBelnap(f.args![0], v)];
+        return args[0] ? BELNAP_NOT[this.evaluateBelnap(args[0], v)] : 'N';
       case 'and':
-        return BELNAP_AND[this.evaluateBelnap(f.args![0], v)][this.evaluateBelnap(f.args![1], v)];
+        return args[0] && args[1]
+          ? BELNAP_AND[this.evaluateBelnap(args[0], v)][this.evaluateBelnap(args[1], v)]
+          : 'N';
       case 'or':
-        return BELNAP_OR[this.evaluateBelnap(f.args![0], v)][this.evaluateBelnap(f.args![1], v)];
+        return args[0] && args[1]
+          ? BELNAP_OR[this.evaluateBelnap(args[0], v)][this.evaluateBelnap(args[1], v)]
+          : 'N';
       case 'implies':
         // Implicación en Belnap (A -> B es !A | B)
-        return BELNAP_OR[BELNAP_NOT[this.evaluateBelnap(f.args![0], v)]][
-          this.evaluateBelnap(f.args![1], v)
-        ];
+        return args[0] && args[1]
+          ? BELNAP_OR[BELNAP_NOT[this.evaluateBelnap(args[0], v)]][this.evaluateBelnap(args[1], v)]
+          : 'N';
       default:
         return 'N';
     }

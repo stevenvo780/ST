@@ -2,27 +2,7 @@
 // ST Text Layer — Compilador texto -> formula/claim
 // ============================================================
 
-import {
-  Anchor,
-  Passage,
-  Formalization,
-  Claim,
-  Support,
-  Confidence,
-  Context,
-  Formula,
-  Theory,
-  Diagnostic,
-} from '../types';
-
-export interface TextLayerState {
-  passages: Map<string, Passage>;
-  formalizations: Map<string, Formalization>;
-  claims: Map<string, Claim>;
-  supports: Support[];
-  confidences: Confidence[];
-  contexts: Context[];
-}
+import { Anchor, Formula, Theory, Diagnostic, TextLayerState } from '../types';
 
 export function createTextLayerState(): TextLayerState {
   return {

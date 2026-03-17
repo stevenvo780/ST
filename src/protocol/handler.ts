@@ -40,11 +40,13 @@ export class ProtocolHandler {
         return this.handleCompletion(request);
       case 'render':
         return this.handleRender(request);
-      default:
+      default: {
+        const method = request.method;
         return {
           id: request.id,
-          error: { code: -1, message: `Metodo desconocido: ${request.method}` },
+          error: { code: -1, message: `Metodo desconocido: ${String(method)}` },
         };
+      }
     }
   }
 

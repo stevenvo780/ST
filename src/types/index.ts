@@ -53,7 +53,8 @@ export interface Formula {
   name?: string; // para átomos y predicados
   args?: Formula[]; // sub-fórmulas
   variable?: string; // para cuantificadores
-  terms?: string[]; // para predicados
+  terms?: string[]; // para predicados (alias de params)
+  params?: string[]; // para predicados (usado en parser)
   source?: SourceLocation;
 }
 
@@ -63,6 +64,17 @@ export interface SourceLocation {
   column: number;
   endLine?: number;
   endColumn?: number;
+}
+
+// --- Text Layer State ---
+
+export interface TextLayerState {
+  passages: Map<string, Passage>;
+  formalizations: Map<string, Formalization>;
+  claims: Map<string, Claim>;
+  supports: Support[];
+  confidences: Confidence[];
+  contexts: Context[];
 }
 
 // --- Valuación ---

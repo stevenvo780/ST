@@ -250,22 +250,28 @@ export class Parser {
     const name = this.expectIdent();
     this.expect(TokenType.EQUALS);
 
-    // Intentar parsear como fórmula; si es solo un ID simple, guardarlo como value
-    const saved = this.pos;
-    try {
-      const formula = this.parseFormula();
-      return {
-        kind: 'claim_decl',
-        name,
-        value: this.formulaToString(formula),
-        formula,
-        source: src,
-      };
-    } catch {
+    // Si es un identificador simple y no tiene paréntesis (no es predicado)
+    // podría ser una referencia a una formalización o pasaje.
+    if (this.checkType(TokenType.IDENTIFIER) && this.peek(1) !== TokenType.LPAREN) {
+      const val = this.current().value;
+      const saved = this.pos;
+      this.advance();
+      // Si después del IDENTIFIER hay un NEWLINE o EOF, es una referencia.
+      if (this.isAtEnd() || this.checkType(TokenType.NEWLINE)) {
+        return { kind: 'claim_decl', name, value: val, formalization: val, source: src };
+      }
+      // Si no, backtrack y parsear como formula completa
       this.pos = saved;
-      const value = this.expectIdent();
-      return { kind: 'claim_decl', name, value, source: src };
     }
+
+    const formula = this.parseFormula();
+    return {
+      kind: 'claim_decl',
+      name,
+      value: this.formulaToString(formula),
+      formula,
+      source: src,
+    };
   }
 
   // support claimName <- sourceName
@@ -492,6 +498,12 @@ export class Parser {
       return { type: TokenType.EOF, value: '', line: 0, column: 0 };
     }
     return this.tokens[this.pos];
+  }
+
+  private peek(offset: number): TokenType {
+    const idx = this.pos + offset;
+    if (idx >= this.tokens.length) return TokenType.EOF;
+    return this.tokens[idx].type;
   }
 
   private advance(): Token {
