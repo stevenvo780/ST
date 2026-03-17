@@ -52,6 +52,7 @@ export class ClassicalFirstOrder implements LogicProfile {
     return {
       status: !isClosed ? 'satisfiable' : 'unsatisfiable',
       output: !isClosed ? `SATISFACIBLE` : `INSATISFACIBLE`,
+      diagnostics: [],
       formula,
     };
   }
@@ -66,6 +67,7 @@ export class ClassicalFirstOrder implements LogicProfile {
     return {
       status: isClosed ? 'provable' : 'refutable',
       output: isClosed ? 'DEMOSTRABLE' : 'NO demostrable',
+      diagnostics: [],
       formula: goal,
     };
   }
@@ -81,6 +83,7 @@ export class ClassicalFirstOrder implements LogicProfile {
     return {
       status: this.solve(nodes, new Set(['c0'])) ? 'provable' : 'refutable',
       output: `Derivacion`,
+      diagnostics: [],
       formula: goal,
     };
   }
@@ -89,7 +92,21 @@ export class ClassicalFirstOrder implements LogicProfile {
     return this.checkValid(formula);
   }
 
-  private solve(nodes: FOTableauNode[], constants: Set<string>, depth: number = 0): boolean {
+  explain(formula: Formula): RunResult {
+    return {
+      status: 'unknown',
+      output: `FOL: ${formulaToString(formula)}`,
+      diagnostics: [],
+      formula,
+    };
+  }
+
+  private solve(
+    nodes: FOTableauNode[],
+    constants: Set<string>,
+    processed: Set<string> = new Set(),
+    depth: number = 0,
+  ): boolean {
     if (depth > 50) return false;
 
     // 1. Contradicción
@@ -125,47 +142,92 @@ export class ClassicalFirstOrder implements LogicProfile {
     const { formula: f, sign: s } = node;
     const args = f.args || [];
 
+    const nodeKey = `${s}:${JSON.stringify(f)}`;
+    if (findType(node) !== 'gamma' && findType(node) !== 'atom' && processed.has(nodeKey)) {
+      return this.solve(rest, constants, processed, depth);
+    }
+    const newProcessed = new Set(processed);
+    if (findType(node) !== 'gamma' && findType(node) !== 'atom') newProcessed.add(nodeKey);
+
     switch (f.kind) {
       case 'not':
         if (!args[0]) return false;
-        return this.solve([{ formula: args[0], sign: !s }, ...rest], constants, depth + 1);
+        return this.solve(
+          [{ formula: args[0], sign: !s }, ...rest],
+          constants,
+          newProcessed,
+          depth + 1,
+        );
       case 'and':
         if (!args[0] || !args[1]) return false;
         if (s)
           return this.solve(
             [{ formula: args[0], sign: true }, { formula: args[1], sign: true }, ...rest],
             constants,
+            newProcessed,
             depth + 1,
           );
         else
           return (
-            this.solve([{ formula: args[0], sign: false }, ...rest], constants, depth + 1) &&
-            this.solve([{ formula: args[1], sign: false }, ...rest], constants, depth + 1)
+            this.solve(
+              [{ formula: args[0], sign: false }, ...rest],
+              constants,
+              newProcessed,
+              depth + 1,
+            ) &&
+            this.solve(
+              [{ formula: args[1], sign: false }, ...rest],
+              constants,
+              newProcessed,
+              depth + 1,
+            )
           );
       case 'or':
         if (!args[0] || !args[1]) return false;
         if (s)
           return (
-            this.solve([{ formula: args[0], sign: true }, ...rest], constants, depth + 1) &&
-            this.solve([{ formula: args[1], sign: true }, ...rest], constants, depth + 1)
+            this.solve(
+              [{ formula: args[0], sign: true }, ...rest],
+              constants,
+              newProcessed,
+              depth + 1,
+            ) &&
+            this.solve(
+              [{ formula: args[1], sign: true }, ...rest],
+              constants,
+              newProcessed,
+              depth + 1,
+            )
           );
         else
           return this.solve(
             [{ formula: args[0], sign: false }, { formula: args[1], sign: false }, ...rest],
             constants,
+            newProcessed,
             depth + 1,
           );
       case 'implies':
         if (!args[0] || !args[1]) return false;
         if (s)
           return (
-            this.solve([{ formula: args[0], sign: false }, ...rest], constants, depth + 1) &&
-            this.solve([{ formula: args[1], sign: true }, ...rest], constants, depth + 1)
+            this.solve(
+              [{ formula: args[0], sign: false }, ...rest],
+              constants,
+              newProcessed,
+              depth + 1,
+            ) &&
+            this.solve(
+              [{ formula: args[1], sign: true }, ...rest],
+              constants,
+              newProcessed,
+              depth + 1,
+            )
           );
         else
           return this.solve(
             [{ formula: args[0], sign: true }, { formula: args[1], sign: false }, ...rest],
             constants,
+            newProcessed,
             depth + 1,
           );
       case 'forall': {
@@ -173,24 +235,22 @@ export class ClassicalFirstOrder implements LogicProfile {
         if (!args[0] || !variable) return false;
         if (s) {
           // Gamma
-          const instantiated = Array.from(constants).map((c) => ({
-            formula: this.substitute(args[0], variable, c),
-            sign: true,
-          }));
-          if (instantiated.length === 0 && rest.every((n) => findType(n) === 'gamma')) return false;
-          return this.solve([...rest, ...instantiated], constants, depth + 1);
+          const instantiated = Array.from(constants)
+            .map((c) => ({ formula: this.substitute(args[0], variable, c), sign: true }))
+            .filter((n) => !processed.has(`true:${JSON.stringify(n.formula)}`));
+
+          if (instantiated.length === 0) return this.solve(rest, constants, newProcessed, depth);
+          const nextProcessed = new Set(processed);
+          instantiated.forEach((n) => nextProcessed.add(`true:${JSON.stringify(n.formula)}`));
+          return this.solve([...rest, ...instantiated, node], constants, nextProcessed, depth + 1);
         } else {
           // Delta
           const newC = `c${constants.size}`;
           const newCons = new Set(constants).add(newC);
-          const gammas = nodes.filter((n) => findType(n) === 'gamma');
           return this.solve(
-            [
-              { formula: this.substitute(args[0], variable, newC), sign: false },
-              ...rest,
-              ...gammas,
-            ],
+            [{ formula: this.substitute(args[0], variable, newC), sign: false }, ...rest],
             newCons,
+            newProcessed,
             depth + 1,
           );
         }
@@ -202,24 +262,22 @@ export class ClassicalFirstOrder implements LogicProfile {
           // Delta
           const newC = `c${constants.size}`;
           const newCons = new Set(constants).add(newC);
-          const gammas = nodes.filter((n) => findType(n) === 'gamma');
           return this.solve(
-            [
-              { formula: this.substitute(args[0], variable, newC), sign: true },
-              ...rest,
-              ...gammas,
-            ],
+            [{ formula: this.substitute(args[0], variable, newC), sign: true }, ...rest],
             newCons,
+            newProcessed,
             depth + 1,
           );
         } else {
           // Gamma
-          const instantiated = Array.from(constants).map((c) => ({
-            formula: this.substitute(args[0], variable, c),
-            sign: false,
-          }));
-          if (instantiated.length === 0 && rest.every((n) => findType(n) === 'gamma')) return false;
-          return this.solve([...rest, ...instantiated], constants, depth + 1);
+          const instantiated = Array.from(constants)
+            .map((c) => ({ formula: this.substitute(args[0], variable, c), sign: false }))
+            .filter((n) => !processed.has(`false:${JSON.stringify(n.formula)}`));
+
+          if (instantiated.length === 0) return this.solve(rest, constants, newProcessed, depth);
+          const nextProcessed = new Set(processed);
+          instantiated.forEach((n) => nextProcessed.add(`false:${JSON.stringify(n.formula)}`));
+          return this.solve([...rest, ...instantiated, node], constants, nextProcessed, depth + 1);
         }
       }
     }

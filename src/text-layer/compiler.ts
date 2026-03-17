@@ -4,6 +4,8 @@
 
 import { Anchor, Formula, Theory, Diagnostic, TextLayerState } from '../types';
 
+export type { TextLayerState };
+
 export function createTextLayerState(): TextLayerState {
   return {
     passages: new Map(),

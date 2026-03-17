@@ -8,7 +8,8 @@ import {
   LogicDeclNode,
   AxiomDeclNode,
   DeriveCmdNode,
-  LetDeclNode,
+  LetPassageNode,
+  LetFormalizeNode,
   ConfidenceDeclNode,
   ContextDeclNode,
 } from '../ast/nodes';
@@ -143,7 +144,7 @@ describe('Parser — text layer', () => {
     const parser = new Parser();
     const program = parser.parse('let p = passage([[clase-logica.md#b8]])');
     expect(program.statements.length).toBe(1);
-    const stmt = program.statements[0] as LetDeclNode;
+    const stmt = program.statements[0] as LetPassageNode;
     expect(stmt.kind).toBe('let_decl');
     expect(stmt.letType).toBe('passage');
     expect(stmt.anchorPath).toContain('clase-logica');
@@ -152,7 +153,7 @@ describe('Parser — text layer', () => {
   it('parsea let formalize', () => {
     const parser = new Parser();
     const program = parser.parse('let phi = formalize p as (P -> Q)');
-    const stmt = program.statements[0] as LetDeclNode;
+    const stmt = program.statements[0] as LetFormalizeNode;
     expect(stmt.kind).toBe('let_decl');
     expect(stmt.letType).toBe('formalize');
     expect(stmt.passageName).toBe('p');

@@ -177,6 +177,15 @@ export class ParaconsistentBelnap implements LogicProfile {
     };
   }
 
+  explain(formula: Formula): RunResult {
+    return {
+      status: 'unknown',
+      output: `Logica de Belnap (4-valores): ${formulaToString(formula)}`,
+      diagnostics: [],
+      formula,
+    };
+  }
+
   private conjoin(formulas: Formula[]): Formula {
     if (formulas.length === 0) return { kind: 'atom', name: 'T' }; // Top
     if (formulas.length === 1) return formulas[0];

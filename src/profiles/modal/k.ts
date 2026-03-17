@@ -43,6 +43,7 @@ export class ModalK implements LogicProfile {
     return {
       status: !isClosed ? 'satisfiable' : 'unsatisfiable',
       output: !isClosed ? `SATISFACIBLE en K` : `INSATISFACIBLE en K`,
+      diagnostics: [],
       formula,
     };
   }
@@ -57,6 +58,7 @@ export class ModalK implements LogicProfile {
     return {
       status: isClosed ? 'provable' : 'refutable',
       output: isClosed ? 'DEMOSTRABLE' : 'NO demostrable',
+      diagnostics: [],
       formula: goal,
     };
   }
@@ -70,24 +72,36 @@ export class ModalK implements LogicProfile {
       { formula: goal, sign: false, world: 'w0' },
     ];
     const isClosed = this.solve(nodes, new Map([['w0', []]]));
-    return { status: isClosed ? 'provable' : 'refutable', output: 'Derivacion', formula: goal };
+    return {
+      status: isClosed ? 'provable' : 'refutable',
+      output: 'Derivacion',
+      diagnostics: [],
+      formula: goal,
+    };
   }
 
   countermodel(formula: Formula): RunResult {
     return this.checkValid(formula);
   }
 
-  /**
-   * Solucionador de Tableau Proposicional Modal (K).
-   */
+  explain(formula: Formula): RunResult {
+    return {
+      status: 'unknown',
+      output: `Logica Modal K: ${formulaToString(formula)}`,
+      diagnostics: [],
+      formula,
+    };
+  }
+
   private solve(
     nodes: TableauNode[],
     accessibility: Map<string, string[]>,
+    processed: Set<string> = new Set(),
     depth: number = 0,
   ): boolean {
-    if (depth > 100) return false;
+    if (depth > 50) return false;
 
-    // 1. Verificar contradicción
+    // 1. Contradicción
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         if (
@@ -100,7 +114,6 @@ export class ModalK implements LogicProfile {
       }
     }
 
-    // 2. Clasificar fórmulas
     const findType = (n: TableauNode) => {
       const f = n.formula;
       const s = n.sign;
@@ -127,12 +140,20 @@ export class ModalK implements LogicProfile {
     const { formula: f, sign: s, world: w } = node;
     const args = f.args || [];
 
+    const nodeKey = `${w}:${s}:${JSON.stringify(f)}`;
+    if (findType(node) !== 'gamma' && findType(node) !== 'atom' && processed.has(nodeKey)) {
+      return this.solve(rest, accessibility, processed, depth);
+    }
+    const newProcessed = new Set(processed);
+    if (findType(node) !== 'gamma' && findType(node) !== 'atom') newProcessed.add(nodeKey);
+
     switch (f.kind) {
       case 'not':
         if (!args[0]) return false;
         return this.solve(
           [{ formula: args[0], sign: !s, world: w }, ...rest],
           accessibility,
+          newProcessed,
           depth + 1,
         );
       case 'and':
@@ -145,6 +166,7 @@ export class ModalK implements LogicProfile {
               ...rest,
             ],
             accessibility,
+            newProcessed,
             depth + 1,
           );
         else
@@ -152,11 +174,13 @@ export class ModalK implements LogicProfile {
             this.solve(
               [{ formula: args[0], sign: false, world: w }, ...rest],
               accessibility,
+              newProcessed,
               depth + 1,
             ) &&
             this.solve(
               [{ formula: args[1], sign: false, world: w }, ...rest],
               accessibility,
+              newProcessed,
               depth + 1,
             )
           );
@@ -167,11 +191,13 @@ export class ModalK implements LogicProfile {
             this.solve(
               [{ formula: args[0], sign: true, world: w }, ...rest],
               accessibility,
+              newProcessed,
               depth + 1,
             ) &&
             this.solve(
               [{ formula: args[1], sign: true, world: w }, ...rest],
               accessibility,
+              newProcessed,
               depth + 1,
             )
           );
@@ -183,6 +209,7 @@ export class ModalK implements LogicProfile {
               ...rest,
             ],
             accessibility,
+            newProcessed,
             depth + 1,
           );
       case 'implies':
@@ -192,11 +219,13 @@ export class ModalK implements LogicProfile {
             this.solve(
               [{ formula: args[0], sign: false, world: w }, ...rest],
               accessibility,
+              newProcessed,
               depth + 1,
             ) &&
             this.solve(
               [{ formula: args[1], sign: true, world: w }, ...rest],
               accessibility,
+              newProcessed,
               depth + 1,
             )
           );
@@ -208,6 +237,7 @@ export class ModalK implements LogicProfile {
               ...rest,
             ],
             accessibility,
+            newProcessed,
             depth + 1,
           );
       case 'biconditional':
@@ -218,6 +248,7 @@ export class ModalK implements LogicProfile {
           return this.solve(
             [{ formula: f1, sign: true, world: w }, { formula: f2, sign: true, world: w }, ...rest],
             accessibility,
+            newProcessed,
             depth + 1,
           );
         } else {
@@ -233,53 +264,86 @@ export class ModalK implements LogicProfile {
             this.solve(
               [{ formula: f1, sign: true, world: w }, ...rest],
               accessibility,
+              newProcessed,
               depth + 1,
             ) &&
-            this.solve([{ formula: f2, sign: true, world: w }, ...rest], accessibility, depth + 1)
+            this.solve(
+              [{ formula: f2, sign: true, world: w }, ...rest],
+              accessibility,
+              newProcessed,
+              depth + 1,
+            )
           );
         }
       case 'modal_necessity': // []P
         if (!args[0]) return false;
         if (s) {
-          // Gamma: []P is true
+          // Gamma
           const nexts = accessibility.get(w) || [];
-          const instantiated = nexts.map((nw) => ({ formula: args[0], sign: true, world: nw }));
-          // Solo continuar si hay algo nuevo que instanciar o si rest tiene contenido
-          if (instantiated.length === 0 && rest.every((n) => findType(n) === 'gamma')) return false;
-          return this.solve([...rest, ...instantiated], accessibility, depth + 1);
+          const instantiated = nexts
+            .map((nw) => ({ formula: args[0]!, sign: true, world: nw }))
+            .filter((n) => !processed.has(`${n.world}:true:${JSON.stringify(n.formula)}`));
+
+          if (instantiated.length === 0) {
+            // Si no hay nada nuevo que instanciar, pasamos al siguiente pero guardamos []P para mundos futuros
+            return this.solve(rest, accessibility, newProcessed, depth);
+          }
+          const nextProcessed = new Set(processed);
+          instantiated.forEach((n) =>
+            nextProcessed.add(`${n.world}:true:${JSON.stringify(n.formula)}`),
+          );
+          return this.solve(
+            [...rest, ...instantiated, node],
+            accessibility,
+            nextProcessed,
+            depth + 1,
+          );
         } else {
-          // Delta: []P is false -> <>!P is true
+          // Delta
           const newW = `w${depth}_${Math.random().toString(36).substring(2, 5)}`;
           const newAcc = new Map(accessibility);
           newAcc.set(w, [...(accessibility.get(w) || []), newW]);
           newAcc.set(newW, []);
-          const gammas = nodes.filter((n) => findType(n) === 'gamma');
           return this.solve(
-            [{ formula: args[0], sign: false, world: newW }, ...rest, ...gammas],
+            [{ formula: args[0]!, sign: false, world: newW }, ...rest],
             newAcc,
+            newProcessed,
             depth + 1,
           );
         }
       case 'modal_possibility': // <>P
         if (!args[0]) return false;
         if (s) {
-          // Delta: <>P is true
+          // Delta
           const newW = `w${depth}_${Math.random().toString(36).substring(2, 5)}`;
           const newAcc = new Map(accessibility);
           newAcc.set(w, [...(accessibility.get(w) || []), newW]);
           newAcc.set(newW, []);
-          const gammas = nodes.filter((n) => findType(n) === 'gamma');
           return this.solve(
-            [{ formula: args[0], sign: true, world: newW }, ...rest, ...gammas],
+            [{ formula: args[0]!, sign: true, world: newW }, ...rest],
             newAcc,
+            newProcessed,
             depth + 1,
           );
         } else {
-          // Gamma: <>P is false -> []!P is true
+          // Gamma
           const nexts = accessibility.get(w) || [];
-          const instantiated = nexts.map((nw) => ({ formula: args[0], sign: false, world: nw }));
-          if (instantiated.length === 0 && rest.every((n) => findType(n) === 'gamma')) return false;
-          return this.solve([...rest, ...instantiated], accessibility, depth + 1);
+          const instantiated = nexts
+            .map((nw) => ({ formula: args[0]!, sign: false, world: nw }))
+            .filter((n) => !processed.has(`${n.world}:false:${JSON.stringify(n.formula)}`));
+
+          if (instantiated.length === 0)
+            return this.solve(rest, accessibility, newProcessed, depth);
+          const nextProcessed = new Set(processed);
+          instantiated.forEach((n) =>
+            nextProcessed.add(`${n.world}:false:${JSON.stringify(n.formula)}`),
+          );
+          return this.solve(
+            [...rest, ...instantiated, node],
+            accessibility,
+            nextProcessed,
+            depth + 1,
+          );
         }
     }
     return false;

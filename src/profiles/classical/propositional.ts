@@ -119,7 +119,8 @@ function formulasEqual(a: Formula, b: Formula): boolean {
   if (a.kind === 'atom' && b.kind === 'atom') return a.name === b.name;
   if (a.args && b.args) {
     if (a.args.length !== b.args.length) return false;
-    return a.args.every((arg, i) => formulasEqual(arg, b.args[i]));
+    const bArgs = b.args;
+    return a.args.every((arg, i) => formulasEqual(arg, bArgs[i]));
   }
   return false;
 }

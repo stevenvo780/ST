@@ -156,7 +156,7 @@ export interface TruthTableResult {
 
 export interface TruthTableRow {
   valuation: Valuation;
-  result: boolean;
+  result: boolean | string;
 }
 
 // --- Perfil lógico ---
