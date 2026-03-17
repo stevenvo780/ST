@@ -24,6 +24,8 @@ import {
   ConfidenceDeclNode,
   ContextDeclNode,
   RenderCmdNode,
+  AnalyzeCmdNode,
+  ExplainCmdNode,
 } from '../ast/nodes';
 
 export class Parser {
@@ -103,6 +105,10 @@ export class Parser {
         return this.parseContextDecl();
       case TokenType.RENDER:
         return this.parseRenderCmd();
+      case TokenType.ANALYZE:
+        return this.parseAnalyzeCmd();
+      case TokenType.EXPLAIN:
+        return this.parseExplainCmd();
       case TokenType.NEWLINE:
         this.advance();
         return null;
@@ -317,6 +323,32 @@ export class Parser {
       this.advance();
     }
     return { kind: 'render_cmd', target, format, source: src };
+  }
+
+  // analyze {P1, P2, ...} -> CONCLUSION
+  private parseAnalyzeCmd(): AnalyzeCmdNode {
+    const src = this.loc();
+    this.expect(TokenType.ANALYZE);
+    this.expect(TokenType.LBRACE);
+    const premises: Formula[] = [];
+    if (!this.checkType(TokenType.RBRACE)) {
+      premises.push(this.parseFormula());
+      while (this.match(TokenType.COMMA)) {
+        premises.push(this.parseFormula());
+      }
+    }
+    this.expect(TokenType.RBRACE);
+    this.expect(TokenType.ARROW);
+    const conclusion = this.parseFormula();
+    return { kind: 'analyze_cmd', premises, conclusion, source: src };
+  }
+
+  // explain FORMULA
+  private parseExplainCmd(): ExplainCmdNode {
+    const src = this.loc();
+    this.expect(TokenType.EXPLAIN);
+    const formula = this.parseFormula();
+    return { kind: 'explain_cmd', formula, source: src };
   }
 
   // --- Parsing de fórmulas (precedencia) ---

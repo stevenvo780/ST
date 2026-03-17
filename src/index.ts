@@ -44,6 +44,13 @@ export { ClassicalFirstOrder } from './profiles/classical/first-order';
 export { ModalK } from './profiles/modal/k';
 export { ParaconsistentBelnap } from './profiles/paraconsistent/belnap';
 
+// Formato / Unicode / LaTeX
+export { formulaToUnicode, formulaToLaTeX } from './runtime/format';
+
+// Detector de falacias
+export { detectFallacies } from './runtime/fallacies';
+export type { FallacyInfo } from './runtime/fallacies';
+
 // Text Layer
 export {
   TextLayerState,

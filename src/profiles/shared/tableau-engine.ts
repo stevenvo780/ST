@@ -121,7 +121,9 @@ export const FRAME_T: FrameRules = {
     if (!accessible.includes(source)) accessible.push(source);
     return accessible;
   },
-  deltaGammaWatchers: FRAME_K.deltaGammaWatchers,
+  deltaGammaWatchers(source, _newWorld, branch) {
+    return branch.gammaWatchers.filter((gw) => gw.sourceWorld === source);
+  },
 };
 
 /** S4: reflexivo + transitivo */
@@ -208,7 +210,10 @@ export function eliminateConnectives(f: Formula): Formula {
           { kind: 'and', args: [args[0], args[1]] },
           {
             kind: 'and',
-            args: [{ kind: 'not', args: [args[0]] }, { kind: 'not', args: [args[1]] }],
+            args: [
+              { kind: 'not', args: [args[0]] },
+              { kind: 'not', args: [args[1]] },
+            ],
           },
         ],
       };

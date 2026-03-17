@@ -14,7 +14,8 @@ import { FRAME_KD } from '../shared/tableau-engine';
 
 export class DeonticStandard extends BaseTableauProfile {
   name = 'deontic.standard';
-  description = 'Lógica deóntica estándar (KD) — obligación (O/[]), permisión (P/<>), prohibición (F/[]!)';
+  description =
+    'Lógica deóntica estándar (KD) — obligación (O/[]), permisión (P/<>), prohibición (F/[]!)';
   frameRules = FRAME_KD;
 
   formatFormula(f: Formula): string {

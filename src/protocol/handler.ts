@@ -311,6 +311,86 @@ export class ProtocolHandler {
         detail: 'Explicar fórmula paso a paso',
         insertText: 'explain ${1:formula}',
       },
+      {
+        label: 'analyze',
+        kind: 'keyword',
+        detail: 'Analizar argumento (detectar falacias)',
+        insertText: 'analyze {${1:premises}} -> ${2:conclusion}',
+      },
+
+      // ── Alias en español ────────────────────────────────────────
+      {
+        label: 'axioma',
+        kind: 'keyword',
+        detail: 'Declarar axioma (español)',
+        insertText: 'axioma ${1:nombre} : ${2:formula}',
+      },
+      {
+        label: 'teorema',
+        kind: 'keyword',
+        detail: 'Declarar teorema (español)',
+        insertText: 'teorema ${1:nombre} : ${2:formula}',
+      },
+      {
+        label: 'derivar',
+        kind: 'keyword',
+        detail: 'Derivar fórmula (español)',
+        insertText: 'derivar ${1:formula} desde {${2:premisas}}',
+      },
+      {
+        label: 'verificar valido',
+        kind: 'keyword',
+        detail: 'Verificar validez (español)',
+        insertText: 'verificar valido ${1:formula}',
+      },
+      {
+        label: 'verificar satisfacible',
+        kind: 'keyword',
+        detail: 'Verificar satisfacibilidad (español)',
+        insertText: 'verificar satisfacible ${1:formula}',
+      },
+      {
+        label: 'probar',
+        kind: 'keyword',
+        detail: 'Probar fórmula (español)',
+        insertText: 'probar ${1:formula}',
+      },
+      {
+        label: 'contramodelo',
+        kind: 'keyword',
+        detail: 'Buscar contramodelo (español)',
+        insertText: 'contramodelo ${1:formula}',
+      },
+      {
+        label: 'tabla_verdad',
+        kind: 'keyword',
+        detail: 'Tabla de verdad (español)',
+        insertText: 'tabla_verdad ${1:formula}',
+      },
+      {
+        label: 'explicar',
+        kind: 'keyword',
+        detail: 'Explicar fórmula (español)',
+        insertText: 'explicar ${1:formula}',
+      },
+      {
+        label: 'analizar',
+        kind: 'keyword',
+        detail: 'Analizar argumento (español)',
+        insertText: 'analizar {${1:premisas}} -> ${2:conclusion}',
+      },
+      {
+        label: 'paratodo',
+        kind: 'operator',
+        detail: 'Cuantificador universal ∀ (español)',
+        insertText: 'paratodo ${1:x} (${2:formula})',
+      },
+      {
+        label: 'existe',
+        kind: 'operator',
+        detail: 'Cuantificador existencial ∃ (español)',
+        insertText: 'existe ${1:x} (${2:formula})',
+      },
 
       // ── Capa textual ────────────────────────────────────────────
       {

@@ -19,7 +19,7 @@ const program = new Command();
 program
   .name('st')
   .description('ST — Lenguaje ejecutable con nucleo logico y capa textual')
-  .version('0.3.0');
+  .version('1.0.0');
 
 program
   .command('run')

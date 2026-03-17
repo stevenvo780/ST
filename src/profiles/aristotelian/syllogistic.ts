@@ -12,13 +12,7 @@
 // figuras y modos silogísticos.
 // ============================================================
 
-import {
-  Formula,
-  RunResult,
-  Theory,
-  LogicProfile,
-  Diagnostic,
-} from '../../types';
+import { Formula, RunResult, Theory, LogicProfile, Diagnostic } from '../../types';
 import { formulaToString } from '../classical/propositional';
 
 // ── Los 24 silogismos válidos por figura ────────────────────

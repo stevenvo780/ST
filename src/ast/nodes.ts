@@ -22,7 +22,9 @@ export type StatementKind =
   | 'support_decl'
   | 'confidence_decl'
   | 'context_decl'
-  | 'render_cmd';
+  | 'render_cmd'
+  | 'analyze_cmd'
+  | 'explain_cmd';
 
 export interface ASTNode {
   kind: StatementKind;
@@ -94,6 +96,17 @@ export interface RenderCmdNode extends ASTNode {
   format: string;
 }
 
+export interface AnalyzeCmdNode extends ASTNode {
+  kind: 'analyze_cmd';
+  premises: Formula[];
+  conclusion: Formula;
+}
+
+export interface ExplainCmdNode extends ASTNode {
+  kind: 'explain_cmd';
+  formula: Formula;
+}
+
 // --- Text Layer ---
 
 export interface LetPassageNode extends ASTNode {
@@ -157,7 +170,9 @@ export type Statement =
   | SupportDeclNode
   | ConfidenceDeclNode
   | ContextDeclNode
-  | RenderCmdNode;
+  | RenderCmdNode
+  | AnalyzeCmdNode
+  | ExplainCmdNode;
 
 export interface Program {
   statements: Statement[];

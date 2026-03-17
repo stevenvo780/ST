@@ -43,9 +43,7 @@ export abstract class BaseTableauProfile implements LogicProfile {
     const fStr = this.formatFormula(formula);
     return {
       status: valid ? 'valid' : 'invalid',
-      output: valid
-        ? `${fStr} es VÁLIDA en ${this.name}`
-        : `${fStr} NO es válida en ${this.name}`,
+      output: valid ? `${fStr} es VÁLIDA en ${this.name}` : `${fStr} NO es válida en ${this.name}`,
       diagnostics: [],
       formula,
     };

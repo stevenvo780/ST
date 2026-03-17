@@ -32,9 +32,13 @@ import {
   ConfidenceDeclNode,
   ContextDeclNode,
   RenderCmdNode,
+  AnalyzeCmdNode,
+  ExplainCmdNode,
 } from '../ast/nodes';
 import { registry } from '../profiles/interface';
 import { formulaToString } from '../profiles/classical/propositional';
+import { formulaToUnicode } from './format';
+import { detectFallacies, FallacyInfo } from './fallacies';
 // Barrel import: registra todos los perfiles automáticamente
 import '../profiles';
 import {
@@ -206,6 +210,10 @@ export class Interpreter {
         return this.execContextDecl(stmt);
       case 'render_cmd':
         return this.execRenderCmd(stmt);
+      case 'analyze_cmd':
+        return this.execAnalyzeCmd(stmt);
+      case 'explain_cmd':
+        return this.execExplainCmd(stmt);
     }
   }
 
@@ -362,6 +370,66 @@ export class Interpreter {
     this.emit(`Render: ${stmt.target} (format: ${stmt.format})`);
   }
 
+  private execAnalyzeCmd(stmt: AnalyzeCmdNode): void {
+    const profile = this.requireProfile();
+    const premises = stmt.premises;
+    const conclusion = stmt.conclusion;
+    const fallacies = detectFallacies(premises, conclusion, profile);
+    const pStr = premises.map((p) => formulaToUnicode(p)).join(', ');
+    const cStr = formulaToUnicode(conclusion);
+
+    if (fallacies.length === 0) {
+      // Check if the inference is valid
+      const conj: Formula =
+        premises.length === 0
+          ? conclusion
+          : premises.length === 1
+            ? premises[0]
+            : premises.reduce<Formula>((a, b) => ({ kind: 'and', args: [a, b] }), premises[0]);
+      const impl: Formula =
+        premises.length === 0 ? conclusion : { kind: 'implies', args: [conj, conclusion] };
+      const result = profile.checkValid(impl);
+      if (result.status === 'valid') {
+        this.emit(`✓ [analyze] {${pStr}} → ${cStr}`);
+        this.emit('  Inferencia VÁLIDA — no se detectaron falacias');
+      } else {
+        this.emit(`⚠ [analyze] {${pStr}} → ${cStr}`);
+        this.emit('  Inferencia NO VÁLIDA — pero no corresponde a un patrón de falacia conocido');
+      }
+      const result2: RunResult = {
+        status: result.status,
+        output: result.output,
+        diagnostics: [],
+        formula: conclusion,
+      };
+      this.results.push(result2);
+    } else {
+      this.emit(`⚠ [analyze] {${pStr}} → ${cStr}`);
+      for (const f of fallacies) {
+        this.emit(`  ⚠ Falacia detectada: ${f.name}`);
+        this.emit(`    ${f.description}`);
+        if (f.pattern) this.emit(`    Patrón: ${f.pattern}`);
+      }
+      const result: RunResult = {
+        status: 'invalid',
+        output: `Falacias detectadas: ${fallacies.map((f: FallacyInfo) => f.name).join(', ')}`,
+        diagnostics: fallacies.map((f: FallacyInfo) => ({
+          severity: 'warning' as const,
+          message: `Falacia: ${f.name} — ${f.description}`,
+        })),
+        formula: conclusion,
+      };
+      this.results.push(result);
+    }
+  }
+
+  private execExplainCmd(stmt: ExplainCmdNode): void {
+    const profile = this.requireProfile();
+    const result = profile.explain(stmt.formula);
+    this.results.push(result);
+    if (result.output) this.emit(result.output);
+  }
+
   // --- Output helpers ---
 
   private emit(msg: string): void {
@@ -378,7 +446,7 @@ export class Interpreter {
       for (const step of proof.steps) {
         const premisesStr = step.premises.length > 0 ? ` [de ${step.premises.join(', ')}]` : '';
         this.emit(
-          `    ${step.stepNumber}. ${formulaToString(step.formula)}  — ${step.justification}${premisesStr}`,
+          `    ${step.stepNumber}. ${formulaToUnicode(step.formula)}  — ${step.justification}${premisesStr}`,
         );
       }
     }

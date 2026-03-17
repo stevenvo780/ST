@@ -23,7 +23,7 @@ export class REPL {
       terminal: true,
     });
 
-    console.log('ST REPL v0.1.0');
+    console.log('ST REPL v1.0.0');
     console.log('Lenguaje ejecutable con nucleo logico y capa textual');
     console.log('Escribe :help para ver comandos. :quit para salir.\n');
 
@@ -160,6 +160,8 @@ Sintaxis ST:
   prove <formula> from {p1, p2, ...}     Probar formula
   countermodel <formula>                 Buscar contramodelo
   truth_table <formula>                  Tabla de verdad
+  explain <formula>                      Explicar formula (pedagogico)
+  analyze {p1, p2} -> conclusion         Analizar argumento / detectar falacias
 
   let <nombre> = passage([[path]])       Declarar pasaje
   let <nombre> = formalize p as F        Formalizar pasaje
@@ -168,14 +170,22 @@ Sintaxis ST:
   confidence <claim> = <0..1>            Registrar confianza
   context <claim> = "texto"              Registrar contexto
 
+Alias en espanol:
+  axioma, teorema, derivar...desde, verificar, probar,
+  contramodelo, tabla_verdad, explicar, analizar,
+  paratodo (forall), existe (exists)
+
 Formulas:
   P, Q, R       Atomos proposicionales
-  !P             Negacion
-  P & Q          Conjuncion
-  P | Q          Disyuncion
-  P -> Q         Implicacion
-  P <-> Q        Bicondicional
-  (P -> Q)       Agrupacion con parentesis
+  !P             Negacion  (¬)
+  P & Q          Conjuncion (∧)
+  P | Q          Disyuncion (∨)
+  P -> Q         Implicacion (→)
+  P <-> Q        Bicondicional (↔)
+  [](P)          Necesidad / Obligacion / Siempre (□)
+  <>(P)          Posibilidad / Permision / Eventualmente (◇)
+  forall x (Fx)  Universal (∀)
+  exists x (Fx)  Existencial (∃)
 `);
   }
 

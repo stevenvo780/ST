@@ -96,7 +96,7 @@ function evalProb(f: Formula, v: ProbAssignment): number {
       const isTrue = !!(mask & (1 << i));
       bools[atoms[i]] = isTrue;
       const p = v[atoms[i]] ?? 0.5;
-      pAssignment *= isTrue ? p : (1 - p);
+      pAssignment *= isTrue ? p : 1 - p;
     }
     if (boolEval(f, bools)) prob += pAssignment;
   }
@@ -142,8 +142,7 @@ function generateProbAssignments(atoms: string[]): ProbAssignment[] {
 
 export class ProbabilisticBasic implements LogicProfile {
   name = 'probabilistic.basic';
-  description =
-    'Razonamiento probabilístico básico — probabilidades [0,1], independencia, Bayes';
+  description = 'Razonamiento probabilístico básico — probabilidades [0,1], independencia, Bayes';
 
   checkWellFormed(formula: Formula): Diagnostic[] {
     const diags: Diagnostic[] = [];

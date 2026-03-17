@@ -27,6 +27,8 @@ export enum TokenType {
   RENDER = 'RENDER',
   FORALL = 'FORALL',
   EXISTS = 'EXISTS',
+  ANALYZE = 'ANALYZE',
+  EXPLAIN = 'EXPLAIN',
 
   // Operators
   ARROW = 'ARROW', // ->
@@ -76,6 +78,7 @@ export interface Token {
 }
 
 export const KEYWORDS: Record<string, TokenType> = {
+  // ── English keywords ───────────────────────────────────────
   logic: TokenType.LOGIC,
   axiom: TokenType.AXIOM,
   theorem: TokenType.THEOREM,
@@ -99,4 +102,33 @@ export const KEYWORDS: Record<string, TokenType> = {
   render: TokenType.RENDER,
   forall: TokenType.FORALL,
   exists: TokenType.EXISTS,
+  analyze: TokenType.ANALYZE,
+  explain: TokenType.EXPLAIN,
+
+  // ── Spanish aliases (aliases en español) ───────────────────
+  logica: TokenType.LOGIC,
+  axioma: TokenType.AXIOM,
+  teorema: TokenType.THEOREM,
+  derivar: TokenType.DERIVE,
+  desde: TokenType.FROM,
+  verificar: TokenType.CHECK,
+  valido: TokenType.VALID,
+  satisfacible: TokenType.SATISFIABLE,
+  equivalente: TokenType.EQUIVALENT,
+  probar: TokenType.PROVE,
+  contramodelo: TokenType.COUNTERMODEL,
+  tabla_verdad: TokenType.TRUTH_TABLE,
+  sea: TokenType.LET,
+  pasaje: TokenType.PASSAGE,
+  formalizar: TokenType.FORMALIZE,
+  como: TokenType.AS,
+  afirmacion: TokenType.CLAIM,
+  soporte: TokenType.SUPPORT,
+  confianza: TokenType.CONFIDENCE,
+  contexto: TokenType.CONTEXT,
+  mostrar: TokenType.RENDER,
+  paratodo: TokenType.FORALL,
+  existe: TokenType.EXISTS,
+  analizar: TokenType.ANALYZE,
+  explicar: TokenType.EXPLAIN,
 };
