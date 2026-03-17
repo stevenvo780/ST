@@ -2,7 +2,7 @@
 // ST Profile Interface — Interfaz base para perfiles lógicos
 // ============================================================
 
-import { Formula, Diagnostic, RunResult, Theory, LogicProfile, TruthTableResult } from '../types';
+import { LogicProfile } from '../types';
 
 export { LogicProfile };
 

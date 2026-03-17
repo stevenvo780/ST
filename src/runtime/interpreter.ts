@@ -3,7 +3,6 @@
 // ============================================================
 
 import {
-  Formula,
   Theory,
   Diagnostic,
   RunResult,
@@ -11,10 +10,27 @@ import {
   LogicProfile,
   Claim,
   TruthTableResult,
-  Valuation,
 } from '../types';
 import { Parser } from '../parser/parser';
-import { Program, Statement } from '../ast/nodes';
+import {
+  Statement,
+  LogicDeclNode,
+  AxiomDeclNode,
+  TheoremDeclNode,
+  DeriveCmdNode,
+  CheckValidCmdNode,
+  CheckSatisfiableCmdNode,
+  CheckEquivalentCmdNode,
+  ProveCmdNode,
+  CountermodelCmdNode,
+  TruthTableCmdNode,
+  LetDeclNode,
+  ClaimDeclNode,
+  SupportDeclNode,
+  ConfidenceDeclNode,
+  ContextDeclNode,
+  RenderCmdNode,
+} from '../ast/nodes';
 import { registry } from '../profiles/interface';
 import { ClassicalPropositional, formulaToString } from '../profiles/classical/propositional';
 import { ClassicalFirstOrder } from '../profiles/classical/first-order';
@@ -106,10 +122,11 @@ export class Interpreter {
     for (const stmt of program.statements) {
       try {
         this.executeStatement(stmt);
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
         this.diagnostics.push({
           severity: 'error',
-          message: e.message || 'Error de runtime',
+          message: message || 'Error de runtime',
           file,
           line: stmt.source.line,
           column: stmt.source.column,
@@ -151,10 +168,11 @@ export class Interpreter {
     for (const stmt of program.statements) {
       try {
         this.executeStatement(stmt);
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
         this.diagnostics.push({
           severity: 'error',
-          message: e.message || 'Error de runtime',
+          message: message || 'Error de runtime',
         });
       }
     }
@@ -215,7 +233,7 @@ export class Interpreter {
     return this.profile;
   }
 
-  private execLogicDecl(stmt: any): void {
+  private execLogicDecl(stmt: LogicDeclNode): void {
     const p = registry.get(stmt.profile);
     if (!p) {
       throw new Error(
@@ -227,44 +245,44 @@ export class Interpreter {
     this.emit(`Perfil logico: ${stmt.profile}`);
   }
 
-  private execAxiomDecl(stmt: any): void {
-    this.requireProfile();
-    const diags = this.profile!.checkWellFormed(stmt.formula);
+  private execAxiomDecl(stmt: AxiomDeclNode): void {
+    const profile = this.requireProfile();
+    const diags = profile.checkWellFormed(stmt.formula);
     this.diagnostics.push(...diags);
     this.theory.axioms.set(stmt.name, stmt.formula);
     this.emit(`Axioma ${stmt.name} = ${formulaToString(stmt.formula)}`);
   }
 
-  private execTheoremDecl(stmt: any): void {
-    this.requireProfile();
-    const diags = this.profile!.checkWellFormed(stmt.formula);
+  private execTheoremDecl(stmt: TheoremDeclNode): void {
+    const profile = this.requireProfile();
+    const diags = profile.checkWellFormed(stmt.formula);
     this.diagnostics.push(...diags);
     this.theory.theorems.set(stmt.name, stmt.formula);
     this.emit(`Teorema ${stmt.name} = ${formulaToString(stmt.formula)}`);
   }
 
-  private execDeriveCmd(stmt: any): void {
+  private execDeriveCmd(stmt: DeriveCmdNode): void {
     const profile = this.requireProfile();
     const result = profile.derive(stmt.goal, stmt.premises, this.theory);
     this.results.push(result);
     this.emitResult('derive', result);
   }
 
-  private execCheckValidCmd(stmt: any): void {
+  private execCheckValidCmd(stmt: CheckValidCmdNode): void {
     const profile = this.requireProfile();
     const result = profile.checkValid(stmt.formula);
     this.results.push(result);
     this.emitResult('check valid', result);
   }
 
-  private execCheckSatisfiableCmd(stmt: any): void {
+  private execCheckSatisfiableCmd(stmt: CheckSatisfiableCmdNode): void {
     const profile = this.requireProfile();
     const result = profile.checkSatisfiable(stmt.formula);
     this.results.push(result);
     this.emitResult('check satisfiable', result);
   }
 
-  private execCheckEquivalentCmd(stmt: any): void {
+  private execCheckEquivalentCmd(stmt: CheckEquivalentCmdNode): void {
     const profile = this.requireProfile();
     if (!profile.checkEquivalent) {
       throw new Error('Este perfil no soporta check equivalent');
@@ -274,21 +292,21 @@ export class Interpreter {
     this.emitResult('check equivalent', result);
   }
 
-  private execProveCmd(stmt: any): void {
+  private execProveCmd(stmt: ProveCmdNode): void {
     const profile = this.requireProfile();
     const result = profile.prove(stmt.goal, this.theory);
     this.results.push(result);
     this.emitResult('prove', result);
   }
 
-  private execCountermodelCmd(stmt: any): void {
+  private execCountermodelCmd(stmt: CountermodelCmdNode): void {
     const profile = this.requireProfile();
     const result = profile.countermodel(stmt.formula);
     this.results.push(result);
     this.emitResult('countermodel', result);
   }
 
-  private execTruthTableCmd(stmt: any): void {
+  private execTruthTableCmd(stmt: TruthTableCmdNode): void {
     const profile = this.requireProfile();
     if (!profile.truthTable) {
       throw new Error('Este perfil no soporta truth_table');
@@ -302,15 +320,15 @@ export class Interpreter {
       formula: stmt.formula,
     };
     this.results.push(result);
-    this.emit(result.output!);
+    if (result.output) this.emit(result.output);
   }
 
-  private execLetDecl(stmt: any): void {
-    if (stmt.letType === 'passage') {
+  private execLetDecl(stmt: LetDeclNode): void {
+    if (stmt.letType === 'passage' && stmt.anchorPath) {
       const diags = registerPassage(this.textLayer, stmt.name, stmt.anchorPath);
       this.diagnostics.push(...diags);
       this.emit(`Passage ${stmt.name} = [[${stmt.anchorPath}]]`);
-    } else if (stmt.letType === 'formalize') {
+    } else if (stmt.letType === 'formalize' && stmt.passageName && stmt.formula) {
       const diags = registerFormalization(
         this.textLayer,
         stmt.name,
@@ -324,35 +342,40 @@ export class Interpreter {
     }
   }
 
-  private execClaimDecl(stmt: any): void {
-    const diags = registerClaim(this.textLayer, stmt.name, stmt.formula, stmt.value);
+  private execClaimDecl(stmt: ClaimDeclNode): void {
+    const formula = stmt.formula as Formula;
+    const diags = registerClaim(this.textLayer, stmt.name, formula, stmt.formalization);
     this.diagnostics.push(...diags);
 
     // También agregar al theory.claims
-    const claim: Claim = { name: stmt.name, formula: stmt.formula };
+    const claim: Claim = {
+      name: stmt.name,
+      formula: formula,
+      formalization: stmt.formalization,
+    };
     this.theory.claims.set(stmt.name, claim);
     this.emit(`Claim ${stmt.name} registrado`);
   }
 
-  private execSupportDecl(stmt: any): void {
+  private execSupportDecl(stmt: SupportDeclNode): void {
     const diags = registerSupport(this.textLayer, stmt.claimName, stmt.sourceName);
     this.diagnostics.push(...diags);
     this.emit(`Support: ${stmt.claimName} <- ${stmt.sourceName}`);
   }
 
-  private execConfidenceDecl(stmt: any): void {
+  private execConfidenceDecl(stmt: ConfidenceDeclNode): void {
     const diags = registerConfidence(this.textLayer, stmt.claimName, stmt.value);
     this.diagnostics.push(...diags);
     this.emit(`Confidence: ${stmt.claimName} = ${stmt.value}`);
   }
 
-  private execContextDecl(stmt: any): void {
+  private execContextDecl(stmt: ContextDeclNode): void {
     const diags = registerContext(this.textLayer, stmt.claimName, stmt.text);
     this.diagnostics.push(...diags);
     this.emit(`Context: ${stmt.claimName} = "${stmt.text}"`);
   }
 
-  private execRenderCmd(stmt: any): void {
+  private execRenderCmd(stmt: RenderCmdNode): void {
     // Compilar claims y renderizar
     const diags = compileClaimsToTheory(this.textLayer, this.theory);
     this.diagnostics.push(...diags);
@@ -382,7 +405,7 @@ export class Interpreter {
     if (result.model && result.model.valuation) {
       this.emit('  Modelo:');
       for (const [k, v] of Object.entries(result.model.valuation)) {
-        this.emit(`    ${k} = ${v}`);
+        this.emit(`    ${k} = ${String(v)}`);
       }
     }
   }

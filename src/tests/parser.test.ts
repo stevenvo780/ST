@@ -4,6 +4,14 @@
 
 import { describe, it, expect } from 'vitest';
 import { Parser } from '../parser/parser';
+import {
+  LogicDeclNode,
+  AxiomDeclNode,
+  DeriveCmdNode,
+  LetDeclNode,
+  ConfidenceDeclNode,
+  ContextDeclNode,
+} from '../ast/nodes';
 
 describe('Parser — logic declaration', () => {
   it('parsea logic classical.propositional', () => {
@@ -11,7 +19,7 @@ describe('Parser — logic declaration', () => {
     const program = parser.parse('logic classical.propositional');
     expect(program.statements.length).toBe(1);
     expect(program.statements[0].kind).toBe('logic_decl');
-    expect((program.statements[0] as any).profile).toBe('classical.propositional');
+    expect((program.statements[0] as LogicDeclNode).profile).toBe('classical.propositional');
   });
 });
 
@@ -21,14 +29,14 @@ describe('Parser — axiom declaration', () => {
     const program = parser.parse('axiom a1 = P');
     expect(program.statements.length).toBe(1);
     expect(program.statements[0].kind).toBe('axiom_decl');
-    expect((program.statements[0] as any).name).toBe('a1');
+    expect((program.statements[0] as AxiomDeclNode).name).toBe('a1');
   });
 
   it('parsea axiom con implicacion', () => {
     const parser = new Parser();
     const program = parser.parse('axiom a1 = P -> Q');
     expect(program.statements.length).toBe(1);
-    const f = (program.statements[0] as any).formula;
+    const f = (program.statements[0] as AxiomDeclNode).formula;
     expect(f.kind).toBe('implies');
   });
 });
@@ -37,55 +45,55 @@ describe('Parser — formulas', () => {
   it('parsea negacion', () => {
     const parser = new Parser();
     const program = parser.parse('axiom a = !P');
-    const f = (program.statements[0] as any).formula;
+    const f = (program.statements[0] as AxiomDeclNode).formula;
     expect(f.kind).toBe('not');
-    expect(f.args[0].kind).toBe('atom');
+    expect(f.args?.[0].kind).toBe('atom');
   });
 
   it('parsea conjuncion', () => {
     const parser = new Parser();
     const program = parser.parse('axiom a = P & Q');
-    const f = (program.statements[0] as any).formula;
+    const f = (program.statements[0] as AxiomDeclNode).formula;
     expect(f.kind).toBe('and');
   });
 
   it('parsea disyuncion', () => {
     const parser = new Parser();
     const program = parser.parse('axiom a = P | Q');
-    const f = (program.statements[0] as any).formula;
+    const f = (program.statements[0] as AxiomDeclNode).formula;
     expect(f.kind).toBe('or');
   });
 
   it('parsea bicondicional', () => {
     const parser = new Parser();
     const program = parser.parse('axiom a = P <-> Q');
-    const f = (program.statements[0] as any).formula;
+    const f = (program.statements[0] as AxiomDeclNode).formula;
     expect(f.kind).toBe('biconditional');
   });
 
   it('respeta precedencia: & antes que |', () => {
     const parser = new Parser();
     const program = parser.parse('axiom a = P | Q & R');
-    const f = (program.statements[0] as any).formula;
+    const f = (program.statements[0] as AxiomDeclNode).formula;
     // Debe ser P | (Q & R), no (P | Q) & R
     expect(f.kind).toBe('or');
-    expect(f.args[1].kind).toBe('and');
+    expect(f.args?.[1].kind).toBe('and');
   });
 
   it('parsea parentesis', () => {
     const parser = new Parser();
     const program = parser.parse('axiom a = (P | Q) & R');
-    const f = (program.statements[0] as any).formula;
+    const f = (program.statements[0] as AxiomDeclNode).formula;
     expect(f.kind).toBe('and');
-    expect(f.args[0].kind).toBe('or');
+    expect(f.args?.[0].kind).toBe('or');
   });
 
   it('asocia implicacion a la derecha', () => {
     const parser = new Parser();
     const program = parser.parse('axiom a = P -> Q -> R');
-    const f = (program.statements[0] as any).formula;
+    const f = (program.statements[0] as AxiomDeclNode).formula;
     expect(f.kind).toBe('implies');
-    expect(f.args[1].kind).toBe('implies');
+    expect(f.args?.[1].kind).toBe('implies');
   });
 });
 
@@ -95,7 +103,7 @@ describe('Parser — commands', () => {
     const program = parser.parse('derive Q from {a1, a2}');
     expect(program.statements.length).toBe(1);
     expect(program.statements[0].kind).toBe('derive_cmd');
-    expect((program.statements[0] as any).premises.length).toBe(2);
+    expect((program.statements[0] as DeriveCmdNode).premises.length).toBe(2);
   });
 
   it('parsea check valid', () => {
@@ -135,7 +143,7 @@ describe('Parser — text layer', () => {
     const parser = new Parser();
     const program = parser.parse('let p = passage([[clase-logica.md#b8]])');
     expect(program.statements.length).toBe(1);
-    const stmt = program.statements[0] as any;
+    const stmt = program.statements[0] as LetDeclNode;
     expect(stmt.kind).toBe('let_decl');
     expect(stmt.letType).toBe('passage');
     expect(stmt.anchorPath).toContain('clase-logica');
@@ -144,7 +152,7 @@ describe('Parser — text layer', () => {
   it('parsea let formalize', () => {
     const parser = new Parser();
     const program = parser.parse('let phi = formalize p as (P -> Q)');
-    const stmt = program.statements[0] as any;
+    const stmt = program.statements[0] as LetDeclNode;
     expect(stmt.kind).toBe('let_decl');
     expect(stmt.letType).toBe('formalize');
     expect(stmt.passageName).toBe('p');
@@ -159,7 +167,7 @@ describe('Parser — text layer', () => {
   it('parsea confidence', () => {
     const parser = new Parser();
     const program = parser.parse('confidence c1 = 0.84');
-    const stmt = program.statements[0] as any;
+    const stmt = program.statements[0] as ConfidenceDeclNode;
     expect(stmt.kind).toBe('confidence_decl');
     expect(stmt.value).toBe(0.84);
   });
@@ -167,7 +175,7 @@ describe('Parser — text layer', () => {
   it('parsea context', () => {
     const parser = new Parser();
     const program = parser.parse('context c1 = "contexto de ejemplo"');
-    const stmt = program.statements[0] as any;
+    const stmt = program.statements[0] as ContextDeclNode;
     expect(stmt.kind).toBe('context_decl');
     expect(stmt.text).toBe('contexto de ejemplo');
   });

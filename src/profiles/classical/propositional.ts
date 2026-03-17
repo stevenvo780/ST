@@ -71,7 +71,7 @@ function generateValuations(atoms: string[]): Valuation[] {
   if (n > 20) throw new Error('Demasiadas variables para tabla de verdad (>20)');
 
   const total = 1 << n;
-  const valuations: Valuation[] = new Array(total);
+  const valuations: Valuation[] = new Array<Valuation>(total);
   for (let i = 0; i < total; i++) {
     const v: Valuation = {};
     for (let j = 0; j < n; j++) {

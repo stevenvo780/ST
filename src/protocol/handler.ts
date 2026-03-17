@@ -5,16 +5,14 @@
 import {
   ProtocolRequest,
   ProtocolResponse,
-  Diagnostic,
   SymbolInfo,
   HoverInfo,
   CompletionItem,
-  RunResult,
-  SourceLocation,
+  ExecutionOutput,
 } from '../types';
 import { Parser } from '../parser/parser';
 import { Interpreter } from '../runtime/interpreter';
-import { Program, Statement } from '../ast/nodes';
+import { Statement } from '../ast/nodes';
 import { formulaToString } from '../profiles/classical/propositional';
 
 export class ProtocolHandler {
@@ -99,7 +97,6 @@ export class ProtocolHandler {
   private handleHover(request: ProtocolRequest): ProtocolResponse {
     const source = request.params.source as string;
     const line = request.params.line as number;
-    const column = request.params.column as number;
     const file = (request.params.file as string) || '<stdin>';
 
     const parser = new Parser(file);
@@ -170,7 +167,7 @@ export class ProtocolHandler {
     const program = parser.parse(source);
 
     for (const stmt of program.statements) {
-      if ('name' in stmt && (stmt as any).name === name) {
+      if ('name' in stmt && (stmt as { name: string }).name === name) {
         return { id: request.id, result: stmt.source };
       }
     }
@@ -310,7 +307,7 @@ export class ProtocolHandler {
     }
   }
 
-  private renderOutput(output: any, format: string): string {
+  private renderOutput(output: ExecutionOutput, format: string): string {
     if (format === 'json') {
       return JSON.stringify(output, null, 2);
     }

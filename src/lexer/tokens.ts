@@ -25,6 +25,8 @@ export enum TokenType {
   CONFIDENCE = 'CONFIDENCE',
   CONTEXT = 'CONTEXT',
   RENDER = 'RENDER',
+  FORALL = 'FORALL',
+  EXISTS = 'EXISTS',
 
   // Operators
   ARROW = 'ARROW', // ->
@@ -55,6 +57,10 @@ export enum TokenType {
   COLON = 'COLON', // :
   HASH = 'HASH', // #
   DOT = 'DOT', // .
+
+  // Modal Operators
+  BOX = 'BOX', // []
+  DIAMOND = 'DIAMOND', // <>
 
   // Special
   NEWLINE = 'NEWLINE',
@@ -91,4 +97,6 @@ export const KEYWORDS: Record<string, TokenType> = {
   confidence: TokenType.CONFIDENCE,
   context: TokenType.CONTEXT,
   render: TokenType.RENDER,
+  forall: TokenType.FORALL,
+  exists: TokenType.EXISTS,
 };

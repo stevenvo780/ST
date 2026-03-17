@@ -1,82 +1,235 @@
 // ============================================================
-// ST Classical First-Order — Stub (contrato definido)
+// ST Classical First-Order — Motor de Primer Orden (Corregido)
 // ============================================================
 
-import {
-  Formula,
-  Diagnostic,
-  RunResult,
-  Theory,
-  LogicProfile,
-  TruthTableResult,
-} from '../../types';
+import { Formula, Diagnostic, RunResult, Theory, LogicProfile } from '../../types';
 import { formulaToString } from './propositional';
+
+interface FOTableauNode {
+  formula: Formula;
+  sign: boolean;
+}
 
 export class ClassicalFirstOrder implements LogicProfile {
   name = 'classical.first_order';
   description =
-    'Logica clasica de primer orden con igualdad (stub — contrato definido, motor pendiente)';
+    'Logica clasica de primer orden (FOL) con soporte para predicados y cuantificadores';
 
   checkWellFormed(formula: Formula): Diagnostic[] {
-    return [];
+    const diags: Diagnostic[] = [];
+    const check = (f: Formula) => {
+      switch (f.kind) {
+        case 'predicate':
+          if (!f.name) diags.push({ severity: 'error', message: 'Predicado sin nombre' });
+          break;
+        case 'forall':
+        case 'exists':
+          if (!f.variable) diags.push({ severity: 'error', message: 'Cuantificador sin variable' });
+          if (f.args) f.args.forEach(check);
+          break;
+        default:
+          if (f.args) f.args.forEach(check);
+      }
+    };
+    check(formula);
+    return diags;
   }
 
   checkValid(formula: Formula): RunResult {
+    const isClosed = this.solve([{ formula, sign: false }], new Set(['c0']));
     return {
-      status: 'unknown',
-      output: `[classical.first_order] Motor no implementado aun. Formula: ${formulaToString(formula)}`,
-      diagnostics: [
-        {
-          severity: 'warning',
-          message: 'Perfil classical.first_order aun no tiene motor completo',
-        },
-      ],
+      status: isClosed ? 'valid' : 'unknown',
+      output: isClosed
+        ? `${formulaToString(formula)} es VALIDA en FOL`
+        : `${formulaToString(formula)} no se pudo demostrar valida`,
+      diagnostics: [],
       formula,
     };
   }
 
   checkSatisfiable(formula: Formula): RunResult {
+    const isClosed = this.solve([{ formula, sign: true }], new Set(['c0']));
     return {
-      status: 'unknown',
-      output: `[classical.first_order] Motor no implementado aun`,
-      diagnostics: [{ severity: 'warning', message: 'Motor no implementado' }],
+      status: !isClosed ? 'satisfiable' : 'unsatisfiable',
+      output: !isClosed ? `SATISFACIBLE` : `INSATISFACIBLE`,
       formula,
     };
   }
 
   prove(goal: Formula, theory: Theory): RunResult {
+    const axioms = Array.from(theory.axioms.values());
+    const nodes: FOTableauNode[] = [
+      ...axioms.map((a) => ({ formula: a, sign: true })),
+      { formula: goal, sign: false },
+    ];
+    const isClosed = this.solve(nodes, new Set(['c0']));
     return {
-      status: 'unknown',
-      output: `[classical.first_order] prove no implementado aun`,
-      diagnostics: [{ severity: 'warning', message: 'Motor no implementado' }],
+      status: isClosed ? 'provable' : 'refutable',
+      output: isClosed ? 'DEMOSTRABLE' : 'NO demostrable',
       formula: goal,
     };
   }
 
   derive(goal: Formula, premises: string[], theory: Theory): RunResult {
+    const premiseFormulas = premises.map((p) => theory.axioms.get(p)!).filter((f) => f);
+    const nodes: FOTableauNode[] = [
+      ...premiseFormulas.map((a) => ({ formula: a, sign: true })),
+      { formula: goal, sign: false },
+    ];
     return {
-      status: 'unknown',
-      output: `[classical.first_order] derive no implementado aun`,
-      diagnostics: [{ severity: 'warning', message: 'Motor no implementado' }],
+      status: this.solve(nodes, new Set(['c0'])) ? 'provable' : 'refutable',
+      output: `Derivacion`,
       formula: goal,
     };
   }
 
   countermodel(formula: Formula): RunResult {
-    return {
-      status: 'unknown',
-      output: `[classical.first_order] countermodel no implementado aun`,
-      diagnostics: [{ severity: 'warning', message: 'Motor no implementado' }],
-      formula,
-    };
+    return this.checkValid(formula);
   }
 
-  explain(formula: Formula): RunResult {
-    return {
-      status: 'unknown',
-      output: `[classical.first_order] explain no implementado aun`,
-      diagnostics: [{ severity: 'warning', message: 'Motor no implementado' }],
-      formula,
+  private solve(nodes: FOTableauNode[], constants: Set<string>, depth: number = 0): boolean {
+    if (depth > 50) return false;
+
+    // 1. Contradicción
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        if (nodes[i].sign === !nodes[j].sign && this.isEqual(nodes[i].formula, nodes[j].formula)) {
+          return true;
+        }
+      }
+    }
+
+    const findType = (n: FOTableauNode) => {
+      const f = n.formula;
+      const s = n.sign;
+      if (f.kind === 'not') return 'alfa';
+      if (f.kind === 'and') return s ? 'alfa' : 'beta';
+      if (f.kind === 'or') return s ? 'beta' : 'alfa';
+      if (f.kind === 'implies') return s ? 'beta' : 'alfa';
+      if (f.kind === 'forall') return s ? 'gamma' : 'delta';
+      if (f.kind === 'exists') return s ? 'delta' : 'gamma';
+      return 'atom';
     };
+
+    let idx = nodes.findIndex((n) => findType(n) === 'alfa');
+    if (idx === -1) idx = nodes.findIndex((n) => findType(n) === 'delta');
+    if (idx === -1) idx = nodes.findIndex((n) => findType(n) === 'beta');
+    if (idx === -1) idx = nodes.findIndex((n) => findType(n) === 'gamma');
+
+    if (idx === -1) return false;
+
+    const node = nodes[idx];
+    const rest = nodes.filter((_, i) => i !== idx);
+    const { formula: f, sign: s } = node;
+
+    switch (f.kind) {
+      case 'not':
+        return this.solve([{ formula: f.args![0], sign: !s }, ...rest], constants, depth + 1);
+      case 'and':
+        if (s)
+          return this.solve(
+            [{ formula: f.args![0], sign: true }, { formula: f.args![1], sign: true }, ...rest],
+            constants,
+            depth + 1,
+          );
+        else
+          return (
+            this.solve([{ formula: f.args![0], sign: false }, ...rest], constants, depth + 1) &&
+            this.solve([{ formula: f.args![1], sign: false }, ...rest], constants, depth + 1)
+          );
+      case 'or':
+        if (s)
+          return (
+            this.solve([{ formula: f.args![0], sign: true }, ...rest], constants, depth + 1) &&
+            this.solve([{ formula: f.args![1], sign: true }, ...rest], constants, depth + 1)
+          );
+        else
+          return this.solve(
+            [{ formula: f.args![0], sign: false }, { formula: f.args![1], sign: false }, ...rest],
+            constants,
+            depth + 1,
+          );
+      case 'implies':
+        if (s)
+          return (
+            this.solve([{ formula: f.args![0], sign: false }, ...rest], constants, depth + 1) &&
+            this.solve([{ formula: f.args![1], sign: true }, ...rest], constants, depth + 1)
+          );
+        else
+          return this.solve(
+            [{ formula: f.args![0], sign: true }, { formula: f.args![1], sign: false }, ...rest],
+            constants,
+            depth + 1,
+          );
+      case 'forall':
+        if (s) {
+          // Gamma: forall x P(x) is true
+          const instantiated = Array.from(constants).map((c) => ({
+            formula: this.substitute(f.args![0], f.variable!, c),
+            sign: true,
+          }));
+          if (instantiated.length === 0 && rest.every((n) => findType(n) === 'gamma')) return false;
+          return this.solve([...rest, ...instantiated], constants, depth + 1);
+        } else {
+          // Delta: forall x P(x) is false -> exists x !P(x) is true
+          const newC = `c${constants.size}`;
+          const newCons = new Set(constants).add(newC);
+          const gammas = nodes.filter((n) => findType(n) === 'gamma');
+          return this.solve(
+            [
+              { formula: this.substitute(f.args![0], f.variable!, newC), sign: false },
+              ...rest,
+              ...gammas,
+            ],
+            newCons,
+            depth + 1,
+          );
+        }
+      case 'exists':
+        if (s) {
+          // Delta
+          const newC = `c${constants.size}`;
+          const newCons = new Set(constants).add(newC);
+          const gammas = nodes.filter((n) => findType(n) === 'gamma');
+          return this.solve(
+            [
+              { formula: this.substitute(f.args![0], f.variable!, newC), sign: true },
+              ...rest,
+              ...gammas,
+            ],
+            newCons,
+            depth + 1,
+          );
+        } else {
+          // Gamma
+          const instantiated = Array.from(constants).map((c) => ({
+            formula: this.substitute(f.args![0], f.variable!, c),
+            sign: false,
+          }));
+          if (instantiated.length === 0 && rest.every((n) => findType(n) === 'gamma')) return false;
+          return this.solve([...rest, ...instantiated], constants, depth + 1);
+        }
+    }
+    return false;
+  }
+
+  private substitute(f: Formula, variable: string, constant: string): Formula {
+    const sub = (node: Formula): Formula => {
+      if (node.kind === 'predicate' && node.params) {
+        return { ...node, params: node.params.map((p) => (p === variable ? constant : p)) };
+      }
+      if ((node.kind === 'forall' || node.kind === 'exists') && node.variable === variable) {
+        return node;
+      }
+      if (node.args) {
+        return { ...node, args: node.args.map((a) => sub(a)) };
+      }
+      return node;
+    };
+    return sub(f);
+  }
+
+  private isEqual(a: Formula, b: Formula): boolean {
+    return JSON.stringify(a) === JSON.stringify(b);
   }
 }

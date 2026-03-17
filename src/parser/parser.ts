@@ -53,10 +53,11 @@ export class Parser {
         if (stmt) {
           statements.push(stmt);
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Error de parseo inesperado';
         this.diagnostics.push({
           severity: 'error',
-          message: e.message || 'Error de parseo inesperado',
+          message,
           file: this.file,
           line: this.current().line,
           column: this.current().column,
@@ -116,9 +117,8 @@ export class Parser {
   private parseLogicDecl(): LogicDeclNode {
     const src = this.loc();
     this.expect(TokenType.LOGIC);
-    let profile = '';
     // Leer perfil como secuencia de ID.ID
-    profile = this.expectIdent();
+    let profile = this.expectIdent();
     while (this.match(TokenType.DOT)) {
       profile += '.';
       profile += this.expectIdent();
@@ -367,6 +367,24 @@ export class Parser {
       const operand = this.parseUnary();
       return { kind: 'not', args: [operand], source: this.loc() };
     }
+    if (this.match(TokenType.BOX)) {
+      const operand = this.parseUnary();
+      return { kind: 'modal_necessity', args: [operand], source: this.loc() };
+    }
+    if (this.match(TokenType.DIAMOND)) {
+      const operand = this.parseUnary();
+      return { kind: 'modal_possibility', args: [operand], source: this.loc() };
+    }
+    if (this.match(TokenType.FORALL)) {
+      const variable = this.expectIdent();
+      const operand = this.parseUnary();
+      return { kind: 'forall', variable, args: [operand], source: this.loc() };
+    }
+    if (this.match(TokenType.EXISTS)) {
+      const variable = this.expectIdent();
+      const operand = this.parseUnary();
+      return { kind: 'exists', variable, args: [operand], source: this.loc() };
+    }
     return this.parseAtom();
   }
 
@@ -378,10 +396,27 @@ export class Parser {
       return inner;
     }
 
-    // Átomo proposicional
+    // Predicado o Atomo proposicional
     if (this.checkType(TokenType.IDENTIFIER)) {
       const tok = this.current();
       this.advance();
+      if (this.match(TokenType.LPAREN)) {
+        // Predicado: P(x, y, ...)
+        const args: string[] = [];
+        if (!this.checkType(TokenType.RPAREN)) {
+          args.push(this.expectIdent());
+          while (this.match(TokenType.COMMA)) {
+            args.push(this.expectIdent());
+          }
+        }
+        this.expect(TokenType.RPAREN);
+        return {
+          kind: 'predicate',
+          name: tok.value,
+          params: args,
+          source: { line: tok.line, column: tok.column },
+        };
+      }
       return { kind: 'atom', name: tok.value, source: { line: tok.line, column: tok.column } };
     }
 
@@ -407,19 +442,46 @@ export class Parser {
   }
 
   private formulaToString(f: Formula): string {
+    const arg0 = f.args?.[0];
+    const arg1 = f.args?.[1];
+
     switch (f.kind) {
       case 'atom':
         return f.name || '?';
       case 'not':
-        return `!${this.formulaToString(f.args![0])}`;
+        return arg0 ? `!${this.formulaToString(arg0)}` : '!?';
+      case 'modal_necessity':
+        return arg0 ? `[]${this.formulaToString(arg0)}` : '[]?';
+      case 'modal_possibility':
+        return arg0 ? `<>${this.formulaToString(arg0)}` : '<>?';
+      case 'forall':
+        return arg0
+          ? `forall ${f.variable} ${this.formulaToString(arg0)}`
+          : `forall ${f.variable} ?`;
+      case 'exists':
+        return arg0
+          ? `exists ${f.variable} ${this.formulaToString(arg0)}`
+          : `exists ${f.variable} ?`;
+      case 'predicate': {
+        const params = f.params || [];
+        return `${f.name || '?'}(${params.join(', ')})`;
+      }
       case 'and':
-        return `(${this.formulaToString(f.args![0])} & ${this.formulaToString(f.args![1])})`;
+        return arg0 && arg1
+          ? `(${this.formulaToString(arg0)} & ${this.formulaToString(arg1)})`
+          : '(? & ?)';
       case 'or':
-        return `(${this.formulaToString(f.args![0])} | ${this.formulaToString(f.args![1])})`;
+        return arg0 && arg1
+          ? `(${this.formulaToString(arg0)} | ${this.formulaToString(arg1)})`
+          : '(? | ?)';
       case 'implies':
-        return `(${this.formulaToString(f.args![0])} -> ${this.formulaToString(f.args![1])})`;
+        return arg0 && arg1
+          ? `(${this.formulaToString(arg0)} -> ${this.formulaToString(arg1)})`
+          : '(? -> ?)';
       case 'biconditional':
-        return `(${this.formulaToString(f.args![0])} <-> ${this.formulaToString(f.args![1])})`;
+        return arg0 && arg1
+          ? `(${this.formulaToString(arg0)} <-> ${this.formulaToString(arg1)})`
+          : '(? <-> ?)';
       default:
         return '?';
     }

@@ -107,6 +107,10 @@ export class Lexer {
               this.advance(); // skip second ]
             }
             this.addToken(TokenType.RBRACKET_DOUBLE, ']]');
+          } else if (this.peek(1) === ']') {
+            this.addToken(TokenType.BOX, '[]');
+            this.advance();
+            this.advance();
           } else {
             this.addToken(TokenType.LBRACKET, '[');
             this.advance();
@@ -178,6 +182,10 @@ export class Lexer {
             this.advance();
           } else if (this.peek(1) === '-') {
             this.addToken(TokenType.BACK_ARROW, '<-');
+            this.advance();
+            this.advance();
+          } else if (this.peek(1) === '>') {
+            this.addToken(TokenType.DIAMOND, '<>');
             this.advance();
             this.advance();
           } else {

@@ -33,9 +33,6 @@ function or(a: Formula, b: Formula): Formula {
 function implies(a: Formula, b: Formula): Formula {
   return { kind: 'implies', args: [a, b] };
 }
-function biconditional(a: Formula, b: Formula): Formula {
-  return { kind: 'biconditional', args: [a, b] };
-}
 
 describe('ClassicalPropositional.checkWellFormed', () => {
   const cp = new ClassicalPropositional();
