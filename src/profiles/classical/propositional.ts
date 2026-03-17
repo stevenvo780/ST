@@ -13,7 +13,6 @@ import {
   Valuation,
   Proof,
   ProofStep,
-  Model,
 } from '../../types';
 
 // --- Utilidades de fórmulas ---
@@ -21,20 +20,13 @@ import {
 function collectAtoms(f: Formula): Set<string> {
   const atoms = new Set<string>();
   function walk(node: Formula) {
-    switch (node.kind) {
-      case 'atom':
-        if (node.name) atoms.add(node.name);
-        break;
-      case 'not':
-        walk(node.args![0]);
-        break;
-      case 'and':
-      case 'or':
-      case 'implies':
-      case 'biconditional':
-        walk(node.args![0]);
-        walk(node.args![1]);
-        break;
+    if (node.kind === 'atom' && node.name) {
+      atoms.add(node.name);
+    }
+    if (node.args) {
+      for (const arg of node.args) {
+        walk(arg);
+      }
     }
   }
   walk(f);
@@ -44,32 +36,49 @@ function collectAtoms(f: Formula): Set<string> {
 function evaluate(f: Formula, v: Valuation): boolean {
   switch (f.kind) {
     case 'atom':
-      return v[f.name!] ?? false;
+      return f.name ? (v[f.name] ?? false) : false;
     case 'not':
-      return !evaluate(f.args![0], v);
+      return f.args && f.args[0] ? !evaluate(f.args[0], v) : false;
     case 'and':
-      return evaluate(f.args![0], v) && evaluate(f.args![1], v);
+      return f.args && f.args[0] && f.args[1]
+        ? evaluate(f.args[0], v) && evaluate(f.args[1], v)
+        : false;
     case 'or':
-      return evaluate(f.args![0], v) || evaluate(f.args![1], v);
+      return f.args && f.args[0] && f.args[1]
+        ? evaluate(f.args[0], v) || evaluate(f.args[1], v)
+        : false;
     case 'implies':
-      return !evaluate(f.args![0], v) || evaluate(f.args![1], v);
+      return f.args && f.args[0] && f.args[1]
+        ? !evaluate(f.args[0], v) || evaluate(f.args[1], v)
+        : false;
     case 'biconditional':
-      return evaluate(f.args![0], v) === evaluate(f.args![1], v);
+      return f.args && f.args[0] && f.args[1]
+        ? evaluate(f.args[0], v) === evaluate(f.args[1], v)
+        : false;
     default:
       return false;
   }
 }
 
+/**
+ * Optimización: Generar valuaciones de forma más eficiente.
+ * Usa bitsets implícitos para evitar recrear objetos innecesariamente si fuera posible,
+ * pero aquí mantenemos la interfaz de Valuation (objeto) por compatibilidad.
+ */
 function generateValuations(atoms: string[]): Valuation[] {
   const n = atoms.length;
+  if (n === 0) return [{}];
+  if (n > 20) throw new Error('Demasiadas variables para tabla de verdad (>20)');
+
   const total = 1 << n;
-  const valuations: Valuation[] = [];
+  const valuations: Valuation[] = new Array(total);
   for (let i = 0; i < total; i++) {
     const v: Valuation = {};
     for (let j = 0; j < n; j++) {
+      // Usar bitwise para determinar el valor de verdad
       v[atoms[j]] = Boolean((i >> (n - 1 - j)) & 1);
     }
-    valuations.push(v);
+    valuations[i] = v;
   }
   return valuations;
 }
@@ -79,18 +88,27 @@ export function formulaToString(f: Formula): string {
     case 'atom':
       return f.name || '?';
     case 'not': {
-      const inner = f.args![0];
+      const inner = f.args?.[0];
+      if (!inner) return '!?';
       if (inner.kind === 'atom') return `!${formulaToString(inner)}`;
       return `!(${formulaToString(inner)})`;
     }
     case 'and':
-      return `(${formulaToString(f.args![0])} & ${formulaToString(f.args![1])})`;
+      return f.args && f.args[0] && f.args[1]
+        ? `(${formulaToString(f.args[0])} & ${formulaToString(f.args[1])})`
+        : '? & ?';
     case 'or':
-      return `(${formulaToString(f.args![0])} | ${formulaToString(f.args![1])})`;
+      return f.args && f.args[0] && f.args[1]
+        ? `(${formulaToString(f.args[0])} | ${formulaToString(f.args[1])})`
+        : '? | ?';
     case 'implies':
-      return `(${formulaToString(f.args![0])} -> ${formulaToString(f.args![1])})`;
+      return f.args && f.args[0] && f.args[1]
+        ? `(${formulaToString(f.args[0])} -> ${formulaToString(f.args[1])})`
+        : '? -> ?';
     case 'biconditional':
-      return `(${formulaToString(f.args![0])} <-> ${formulaToString(f.args![1])})`;
+      return f.args && f.args[0] && f.args[1]
+        ? `(${formulaToString(f.args[0])} <-> ${formulaToString(f.args[1])})`
+        : '? <-> ?';
     default:
       return '?';
   }
@@ -101,7 +119,7 @@ function formulasEqual(a: Formula, b: Formula): boolean {
   if (a.kind === 'atom' && b.kind === 'atom') return a.name === b.name;
   if (a.args && b.args) {
     if (a.args.length !== b.args.length) return false;
-    return a.args.every((arg, i) => formulasEqual(arg, b.args![i]));
+    return a.args.every((arg, i) => formulasEqual(arg, b.args[i]));
   }
   return false;
 }
@@ -141,6 +159,7 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
   }
 
   // Intentar derivar con BFS aplicando reglas
+  // TODO: Mejorar con un algoritmo de búsqueda más robusto (Saturación)
   const maxIterations = 200;
   let changed = true;
   let iterations = 0;
@@ -158,8 +177,13 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
         if (state.known.has(formulaHash(goal))) break;
 
         // Modus Ponens: de A y (A -> B), derivar B
-        if (f2.kind === 'implies' && formulasEqual(f2.args![0], f1)) {
-          const conclusion = f2.args![1];
+        if (
+          f2.kind === 'implies' &&
+          f2.args?.[0] &&
+          f2.args?.[1] &&
+          formulasEqual(f2.args[0], f1)
+        ) {
+          const conclusion = f2.args[1];
           const hash = formulaHash(conclusion);
           if (!state.known.has(hash)) {
             state.stepCount++;
@@ -177,8 +201,13 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
         }
 
         // Modus Ponens inverso: de (A -> B) y A, derivar B
-        if (f1.kind === 'implies' && formulasEqual(f1.args![0], f2)) {
-          const conclusion = f1.args![1];
+        if (
+          f1.kind === 'implies' &&
+          f1.args?.[0] &&
+          f1.args?.[1] &&
+          formulasEqual(f1.args[0], f2)
+        ) {
+          const conclusion = f1.args[1];
           const hash = formulaHash(conclusion);
           if (!state.known.has(hash)) {
             state.stepCount++;
@@ -196,8 +225,15 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
         }
 
         // Modus Tollens: de !B y (A -> B), derivar !A
-        if (f1.kind === 'not' && f2.kind === 'implies' && formulasEqual(f1.args![0], f2.args![1])) {
-          const conclusion: Formula = { kind: 'not', args: [f2.args![0]] };
+        if (
+          f1.kind === 'not' &&
+          f1.args?.[0] &&
+          f2.kind === 'implies' &&
+          f2.args?.[1] &&
+          f2.args?.[0] &&
+          formulasEqual(f1.args[0], f2.args[1])
+        ) {
+          const conclusion: Formula = { kind: 'not', args: [f2.args[0]] };
           const hash = formulaHash(conclusion);
           if (!state.known.has(hash)) {
             state.stepCount++;
@@ -231,8 +267,8 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
       }
 
       // Conjunction Elimination: de A & B, derivar A y B
-      if (f1.kind === 'and') {
-        for (const sub of f1.args!) {
+      if (f1.kind === 'and' && f1.args) {
+        for (const sub of f1.args) {
           const hash = formulaHash(sub);
           if (!state.known.has(hash)) {
             state.stepCount++;
@@ -249,8 +285,8 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
       }
 
       // Disjunction Introduction: de A, derivar A | B (si A|B es la meta)
-      if (goal.kind === 'or') {
-        if (formulasEqual(f1, goal.args![0]) || formulasEqual(f1, goal.args![1])) {
+      if (goal.kind === 'or' && goal.args?.[0] && goal.args?.[1]) {
+        if (formulasEqual(f1, goal.args[0]) || formulasEqual(f1, goal.args[1])) {
           const hash = formulaHash(goal);
           if (!state.known.has(hash)) {
             state.stepCount++;
@@ -267,8 +303,8 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
       }
 
       // Double Negation Elimination: de !!A, derivar A
-      if (f1.kind === 'not' && f1.args![0].kind === 'not') {
-        const inner = f1.args![0].args![0];
+      if (f1.kind === 'not' && f1.args?.[0]?.kind === 'not' && f1.args[0].args?.[0]) {
+        const inner = f1.args[0].args[0];
         const hash = formulaHash(inner);
         if (!state.known.has(hash)) {
           state.stepCount++;
@@ -284,12 +320,12 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
       }
 
       // Contraposition: de A->B, derivar !B->!A
-      if (f1.kind === 'implies') {
+      if (f1.kind === 'implies' && f1.args?.[0] && f1.args?.[1]) {
         const contra: Formula = {
           kind: 'implies',
           args: [
-            { kind: 'not', args: [f1.args![1]] },
-            { kind: 'not', args: [f1.args![0]] },
+            { kind: 'not', args: [f1.args[1]] },
+            { kind: 'not', args: [f1.args[0]] },
           ],
         };
         const hash = formulaHash(contra);
@@ -307,9 +343,9 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
       }
 
       // Biconditional Elimination: de A<->B, derivar A->B y B->A
-      if (f1.kind === 'biconditional') {
-        const ab: Formula = { kind: 'implies', args: [f1.args![0], f1.args![1]] };
-        const ba: Formula = { kind: 'implies', args: [f1.args![1], f1.args![0]] };
+      if (f1.kind === 'biconditional' && f1.args?.[0] && f1.args?.[1]) {
+        const ab: Formula = { kind: 'implies', args: [f1.args[0], f1.args[1]] };
+        const ba: Formula = { kind: 'implies', args: [f1.args[1], f1.args[0]] };
         for (const impl of [ab, ba]) {
           const hash = formulaHash(impl);
           if (!state.known.has(hash)) {
@@ -425,7 +461,7 @@ export class ClassicalPropositional implements LogicProfile {
               severity: 'error',
               message: 'Negacion requiere exactamente un argumento',
             });
-          } else {
+          } else if (f.args[0]) {
             check(f.args[0]);
           }
           break;
@@ -439,8 +475,8 @@ export class ClassicalPropositional implements LogicProfile {
               message: `${f.kind} requiere exactamente dos argumentos`,
             });
           } else {
-            check(f.args[0]);
-            check(f.args[1]);
+            if (f.args[0]) check(f.args[0]);
+            if (f.args[1]) check(f.args[1]);
           }
           break;
         case 'forall':

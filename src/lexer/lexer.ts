@@ -251,12 +251,9 @@ export class Lexer {
   }
 
   private readLineComment(): void {
-    const startCol = this.column;
-    let value = '';
     this.pos += 2; // skip //
     this.column += 2;
     while (this.pos < this.source.length && this.source[this.pos] !== '\n') {
-      value += this.source[this.pos];
       this.advance();
     }
     // no emitimos token de comentario, lo descartamos

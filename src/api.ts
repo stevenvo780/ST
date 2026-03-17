@@ -9,17 +9,10 @@
 import { Parser } from './parser/parser';
 import { Interpreter } from './runtime/interpreter';
 import { ProtocolHandler } from './protocol/handler';
-import { formulaToString } from './profiles/classical/propositional';
+import { registry } from './profiles/interface';
 import type {
-  ExecutionOutput,
   Diagnostic,
   RunResult,
-  Formula,
-  LogicStatus,
-  Theory,
-  TruthTableResult,
-  Proof,
-  Model,
   SymbolInfo,
   HoverInfo,
   CompletionItem,
@@ -243,10 +236,10 @@ export { formulaToString } from './profiles/classical/propositional';
 
 /** Lista los perfiles lógicos disponibles */
 export function listProfiles(): string[] {
-  // Los perfiles se registran al crear un Interpreter
-  const temp = new Interpreter();
-  void temp; // asegura registro de perfiles
-  const { registry } = require('./profiles/interface');
+  // Los perfiles se registran al instanciar un Interpreter,
+  // pero ya deberían estar en el registry si se cargan sus archivos.
+  // Sin embargo, para asegurar, instanciamos uno.
+  new Interpreter();
   return registry.list();
 }
 
