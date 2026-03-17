@@ -14,7 +14,6 @@ import { evaluate } from '../api';
 // ────────────────────────────────────────────────────────────────
 
 describe('Filosofía — Lógica Proposicional Clásica', () => {
-
   // ── Aristóteles: Principio de No-Contradicción ──
   it('Aristóteles: Principio de No-Contradicción — !(P & !P) es tautología', () => {
     const r = evaluate(`
@@ -213,7 +212,6 @@ check valid (((P -> Q) & !P) -> !Q)
 // ────────────────────────────────────────────────────────────────
 
 describe('Filosofía — Lógica Modal K', () => {
-
   // ── Axioma K: Distribución de la Necesidad ──
   it('Axioma K — [](P -> Q) -> ([]P -> []Q)', () => {
     const r = evaluate(`
@@ -364,7 +362,6 @@ check valid ([](!P -> <>!P))
 // ────────────────────────────────────────────────────────────────
 
 describe('Filosofía — Lógica de Primer Orden', () => {
-
   // ── Aristóteles: Barbara (Todos los hombres son mortales) ──
   it('Barbara: (∀x P(x)->Q(x)) & P(a) => Q(a)', () => {
     const r = evaluate(`
@@ -431,7 +428,6 @@ check valid ((forall x P(x)) -> !(exists x !P(x)))
 // ────────────────────────────────────────────────────────────────
 
 describe('Filosofía — Lógica Paraconsistente (Belnap 4-valued)', () => {
-
   // ── Belnap: Tolerancia a contradicciones ──
   it('Belnap: P & !P NO es tautología (no es siempre T/B)', () => {
     const r = evaluate(`
@@ -540,7 +536,6 @@ check valid (P -> Q)
 // ────────────────────────────────────────────────────────────────
 
 describe('Filosofía — Argumentos Extensos Multi-paso', () => {
-
   // ── Kant: Estructura del Imperativo Categórico (formalización) ──
   it('Kant: Cadena deductiva del Imperativo Categórico', () => {
     const r = evaluate(`
