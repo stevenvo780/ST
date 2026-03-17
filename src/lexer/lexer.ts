@@ -37,6 +37,12 @@ export class Lexer {
         continue;
       }
 
+      // Comentarios de bloque /* ... */
+      if (ch === '/' && this.peek(1) === '*') {
+        this.readBlockComment();
+        continue;
+      }
+
       // Newlines
       if (ch === '\n') {
         this.addToken(TokenType.NEWLINE, '\n');
@@ -265,6 +271,35 @@ export class Lexer {
       this.advance();
     }
     // no emitimos token de comentario, lo descartamos
+  }
+
+  private readBlockComment(): void {
+    const startLine = this.line;
+    const startCol = this.column;
+    this.pos += 2; // skip /*
+    this.column += 2;
+    while (this.pos < this.source.length) {
+      if (this.source[this.pos] === '*' && this.peek(1) === '/') {
+        this.pos += 2;
+        this.column += 2;
+        return;
+      }
+      if (this.source[this.pos] === '\n') {
+        this.pos++;
+        this.line++;
+        this.column = 1;
+      } else {
+        this.advance();
+      }
+    }
+    // Si llegamos aquí, el comentario no fue cerrado
+    this.diagnostics.push({
+      severity: 'error',
+      message: 'Comentario de bloque no cerrado (falta */)',
+      file: this.file,
+      line: startLine,
+      column: startCol,
+    });
   }
 
   private readString(): void {

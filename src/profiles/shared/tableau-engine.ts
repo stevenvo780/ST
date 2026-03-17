@@ -193,6 +193,8 @@ export function formulaHash(f: Formula): string {
       return `E${f.variable}(${formulaHash((f.args || [])[0])})`;
     case 'predicate':
       return `${f.name}(${(f.args || []).map(formulaHash).join(',')})`;
+    case 'equals':
+      return `(${formulaHash((f.args || [])[0])} = ${formulaHash((f.args || [])[1])})`;
     default:
       return f.kind;
   }

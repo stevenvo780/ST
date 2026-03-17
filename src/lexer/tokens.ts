@@ -29,6 +29,7 @@ export enum TokenType {
   EXISTS = 'EXISTS',
   ANALYZE = 'ANALYZE',
   EXPLAIN = 'EXPLAIN',
+  REFUTE = 'REFUTE',
 
   // Operators
   ARROW = 'ARROW', // ->
@@ -131,4 +132,6 @@ export const KEYWORDS: Record<string, TokenType> = {
   existe: TokenType.EXISTS,
   analizar: TokenType.ANALYZE,
   explicar: TokenType.EXPLAIN,
+  refute: TokenType.REFUTE,
+  refutar: TokenType.REFUTE,
 };

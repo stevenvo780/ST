@@ -300,6 +300,12 @@ export class ProtocolHandler {
         insertText: 'countermodel ${1:formula}',
       },
       {
+        label: 'refute',
+        kind: 'keyword',
+        detail: 'Refutar fórmula (alias de countermodel)',
+        insertText: 'refute ${1:formula}',
+      },
+      {
         label: 'truth_table',
         kind: 'keyword',
         detail: 'Generar tabla de verdad completa',
@@ -360,6 +366,12 @@ export class ProtocolHandler {
         kind: 'keyword',
         detail: 'Buscar contramodelo (español)',
         insertText: 'contramodelo ${1:formula}',
+      },
+      {
+        label: 'refutar',
+        kind: 'keyword',
+        detail: 'Refutar fórmula (español)',
+        insertText: 'refutar ${1:formula}',
       },
       {
         label: 'tabla_verdad',

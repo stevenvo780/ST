@@ -124,7 +124,14 @@ export interface LetFormalizeNode extends ASTNode {
   formula: Formula;
 }
 
-export type LetDeclNode = LetPassageNode | LetFormalizeNode;
+export interface LetFormulaNode extends ASTNode {
+  kind: 'let_decl';
+  name: string;
+  letType: 'formula';
+  formula: Formula;
+}
+
+export type LetDeclNode = LetPassageNode | LetFormalizeNode | LetFormulaNode;
 
 export interface ClaimDeclNode extends ASTNode {
   kind: 'claim_decl';

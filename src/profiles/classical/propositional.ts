@@ -109,6 +109,10 @@ export function formulaToString(f: Formula): string {
       return f.args && f.args[0] && f.args[1]
         ? `(${formulaToString(f.args[0])} <-> ${formulaToString(f.args[1])})`
         : '? <-> ?';
+    case 'equals':
+      return f.args && f.args[0] && f.args[1]
+        ? `(${formulaToString(f.args[0])} = ${formulaToString(f.args[1])})`
+        : '? = ?';
     default:
       return '?';
   }

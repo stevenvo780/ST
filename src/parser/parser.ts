@@ -90,6 +90,7 @@ export class Parser {
       case TokenType.PROVE:
         return this.parseProveCmd();
       case TokenType.COUNTERMODEL:
+      case TokenType.REFUTE:
         return this.parseCountermodelCmd();
       case TokenType.TRUTH_TABLE:
         return this.parseTruthTableCmd();
@@ -195,10 +196,15 @@ export class Parser {
     return { kind: 'prove_cmd', goal, premises, source: src };
   }
 
-  // countermodel FORMULA
+  // countermodel FORMULA | refute FORMULA
   private parseCountermodelCmd(): CountermodelCmdNode {
     const src = this.loc();
-    this.expect(TokenType.COUNTERMODEL);
+    // Acepta tanto 'countermodel' como 'refute'
+    if (this.checkType(TokenType.COUNTERMODEL)) {
+      this.advance();
+    } else {
+      this.expect(TokenType.REFUTE);
+    }
     const formula = this.parseFormula();
     return { kind: 'countermodel_cmd', formula, source: src };
   }
@@ -246,7 +252,9 @@ export class Parser {
       return { kind: 'let_decl', name, letType: 'formalize', passageName, formula, source: src };
     }
 
-    throw new Error(`Se esperaba 'passage' o 'formalize' despues de '='`);
+    // let name = FORMULA (alias de fórmula)
+    const formula = this.parseFormula();
+    return { kind: 'let_decl', name, letType: 'formula', formula, source: src };
   }
 
   // claim name = ID_OR_FORMULA
@@ -448,12 +456,48 @@ export class Parser {
           }
         }
         this.expect(TokenType.RPAREN);
-        return {
+        const predFormula: Formula = {
           kind: 'predicate',
           name: tok.value,
           params: args,
           source: { line: tok.line, column: tok.column },
         };
+        // FOL igualdad: P(x) = Q(y) (raro pero posible)
+        if (this.checkType(TokenType.EQUALS)) {
+          this.advance();
+          const right = this.parseAtom();
+          return {
+            kind: 'equals',
+            args: [predFormula, right],
+            source: { line: tok.line, column: tok.column },
+          };
+        }
+        return predFormula;
+      }
+      // FOL igualdad: x = y (identidad entre términos)
+      if (this.checkType(TokenType.EQUALS)) {
+        this.advance();
+        const rightTok = this.current();
+        if (this.checkType(TokenType.IDENTIFIER)) {
+          this.advance();
+          const left: Formula = {
+            kind: 'atom',
+            name: tok.value,
+            source: { line: tok.line, column: tok.column },
+          };
+          const right: Formula = {
+            kind: 'atom',
+            name: rightTok.value,
+            source: { line: rightTok.line, column: rightTok.column },
+          };
+          return {
+            kind: 'equals',
+            args: [left, right],
+            source: { line: tok.line, column: tok.column },
+          };
+        }
+        // Si no es un identificador, backtrack — el = pertenece al statement
+        this.pos--;
       }
       return { kind: 'atom', name: tok.value, source: { line: tok.line, column: tok.column } };
     }
@@ -520,6 +564,10 @@ export class Parser {
         return arg0 && arg1
           ? `(${this.formulaToString(arg0)} <-> ${this.formulaToString(arg1)})`
           : '(? <-> ?)';
+      case 'equals':
+        return arg0 && arg1
+          ? `(${this.formulaToString(arg0)} = ${this.formulaToString(arg1)})`
+          : '(? = ?)';
       default:
         return '?';
     }
@@ -599,9 +647,35 @@ export class Parser {
   }
 
   private advanceToNextStatement(): void {
-    while (!this.isAtEnd() && !this.checkType(TokenType.NEWLINE)) {
+    // Avanza hasta encontrar un newline o un token que inicie un statement
+    const statementStarters = new Set([
+      TokenType.LOGIC,
+      TokenType.AXIOM,
+      TokenType.THEOREM,
+      TokenType.DERIVE,
+      TokenType.CHECK,
+      TokenType.PROVE,
+      TokenType.COUNTERMODEL,
+      TokenType.REFUTE,
+      TokenType.TRUTH_TABLE,
+      TokenType.LET,
+      TokenType.CLAIM,
+      TokenType.SUPPORT,
+      TokenType.CONFIDENCE,
+      TokenType.CONTEXT,
+      TokenType.RENDER,
+      TokenType.ANALYZE,
+      TokenType.EXPLAIN,
+    ]);
+    while (!this.isAtEnd()) {
+      if (this.checkType(TokenType.NEWLINE)) {
+        this.skipNewlines();
+        return;
+      }
+      if (statementStarters.has(this.current().type)) {
+        return; // Encontramos el inicio del siguiente statement
+      }
       this.advance();
     }
-    this.skipNewlines();
   }
 }

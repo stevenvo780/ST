@@ -326,6 +326,10 @@ export class Interpreter {
       const diags = registerFormalization(this.textLayer, stmt.name, stmt.passageName, formula);
       this.diagnostics.push(...diags);
       this.emit(`Formalizacion ${stmt.name}: ${stmt.passageName} -> ${formulaToString(formula)}`);
+    } else if (stmt.letType === 'formula' && stmt.formula) {
+      // Alias de fórmula: registrar como axioma implícito para derivaciones
+      this.theory.axioms.set(stmt.name, stmt.formula);
+      this.emit(`Let ${stmt.name} = ${formulaToUnicode(stmt.formula)}`);
     }
   }
 
@@ -367,7 +371,52 @@ export class Interpreter {
     // Compilar claims y renderizar
     const diags = compileClaimsToTheory(this.textLayer, this.theory);
     this.diagnostics.push(...diags);
-    this.emit(`Render: ${stmt.target} (format: ${stmt.format})`);
+
+    if (stmt.target === 'claims' || stmt.target === 'all') {
+      this.emit(`── Render: ${stmt.target} (${stmt.format}) ──`);
+      for (const [name, claim] of this.theory.claims) {
+        const fStr = claim.formula ? formulaToUnicode(claim.formula) : '(sin fórmula)';
+        this.emit(`  Claim "${name}": ${fStr}`);
+        if (claim.support) {
+          this.emit(`    Soporte: ${claim.support}`);
+        }
+        if (claim.confidence !== undefined) {
+          this.emit(`    Confianza: ${claim.confidence}`);
+        }
+        if (claim.context) {
+          this.emit(`    Contexto: ${claim.context}`);
+        }
+      }
+      if (this.theory.claims.size === 0) {
+        this.emit('  (sin claims registrados)');
+      }
+    } else if (stmt.target === 'theory') {
+      this.emit(`── Render: theory (${stmt.format}) ──`);
+      this.emit(`  Perfil: ${this.theory.profile || '(ninguno)'}`);
+      this.emit(`  Axiomas: ${this.theory.axioms.size}`);
+      for (const [name, formula] of this.theory.axioms) {
+        this.emit(`    ${name} = ${formulaToUnicode(formula)}`);
+      }
+      this.emit(`  Teoremas: ${this.theory.theorems.size}`);
+      for (const [name, formula] of this.theory.theorems) {
+        this.emit(`    ${name} = ${formulaToUnicode(formula)}`);
+      }
+      this.emit(`  Claims: ${this.theory.claims.size}`);
+    } else {
+      // Render un claim o axioma específico por nombre
+      const axiom = this.theory.axioms.get(stmt.target);
+      if (axiom) {
+        this.emit(`  ${stmt.target} = ${formulaToUnicode(axiom)}`);
+        return;
+      }
+      const claim = this.theory.claims.get(stmt.target);
+      if (claim) {
+        const fStr = claim.formula ? formulaToUnicode(claim.formula) : '(sin fórmula)';
+        this.emit(`  Claim "${stmt.target}": ${fStr}`);
+        return;
+      }
+      this.emit(`Render: ${stmt.target} (${stmt.format})`);
+    }
   }
 
   private execAnalyzeCmd(stmt: AnalyzeCmdNode): void {
