@@ -38,6 +38,7 @@ import { ClassicalPropositional, formulaToString } from '../profiles/classical/p
 import { ClassicalFirstOrder } from '../profiles/classical/first-order';
 import { ModalK } from '../profiles/modal/k';
 import { ParaconsistentBelnap } from '../profiles/paraconsistent/belnap';
+import { DeonticStandard } from '../profiles/deontic/standard';
 import {
   createTextLayerState,
   registerPassage,
@@ -62,6 +63,9 @@ function ensureProfilesRegistered() {
   }
   if (!registry.has('paraconsistent.belnap')) {
     registry.register(new ParaconsistentBelnap());
+  }
+  if (!registry.has('deontic.standard')) {
+    registry.register(new DeonticStandard());
   }
 }
 

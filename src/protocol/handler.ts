@@ -205,6 +205,12 @@ export class ProtocolHandler {
         detail: 'Lógica paraconsistente Belnap (4 valores: T, F, B, N)',
         insertText: 'logic paraconsistent.belnap',
       },
+      {
+        label: 'logic deontic.standard',
+        kind: 'value',
+        detail: 'Lógica deóntica KD — obligación (O), permisión (P), prohibición (F)',
+        insertText: 'logic deontic.standard',
+      },
 
       // ── Declaraciones ───────────────────────────────────────────
       {
@@ -380,6 +386,26 @@ export class ProtocolHandler {
         kind: 'keyword',
         detail: 'Renderizar salida en formato markdown/json',
         insertText: 'render',
+      },
+
+      // ── Operadores deónticos (deontic.standard) ─────────────────
+      {
+        label: '[] (obligación)',
+        kind: 'operator',
+        detail: 'O(φ) = Obligación — "es obligatorio que φ" (lógica deóntica)',
+        insertText: '[](${1:formula})',
+      },
+      {
+        label: '<> (permisión)',
+        kind: 'operator',
+        detail: 'P(φ) = Permisión — "está permitido que φ" (lógica deóntica)',
+        insertText: '<>(${1:formula})',
+      },
+      {
+        label: '[]! (prohibición)',
+        kind: 'operator',
+        detail: 'F(φ) = Prohibición — "está prohibido que φ" = O(¬φ)',
+        insertText: '[](!${1:formula})',
       },
     ];
 
