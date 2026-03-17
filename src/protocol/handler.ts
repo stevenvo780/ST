@@ -179,29 +179,64 @@ export class ProtocolHandler {
 
   private handleCompletion(request: ProtocolRequest): ProtocolResponse {
     const items: CompletionItem[] = [
-      { label: 'logic', kind: 'keyword', detail: 'Declarar perfil logico', insertText: 'logic ' },
+      // ── Declaración de perfil lógico ────────────────────────────
+      { label: 'logic', kind: 'keyword', detail: 'Declarar perfil lógico', insertText: 'logic ' },
+      {
+        label: 'logic classical.propositional',
+        kind: 'value',
+        detail: 'Lógica proposicional clásica (tablas de verdad + tableau)',
+        insertText: 'logic classical.propositional',
+      },
+      {
+        label: 'logic classical.first_order',
+        kind: 'value',
+        detail: 'Lógica de primer orden (∀, ∃, predicados)',
+        insertText: 'logic classical.first_order',
+      },
+      {
+        label: 'logic modal.k',
+        kind: 'value',
+        detail: 'Lógica modal K (□, ◇, mundos posibles)',
+        insertText: 'logic modal.k',
+      },
+      {
+        label: 'logic paraconsistent.belnap',
+        kind: 'value',
+        detail: 'Lógica paraconsistente Belnap (4 valores: T, F, B, N)',
+        insertText: 'logic paraconsistent.belnap',
+      },
+
+      // ── Declaraciones ───────────────────────────────────────────
       {
         label: 'axiom',
         kind: 'keyword',
         detail: 'Declarar axioma',
-        insertText: 'axiom ${1:name} = ${2:formula}',
+        insertText: 'axiom ${1:name} : ${2:formula}',
       },
       {
         label: 'theorem',
         kind: 'keyword',
         detail: 'Declarar teorema',
-        insertText: 'theorem ${1:name} = ${2:formula}',
+        insertText: 'theorem ${1:name} : ${2:formula}',
       },
+      {
+        label: 'let',
+        kind: 'keyword',
+        detail: 'Declarar variable/fórmula',
+        insertText: 'let ${1:name} = ${2:expression}',
+      },
+
+      // ── Comandos lógicos ────────────────────────────────────────
       {
         label: 'derive',
         kind: 'keyword',
-        detail: 'Derivar formula',
+        detail: 'Derivar fórmula desde premisas',
         insertText: 'derive ${1:formula} from {${2:premises}}',
       },
       {
         label: 'check valid',
         kind: 'keyword',
-        detail: 'Verificar validez',
+        detail: 'Verificar validez (tautología)',
         insertText: 'check valid ${1:formula}',
       },
       {
@@ -211,64 +246,140 @@ export class ProtocolHandler {
         insertText: 'check satisfiable ${1:formula}',
       },
       {
+        label: 'check equivalent',
+        kind: 'keyword',
+        detail: 'Verificar equivalencia lógica entre dos fórmulas',
+        insertText: 'check equivalent ${1:formula1} ${2:formula2}',
+      },
+      {
         label: 'prove',
         kind: 'keyword',
-        detail: 'Probar formula',
+        detail: 'Probar fórmula desde premisas',
         insertText: 'prove ${1:formula} from {${2:premises}}',
       },
       {
         label: 'countermodel',
         kind: 'keyword',
-        detail: 'Buscar contramodelo',
+        detail: 'Buscar contramodelo (asignación que falsifica)',
         insertText: 'countermodel ${1:formula}',
       },
       {
         label: 'truth_table',
         kind: 'keyword',
-        detail: 'Tabla de verdad',
+        detail: 'Generar tabla de verdad completa',
         insertText: 'truth_table ${1:formula}',
       },
       {
-        label: 'let',
+        label: 'explain',
         kind: 'keyword',
-        detail: 'Declarar variable',
-        insertText: 'let ${1:name} = ',
+        detail: 'Explicar fórmula paso a paso',
+        insertText: 'explain ${1:formula}',
       },
+
+      // ── Capa textual ────────────────────────────────────────────
       {
         label: 'passage',
         kind: 'keyword',
-        detail: 'Declarar pasaje',
+        detail: 'Declarar pasaje de texto',
         insertText: 'passage([[${1:path}]])',
       },
       {
         label: 'formalize',
         kind: 'keyword',
-        detail: 'Formalizar pasaje',
+        detail: 'Formalizar pasaje como fórmula',
         insertText: 'formalize ${1:passage} as ${2:formula}',
       },
       {
         label: 'claim',
         kind: 'keyword',
-        detail: 'Declarar claim',
+        detail: 'Declarar claim (afirmación)',
         insertText: 'claim ${1:name} = ${2:value}',
       },
       {
         label: 'support',
         kind: 'keyword',
-        detail: 'Registrar soporte',
+        detail: 'Registrar soporte para claim',
         insertText: 'support ${1:claim} <- ${2:source}',
       },
       {
         label: 'confidence',
         kind: 'keyword',
-        detail: 'Registrar confianza',
+        detail: 'Asignar confianza a claim (0-1)',
         insertText: 'confidence ${1:claim} = ${2:value}',
       },
       {
         label: 'context',
         kind: 'keyword',
-        detail: 'Registrar contexto',
+        detail: 'Registrar contexto de un claim',
         insertText: 'context ${1:claim} = "${2:text}"',
+      },
+
+      // ── Operadores modales (modal.k) ────────────────────────────
+      {
+        label: '[]',
+        kind: 'operator',
+        detail: 'Necesidad modal (□) — "necesariamente"',
+        insertText: '[](${1:formula})',
+      },
+      {
+        label: '<>',
+        kind: 'operator',
+        detail: 'Posibilidad modal (◇) — "posiblemente"',
+        insertText: '<>(${1:formula})',
+      },
+
+      // ── Cuantificadores FOL (classical.first_order) ─────────────
+      {
+        label: 'forall',
+        kind: 'operator',
+        detail: 'Cuantificador universal (∀x)',
+        insertText: 'forall ${1:x} (${2:formula})',
+      },
+      {
+        label: 'exists',
+        kind: 'operator',
+        detail: 'Cuantificador existencial (∃x)',
+        insertText: 'exists ${1:x} (${2:formula})',
+      },
+
+      // ── Operadores lógicos ──────────────────────────────────────
+      {
+        label: '->',
+        kind: 'operator',
+        detail: 'Implicación (→)',
+        insertText: '${1:A} -> ${2:B}',
+      },
+      {
+        label: '<->',
+        kind: 'operator',
+        detail: 'Bicondicional (↔)',
+        insertText: '${1:A} <-> ${2:B}',
+      },
+      {
+        label: '&',
+        kind: 'operator',
+        detail: 'Conjunción (∧)',
+        insertText: '${1:A} & ${2:B}',
+      },
+      {
+        label: '|',
+        kind: 'operator',
+        detail: 'Disyunción (∨)',
+        insertText: '${1:A} | ${2:B}',
+      },
+      {
+        label: '!',
+        kind: 'operator',
+        detail: 'Negación (¬)',
+        insertText: '!${1:A}',
+      },
+
+      // ── Renderizado ─────────────────────────────────────────────
+      {
+        label: 'render',
+        kind: 'keyword',
+        detail: 'Renderizar salida en formato markdown/json',
+        insertText: 'render',
       },
     ];
 
