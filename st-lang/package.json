@@ -1,27 +1,74 @@
 {
   "name": "st-lang",
-  "version": "0.1.0",
-  "description": "ST — Lenguaje ejecutable con nucleo logico y capa textual",
+  "version": "0.2.0",
+  "description": "ST — Lenguaje ejecutable con nucleo logico y capa textual. Motor de lógica proposicional, derivaciones, tablas de verdad, contramodelos y capa textual para formalización de documentos.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./api": {
+      "types": "./dist/api.d.ts",
+      "require": "./dist/api.js",
+      "default": "./dist/api.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/types/index.js",
+      "default": "./dist/types/index.js"
+    }
+  },
   "bin": {
     "st": "./bin/st"
   },
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/cli/index.js",
     "test": "node --experimental-vm-modules dist/tests/runner.js",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run clean && npm run build && npm test",
+    "prepack": "npm run build"
   },
-  "keywords": ["logic", "formal", "propositional", "language", "cli", "repl"],
+  "keywords": [
+    "logic",
+    "formal",
+    "propositional",
+    "language",
+    "cli",
+    "repl",
+    "truth-table",
+    "derivation",
+    "countermodel",
+    "proof",
+    "text-layer",
+    "education"
+  ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stevenvo780/ST.git",
+    "directory": "st-lang"
+  },
+  "homepage": "https://github.com/stevenvo780/ST#readme",
+  "bugs": {
+    "url": "https://github.com/stevenvo780/ST/issues"
+  },
   "devDependencies": {
     "typescript": "^5.4.0",
     "@types/node": "^20.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "sideEffects": false
 }

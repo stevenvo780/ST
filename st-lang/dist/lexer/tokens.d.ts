@@ -39,6 +39,7 @@ export declare enum TokenType {
     STRING = "STRING",
     NUMBER = "NUMBER",
     COMMA = "COMMA",// ,
+    COLON = "COLON",// :
     HASH = "HASH",// #
     DOT = "DOT",// .
     NEWLINE = "NEWLINE",

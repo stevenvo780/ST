@@ -143,6 +143,10 @@ class Lexer {
                     this.addToken(tokens_1.TokenType.EQUALS, '=');
                     this.advance();
                     break;
+                case ':':
+                    this.addToken(tokens_1.TokenType.COLON, ':');
+                    this.advance();
+                    break;
                 case '-':
                     if (this.peek(1) === '>') {
                         this.addToken(tokens_1.TokenType.ARROW, '->');

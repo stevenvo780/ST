@@ -1,3 +1,4 @@
+export { evaluate, parse, check, quickEval, createInterpreter, listProfiles, type STEvalResult, type STParseResult, type STCheckResult, type STInterpreter, type TheorySummary, } from './api';
 export * from './types';
 export { Lexer } from './lexer/lexer';
 export { TokenType, Token, KEYWORDS } from './lexer/tokens';

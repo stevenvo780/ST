@@ -1,0 +1,12 @@
+src
+tests
+examples
+*.ts
+!*.d.ts
+tsconfig.json
+.gitignore
+.git
+*.tgz
+test-results
+coverage
+dist/tests

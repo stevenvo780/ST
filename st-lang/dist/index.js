@@ -17,7 +17,15 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.REPL = exports.ProtocolHandler = exports.Interpreter = exports.compileClaimsToTheory = exports.registerContext = exports.registerConfidence = exports.registerSupport = exports.registerClaim = exports.registerFormalization = exports.registerPassage = exports.parseAnchorPath = exports.createTextLayerState = exports.ParaconsistentBelnap = exports.ModalK = exports.ClassicalFirstOrder = exports.formulaToString = exports.ClassicalPropositional = exports.registry = exports.ProfileRegistry = exports.Parser = exports.KEYWORDS = exports.TokenType = exports.Lexer = void 0;
+exports.REPL = exports.ProtocolHandler = exports.Interpreter = exports.compileClaimsToTheory = exports.registerContext = exports.registerConfidence = exports.registerSupport = exports.registerClaim = exports.registerFormalization = exports.registerPassage = exports.parseAnchorPath = exports.createTextLayerState = exports.ParaconsistentBelnap = exports.ModalK = exports.ClassicalFirstOrder = exports.formulaToString = exports.ClassicalPropositional = exports.registry = exports.ProfileRegistry = exports.Parser = exports.KEYWORDS = exports.TokenType = exports.Lexer = exports.listProfiles = exports.createInterpreter = exports.quickEval = exports.check = exports.parse = exports.evaluate = void 0;
+// API programática (uso recomendado para integración)
+var api_1 = require("./api");
+Object.defineProperty(exports, "evaluate", { enumerable: true, get: function () { return api_1.evaluate; } });
+Object.defineProperty(exports, "parse", { enumerable: true, get: function () { return api_1.parse; } });
+Object.defineProperty(exports, "check", { enumerable: true, get: function () { return api_1.check; } });
+Object.defineProperty(exports, "quickEval", { enumerable: true, get: function () { return api_1.quickEval; } });
+Object.defineProperty(exports, "createInterpreter", { enumerable: true, get: function () { return api_1.createInterpreter; } });
+Object.defineProperty(exports, "listProfiles", { enumerable: true, get: function () { return api_1.listProfiles; } });
 // Tipos
 __exportStar(require("./types"), exports);
 // Lexer

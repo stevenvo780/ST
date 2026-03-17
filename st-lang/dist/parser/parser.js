@@ -97,21 +97,21 @@ class Parser {
         }
         return { kind: 'logic_decl', profile, source: src };
     }
-    // axiom name = FORMULA
+    // axiom name = FORMULA  o  axiom name : FORMULA
     parseAxiomDecl() {
         const src = this.loc();
         this.expect(tokens_1.TokenType.AXIOM);
         const name = this.expectIdent();
-        this.expect(tokens_1.TokenType.EQUALS);
+        this.expectOneOf(tokens_1.TokenType.EQUALS, tokens_1.TokenType.COLON);
         const formula = this.parseFormula();
         return { kind: 'axiom_decl', name, formula, source: src };
     }
-    // theorem name = FORMULA
+    // theorem name = FORMULA  o  theorem name : FORMULA
     parseTheoremDecl() {
         const src = this.loc();
         this.expect(tokens_1.TokenType.THEOREM);
         const name = this.expectIdent();
-        this.expect(tokens_1.TokenType.EQUALS);
+        this.expectOneOf(tokens_1.TokenType.EQUALS, tokens_1.TokenType.COLON);
         const formula = this.parseFormula();
         return { kind: 'theorem_decl', name, formula, source: src };
     }
@@ -380,6 +380,15 @@ class Parser {
             return this.advance();
         }
         throw new Error(`Se esperaba ${type}, encontrado '${this.current().value}' (${this.current().type}) ` +
+            `en linea ${this.current().line}, columna ${this.current().column}`);
+    }
+    expectOneOf(...types) {
+        for (const type of types) {
+            if (this.checkType(type)) {
+                return this.advance();
+            }
+        }
+        throw new Error(`Se esperaba ${types.join(' o ')}, encontrado '${this.current().value}' (${this.current().type}) ` +
             `en linea ${this.current().line}, columna ${this.current().column}`);
     }
     expectIdent() {

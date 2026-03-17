@@ -51,6 +51,7 @@ var TokenType;
     TokenType["NUMBER"] = "NUMBER";
     // Punctuation
     TokenType["COMMA"] = "COMMA";
+    TokenType["COLON"] = "COLON";
     TokenType["HASH"] = "HASH";
     TokenType["DOT"] = "DOT";
     // Special

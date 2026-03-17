@@ -2,6 +2,14 @@
 // ST — Exports públicos
 // ============================================================
 
+// API programática (uso recomendado para integración)
+export {
+  evaluate, parse, check, quickEval,
+  createInterpreter, listProfiles,
+  type STEvalResult, type STParseResult, type STCheckResult,
+  type STInterpreter, type TheorySummary,
+} from './api';
+
 // Tipos
 export * from './types';
 

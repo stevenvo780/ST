@@ -37,6 +37,7 @@ export declare class Parser {
     private checkType;
     private match;
     private expect;
+    private expectOneOf;
     private expectIdent;
     private loc;
     private skipNewlines;

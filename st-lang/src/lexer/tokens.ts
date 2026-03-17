@@ -52,6 +52,7 @@ export enum TokenType {
 
   // Punctuation
   COMMA = 'COMMA',           // ,
+  COLON = 'COLON',           // :
   HASH = 'HASH',             // #
   DOT = 'DOT',               // .
 

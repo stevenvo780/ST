@@ -150,6 +150,10 @@ export class Lexer {
           this.addToken(TokenType.EQUALS, '=');
           this.advance();
           break;
+        case ':':
+          this.addToken(TokenType.COLON, ':');
+          this.advance();
+          break;
         case '-':
           if (this.peek(1) === '>') {
             this.addToken(TokenType.ARROW, '->');
