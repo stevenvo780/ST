@@ -17,7 +17,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.REPL = exports.ProtocolHandler = exports.Interpreter = exports.compileClaimsToTheory = exports.registerContext = exports.registerConfidence = exports.registerSupport = exports.registerClaim = exports.registerFormalization = exports.registerPassage = exports.parseAnchorPath = exports.createTextLayerState = exports.ParaconsistentBelnap = exports.ModalK = exports.ClassicalFirstOrder = exports.formulaToString = exports.ClassicalPropositional = exports.registry = exports.ProfileRegistry = exports.Parser = exports.KEYWORDS = exports.TokenType = exports.Lexer = exports.listProfiles = exports.createInterpreter = exports.quickEval = exports.check = exports.parse = exports.evaluate = void 0;
+exports.REPL = exports.ProtocolHandler = exports.Interpreter = exports.compileClaimsToTheory = exports.registerContext = exports.registerConfidence = exports.registerSupport = exports.registerClaim = exports.registerFormalization = exports.registerPassage = exports.parseAnchorPath = exports.createTextLayerState = exports.ParaconsistentBelnap = exports.ModalK = exports.ClassicalFirstOrder = exports.formulaToString = exports.ClassicalPropositional = exports.registry = exports.ProfileRegistry = exports.Parser = exports.KEYWORDS = exports.TokenType = exports.Lexer = exports.render = exports.completion = exports.gotoDefinition = exports.symbols = exports.hover = exports.listProfiles = exports.createInterpreter = exports.quickEval = exports.check = exports.parse = exports.evaluate = void 0;
 // API programática (uso recomendado para integración)
 var api_1 = require("./api");
 Object.defineProperty(exports, "evaluate", { enumerable: true, get: function () { return api_1.evaluate; } });
@@ -26,6 +26,11 @@ Object.defineProperty(exports, "check", { enumerable: true, get: function () { r
 Object.defineProperty(exports, "quickEval", { enumerable: true, get: function () { return api_1.quickEval; } });
 Object.defineProperty(exports, "createInterpreter", { enumerable: true, get: function () { return api_1.createInterpreter; } });
 Object.defineProperty(exports, "listProfiles", { enumerable: true, get: function () { return api_1.listProfiles; } });
+Object.defineProperty(exports, "hover", { enumerable: true, get: function () { return api_1.hover; } });
+Object.defineProperty(exports, "symbols", { enumerable: true, get: function () { return api_1.symbols; } });
+Object.defineProperty(exports, "gotoDefinition", { enumerable: true, get: function () { return api_1.gotoDefinition; } });
+Object.defineProperty(exports, "completion", { enumerable: true, get: function () { return api_1.completion; } });
+Object.defineProperty(exports, "render", { enumerable: true, get: function () { return api_1.render; } });
 // Tipos
 __exportStar(require("./types"), exports);
 // Lexer

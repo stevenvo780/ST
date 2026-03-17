@@ -6,8 +6,10 @@
 export {
   evaluate, parse, check, quickEval,
   createInterpreter, listProfiles,
+  hover, symbols, gotoDefinition, completion, render,
   type STEvalResult, type STParseResult, type STCheckResult,
   type STInterpreter, type TheorySummary,
+  type STHoverResult, type STRenderResult,
 } from './api';
 
 // Tipos

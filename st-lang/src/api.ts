@@ -20,6 +20,10 @@ import type {
   TruthTableResult,
   Proof,
   Model,
+  SymbolInfo,
+  HoverInfo,
+  CompletionItem,
+  SourceLocation,
 } from './types';
 import type { Program } from './ast/nodes';
 
@@ -246,6 +250,101 @@ export function listProfiles(): string[] {
   return registry.list();
 }
 
+// ── Editor Protocol — funciones de alto nivel ─────────────────
+
+/** Resultado de hover() */
+export interface STHoverResult {
+  content: string;
+  range?: SourceLocation;
+}
+
+/** Resultado de render() */
+export interface STRenderResult {
+  rendered: string;
+  format: string;
+  diagnostics: Diagnostic[];
+}
+
+/**
+ * Obtiene información de hover para una posición en el código ST.
+ * Útil para tooltips en editores.
+ * 
+ * @returns HoverInfo o null si no hay info en esa posición
+ */
+export function hover(source: string, line: number, column: number, file?: string): HoverInfo | null {
+  const handler = new ProtocolHandler();
+  const resp = handler.handle({
+    id: 0,
+    method: 'hover',
+    params: { source, line, column, file: file || '<api>' }
+  });
+  return (resp.result as HoverInfo | null) ?? null;
+}
+
+/**
+ * Lista todos los símbolos definidos en el código ST (axiomas, teoremas, claims, passages, etc.).
+ * Útil para panel de símbolos en editores.
+ */
+export function symbols(source: string, file?: string): SymbolInfo[] {
+  const handler = new ProtocolHandler();
+  const resp = handler.handle({
+    id: 0,
+    method: 'symbols',
+    params: { source, file: file || '<api>' }
+  });
+  return (resp.result as SymbolInfo[]) ?? [];
+}
+
+/**
+ * Busca la definición de un símbolo por nombre en el código ST.
+ * Útil para "Go to Definition" en editores.
+ * 
+ * @returns SourceLocation de la definición o null si no se encuentra
+ */
+export function gotoDefinition(source: string, name: string, file?: string): SourceLocation | null {
+  const handler = new ProtocolHandler();
+  const resp = handler.handle({
+    id: 0,
+    method: 'goto_definition',
+    params: { source, name, file: file || '<api>' }
+  });
+  return (resp.result as SourceLocation | null) ?? null;
+}
+
+/**
+ * Obtiene sugerencias de completado para el lenguaje ST.
+ * Devuelve keywords y snippets disponibles.
+ */
+export function completion(): CompletionItem[] {
+  const handler = new ProtocolHandler();
+  const resp = handler.handle({
+    id: 0,
+    method: 'completion',
+    params: {}
+  });
+  return (resp.result as CompletionItem[]) ?? [];
+}
+
+/**
+ * Ejecuta y renderiza el código ST en el formato especificado.
+ * 
+ * @param format 'markdown' | 'json' (default: 'markdown')
+ */
+export function render(source: string, format?: string, file?: string): STRenderResult {
+  const handler = new ProtocolHandler();
+  const resp = handler.handle({
+    id: 0,
+    method: 'render',
+    params: { source, format: format || 'markdown', file: file || '<api>' }
+  });
+  const result = resp.result as { rendered: string; format: string } | undefined;
+  return {
+    rendered: result?.rendered ?? '',
+    format: result?.format ?? format ?? 'markdown',
+    diagnostics: resp.diagnostics ?? [],
+  };
+}
+
 // ── Re-exports de tipos útiles ────────────────────────────────
 
 export type {
@@ -264,6 +363,10 @@ export type {
   Claim,
   Passage,
   Anchor,
+  SymbolInfo,
+  HoverInfo,
+  CompletionItem,
+  SourceLocation,
 } from './types';
 
 export type { Program, Statement } from './ast/nodes';
