@@ -99,9 +99,9 @@ export class ModalK implements LogicProfile {
     processed: Set<string> = new Set(),
     depth: number = 0,
   ): boolean {
-    if (depth > 50) return false;
+    if (depth > 100) return false;
 
-    // 1. Contradicción
+    // 1. Verificar contradicción
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         if (
@@ -225,7 +225,6 @@ export class ModalK implements LogicProfile {
             this.solve(
               [{ formula: args[1], sign: true, world: w }, ...rest],
               accessibility,
-              newProcessed,
               depth + 1,
             )
           );
@@ -278,14 +277,13 @@ export class ModalK implements LogicProfile {
       case 'modal_necessity': // []P
         if (!args[0]) return false;
         if (s) {
-          // Gamma
+          // Gamma: []P is true
           const nexts = accessibility.get(w) || [];
           const instantiated = nexts
-            .map((nw) => ({ formula: args[0]!, sign: true, world: nw }))
+            .map((nw) => ({ formula: args[0], sign: true, world: nw }))
             .filter((n) => !processed.has(`${n.world}:true:${JSON.stringify(n.formula)}`));
 
           if (instantiated.length === 0) {
-            // Si no hay nada nuevo que instanciar, pasamos al siguiente pero guardamos []P para mundos futuros
             return this.solve(rest, accessibility, newProcessed, depth);
           }
           const nextProcessed = new Set(processed);
@@ -304,8 +302,10 @@ export class ModalK implements LogicProfile {
           const newAcc = new Map(accessibility);
           newAcc.set(w, [...(accessibility.get(w) || []), newW]);
           newAcc.set(newW, []);
+          // Importante: volver a meter todas las reglas Gamma del mismo mundo para que se instancien en el nuevo
+          const gammas = nodes.filter((n) => n.world === w && findType(n) === 'gamma');
           return this.solve(
-            [{ formula: args[0]!, sign: false, world: newW }, ...rest],
+            [{ formula: args[0], sign: false, world: newW }, ...rest, ...gammas],
             newAcc,
             newProcessed,
             depth + 1,
@@ -319,8 +319,9 @@ export class ModalK implements LogicProfile {
           const newAcc = new Map(accessibility);
           newAcc.set(w, [...(accessibility.get(w) || []), newW]);
           newAcc.set(newW, []);
+          const gammas = nodes.filter((n) => n.world === w && findType(n) === 'gamma');
           return this.solve(
-            [{ formula: args[0]!, sign: true, world: newW }, ...rest],
+            [{ formula: args[0], sign: true, world: newW }, ...rest, ...gammas],
             newAcc,
             newProcessed,
             depth + 1,
@@ -329,7 +330,7 @@ export class ModalK implements LogicProfile {
           // Gamma
           const nexts = accessibility.get(w) || [];
           const instantiated = nexts
-            .map((nw) => ({ formula: args[0]!, sign: false, world: nw }))
+            .map((nw) => ({ formula: args[0], sign: false, world: nw }))
             .filter((n) => !processed.has(`${n.world}:false:${JSON.stringify(n.formula)}`));
 
           if (instantiated.length === 0)

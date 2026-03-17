@@ -125,6 +125,7 @@ export class ClassicalFirstOrder implements LogicProfile {
       if (f.kind === 'and') return s ? 'alfa' : 'beta';
       if (f.kind === 'or') return s ? 'beta' : 'alfa';
       if (f.kind === 'implies') return s ? 'beta' : 'alfa';
+      if (f.kind === 'biconditional') return 'beta';
       if (f.kind === 'forall') return s ? 'gamma' : 'delta';
       if (f.kind === 'exists') return s ? 'delta' : 'gamma';
       return 'atom';
@@ -230,6 +231,36 @@ export class ClassicalFirstOrder implements LogicProfile {
             newProcessed,
             depth + 1,
           );
+      case 'biconditional':
+        if (!args[0] || !args[1]) return false;
+        if (s) {
+          const f1: Formula = { kind: 'implies', args: [args[0], args[1]] };
+          const f2: Formula = { kind: 'implies', args: [args[1], args[0]] };
+          return this.solve(
+            [{ formula: f1, sign: true }, { formula: f2, sign: true }, ...rest],
+            constants,
+            newProcessed,
+            depth + 1,
+          );
+        } else {
+          const f1: Formula = {
+            kind: 'not',
+            args: [{ kind: 'implies', args: [args[0], args[1]] }],
+          };
+          const f2: Formula = {
+            kind: 'not',
+            args: [{ kind: 'implies', args: [args[1], args[0]] }],
+          };
+          return (
+            this.solve(
+              [{ formula: f1, sign: true }, ...rest],
+              constants,
+              newProcessed,
+              depth + 1,
+            ) &&
+            this.solve([{ formula: f2, sign: true }, ...rest], constants, newProcessed, depth + 1)
+          );
+        }
       case 'forall': {
         const variable = f.variable;
         if (!args[0] || !variable) return false;
@@ -247,8 +278,13 @@ export class ClassicalFirstOrder implements LogicProfile {
           // Delta
           const newC = `c${constants.size}`;
           const newCons = new Set(constants).add(newC);
+          const gammas = nodes.filter((n) => findType(n) === 'gamma');
           return this.solve(
-            [{ formula: this.substitute(args[0], variable, newC), sign: false }, ...rest],
+            [
+              { formula: this.substitute(args[0], variable, newC), sign: false },
+              ...rest,
+              ...gammas,
+            ],
             newCons,
             newProcessed,
             depth + 1,
@@ -262,8 +298,9 @@ export class ClassicalFirstOrder implements LogicProfile {
           // Delta
           const newC = `c${constants.size}`;
           const newCons = new Set(constants).add(newC);
+          const gammas = nodes.filter((n) => findType(n) === 'gamma');
           return this.solve(
-            [{ formula: this.substitute(args[0], variable, newC), sign: true }, ...rest],
+            [{ formula: this.substitute(args[0], variable, newC), sign: true }, ...rest, ...gammas],
             newCons,
             newProcessed,
             depth + 1,
