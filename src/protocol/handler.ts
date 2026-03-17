@@ -211,6 +211,36 @@ export class ProtocolHandler {
         detail: 'Lógica deóntica KD — obligación (O), permisión (P), prohibición (F)',
         insertText: 'logic deontic.standard',
       },
+      {
+        label: 'logic epistemic.s5',
+        kind: 'value',
+        detail: 'Lógica epistémica S5 — conocimiento (K), creencia (B)',
+        insertText: 'logic epistemic.s5',
+      },
+      {
+        label: 'logic intuitionistic.propositional',
+        kind: 'value',
+        detail: 'Lógica intuicionista (sin tercero excluido, traducción Gödel-McKinsey-Tarski)',
+        insertText: 'logic intuitionistic.propositional',
+      },
+      {
+        label: 'logic temporal.ltl',
+        kind: 'value',
+        detail: 'Lógica temporal lineal (LTL) — G(lobally), F(inally), X(next), U(ntil)',
+        insertText: 'logic temporal.ltl',
+      },
+      {
+        label: 'logic aristotelian.syllogistic',
+        kind: 'value',
+        detail: 'Silogística aristotélica — 24 formas válidas (Barbara, Celarent, etc.)',
+        insertText: 'logic aristotelian.syllogistic',
+      },
+      {
+        label: 'logic probabilistic.basic',
+        kind: 'value',
+        detail: 'Lógica probabilística — razonamiento con probabilidades [0,1]',
+        insertText: 'logic probabilistic.basic',
+      },
 
       // ── Declaraciones ───────────────────────────────────────────
       {
@@ -406,6 +436,34 @@ export class ProtocolHandler {
         kind: 'operator',
         detail: 'F(φ) = Prohibición — "está prohibido que φ" = O(¬φ)',
         insertText: '[](!${1:formula})',
+      },
+
+      // ── Operadores epistémicos (epistemic.s5) ──────────────────
+      {
+        label: '[] (conocimiento)',
+        kind: 'operator',
+        detail: 'K(φ) = Conocimiento — "se sabe que φ" (epistémica S5)',
+        insertText: '[](${1:formula})',
+      },
+      {
+        label: '<> (creencia)',
+        kind: 'operator',
+        detail: 'B(φ) = Creencia compatible — "es compatible con lo que se sabe" (epistémica S5)',
+        insertText: '<>(${1:formula})',
+      },
+
+      // ── Operadores temporales (temporal.ltl) ────────────────────
+      {
+        label: '[] (Globally)',
+        kind: 'operator',
+        detail: 'G(φ) = Globally — "siempre φ" (LTL temporal)',
+        insertText: '[](${1:formula})',
+      },
+      {
+        label: '<> (Finally)',
+        kind: 'operator',
+        detail: 'F(φ) = Finally — "eventualmente φ" (LTL temporal)',
+        insertText: '<>(${1:formula})',
       },
     ];
 

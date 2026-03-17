@@ -34,11 +34,9 @@ import {
   RenderCmdNode,
 } from '../ast/nodes';
 import { registry } from '../profiles/interface';
-import { ClassicalPropositional, formulaToString } from '../profiles/classical/propositional';
-import { ClassicalFirstOrder } from '../profiles/classical/first-order';
-import { ModalK } from '../profiles/modal/k';
-import { ParaconsistentBelnap } from '../profiles/paraconsistent/belnap';
-import { DeonticStandard } from '../profiles/deontic/standard';
+import { formulaToString } from '../profiles/classical/propositional';
+// Barrel import: registra todos los perfiles automáticamente
+import '../profiles';
 import {
   createTextLayerState,
   registerPassage,
@@ -49,25 +47,6 @@ import {
   registerContext,
   compileClaimsToTheory,
 } from '../text-layer/compiler';
-
-// Registrar todos los perfiles
-function ensureProfilesRegistered() {
-  if (!registry.has('classical.propositional')) {
-    registry.register(new ClassicalPropositional());
-  }
-  if (!registry.has('classical.first_order')) {
-    registry.register(new ClassicalFirstOrder());
-  }
-  if (!registry.has('modal.k')) {
-    registry.register(new ModalK());
-  }
-  if (!registry.has('paraconsistent.belnap')) {
-    registry.register(new ParaconsistentBelnap());
-  }
-  if (!registry.has('deontic.standard')) {
-    registry.register(new DeonticStandard());
-  }
-}
 
 export class Interpreter {
   private theory: Theory;
@@ -80,7 +59,6 @@ export class Interpreter {
   constructor() {
     this.theory = this.createEmptyTheory();
     this.textLayer = createTextLayerState();
-    ensureProfilesRegistered();
   }
 
   private createEmptyTheory(): Theory {

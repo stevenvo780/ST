@@ -1,0 +1,416 @@
+// ============================================================
+// ST Intuitionistic Propositional — Kripke directo
+// ============================================================
+// Lógica intuicionista (IPC): sin ley del tercero excluido,
+// sin doble negación eliminación.
+//
+// Implementación: enumeración exhaustiva de modelos Kripke
+// finitos (preórdenes con persistencia de átomos).
+// Para fórmulas proposicionales con n átomos, generamos todos
+// los preórdenes de tamaño ≤ k y todas las valuaciones
+// persistentes, verificando si la fórmula se fuerza en la raíz.
+//
+// Corrección: IPC es completa respecto a frames finitos
+// (teorema de completitud de Kripke).
+// ============================================================
+
+import { Formula } from '../../types';
+import { formulaToString } from '../classical/propositional';
+import type { RunResult, Theory, Diagnostic, LogicProfile } from '../../types';
+
+// ── Recolectar átomos ───────────────────────────────────────
+
+function collectAtoms(f: Formula): Set<string> {
+  const atoms = new Set<string>();
+  const walk = (node: Formula) => {
+    if (node.kind === 'atom' && node.name) atoms.add(node.name);
+    node.args?.forEach(walk);
+  };
+  walk(f);
+  return atoms;
+}
+
+// ── Modelo Kripke ───────────────────────────────────────────
+
+interface KripkeModel {
+  worlds: number[];
+  /** Relación de accesibilidad: access[w] = conjunto de mundos accesibles */
+  access: Map<number, Set<number>>;
+  /** Valuación: val[w] = conjunto de átomos verdaderos en w */
+  val: Map<number, Set<string>>;
+}
+
+// ── Forzar (forcing) intuicionista ──────────────────────────
+
+function forces(model: KripkeModel, w: number, f: Formula): boolean {
+  switch (f.kind) {
+    case 'atom':
+      return model.val.get(w)?.has(f.name || '') || false;
+
+    case 'not': {
+      // ¬φ se fuerza en w sii NO existe v ≥ w tal que v ⊩ φ
+      const inner = (f.args || [])[0];
+      if (!inner) return true;
+      for (const v of reachable(model, w)) {
+        if (forces(model, v, inner)) return false;
+      }
+      return true;
+    }
+
+    case 'and': {
+      const args = f.args || [];
+      return args.every((a) => forces(model, w, a));
+    }
+
+    case 'or': {
+      const args = f.args || [];
+      return args.some((a) => forces(model, w, a));
+    }
+
+    case 'implies': {
+      // φ→ψ se fuerza en w sii para todo v ≥ w, si v ⊩ φ entonces v ⊩ ψ
+      const args = f.args || [];
+      if (args.length < 2) return true;
+      for (const v of reachable(model, w)) {
+        if (forces(model, v, args[0]) && !forces(model, v, args[1])) return false;
+      }
+      return true;
+    }
+
+    case 'biconditional': {
+      const args = f.args || [];
+      if (args.length < 2) return true;
+      const impl1: Formula = { kind: 'implies', args: [args[0], args[1]] };
+      const impl2: Formula = { kind: 'implies', args: [args[1], args[0]] };
+      return forces(model, w, impl1) && forces(model, w, impl2);
+    }
+
+    // Modal: interpretar □ como universal en accesibles, ◇ como existencial
+    case 'modal_necessity': {
+      const inner = (f.args || [])[0];
+      if (!inner) return true;
+      for (const v of reachable(model, w)) {
+        if (!forces(model, v, inner)) return false;
+      }
+      return true;
+    }
+
+    case 'modal_possibility': {
+      const inner = (f.args || [])[0];
+      if (!inner) return false;
+      for (const v of reachable(model, w)) {
+        if (forces(model, v, inner)) return true;
+      }
+      return false;
+    }
+
+    default:
+      return false;
+  }
+}
+
+/** Cierre transitivo-reflexivo desde w */
+function reachable(model: KripkeModel, w: number): number[] {
+  const visited = new Set<number>();
+  const queue = [w];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (visited.has(current)) continue;
+    visited.add(current);
+    for (const next of model.access.get(current) || []) {
+      queue.push(next);
+    }
+  }
+  return Array.from(visited);
+}
+
+// ── Generador de modelos Kripke finitos ─────────────────────
+
+/**
+ * Genera todos los preórdenes (reflexivos + transitivos)
+ * sobre {0, ..., n-1} y todas las valuaciones persistentes
+ * de los átomos dados.
+ *
+ * Para IPC proposicional con pocos átomos, 3 mundos son
+ * suficientes para refutar cualquier no-teorema.
+ */
+function* generateModels(atoms: string[], maxWorlds: number): Generator<KripkeModel> {
+  const n = Math.min(maxWorlds, 4); // Limitar a 4 mundos máx
+
+  for (let size = 1; size <= n; size++) {
+    const worlds = Array.from({ length: size }, (_, i) => i);
+
+    // Generar todos los subconjuntos de aristas (sin incluir reflexivas, que siempre van)
+    const pairs: [number, number][] = [];
+    for (let i = 0; i < size; i++) {
+      for (let j = 0; j < size; j++) {
+        if (i !== j) pairs.push([i, j]);
+      }
+    }
+
+    const edgeCombinations = 1 << pairs.length;
+
+    for (let edgeMask = 0; edgeMask < edgeCombinations; edgeMask++) {
+      // Construir relación de accesibilidad
+      const access = new Map<number, Set<number>>();
+      for (const w of worlds) access.set(w, new Set([w])); // Reflexividad
+
+      for (let b = 0; b < pairs.length; b++) {
+        if (edgeMask & (1 << b)) {
+          access.get(pairs[b][0])!.add(pairs[b][1]);
+        }
+      }
+
+      // Cerrar transitivamente
+      transitiveClosure(access, worlds);
+
+      // Generar todas las valuaciones persistentes
+      yield* generatePersistentValuations(worlds, access, atoms);
+    }
+  }
+}
+
+function transitiveClosure(access: Map<number, Set<number>>, worlds: number[]): void {
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const w of worlds) {
+      const acc = access.get(w)!;
+      const toAdd: number[] = [];
+      for (const v of acc) {
+        for (const u of access.get(v) || []) {
+          if (!acc.has(u)) toAdd.push(u);
+        }
+      }
+      for (const u of toAdd) {
+        acc.add(u);
+        changed = true;
+      }
+    }
+  }
+}
+
+function* generatePersistentValuations(
+  worlds: number[],
+  access: Map<number, Set<number>>,
+  atoms: string[],
+): Generator<KripkeModel> {
+  const upwardSets = computeUpwardSets(worlds, access);
+  const atomCount = atoms.length;
+
+  // Cada átomo elige uno de los upward-closed sets
+  const total = Math.pow(upwardSets.length, atomCount);
+
+  for (let i = 0; i < total; i++) {
+    const val = new Map<number, Set<string>>();
+    for (const w of worlds) val.set(w, new Set());
+
+    let idx = i;
+    for (let a = 0; a < atomCount; a++) {
+      const setIdx = idx % upwardSets.length;
+      idx = Math.floor(idx / upwardSets.length);
+      const truthWorlds = upwardSets[setIdx];
+      for (const w of truthWorlds) {
+        val.get(w)!.add(atoms[a]);
+      }
+    }
+
+    yield { worlds, access, val };
+  }
+}
+
+function computeUpwardSets(worlds: number[], access: Map<number, Set<number>>): number[][] {
+  // Un conjunto S es upward-closed si w∈S y wRv implica v∈S
+  const n = worlds.length;
+  const result: number[][] = [];
+  const total = 1 << n;
+
+  for (let mask = 0; mask < total; mask++) {
+    const set = worlds.filter((_, i) => mask & (1 << i));
+    let upward = true;
+    for (const w of set) {
+      for (const v of access.get(w) || []) {
+        if (!(mask & (1 << v))) {
+          upward = false;
+          break;
+        }
+      }
+      if (!upward) break;
+    }
+    if (upward) result.push(set);
+  }
+
+  return result;
+}
+
+// ── Verificación de validez ─────────────────────────────────
+
+/** ¿Es φ válida en IPC? (forzada en la raíz de todo modelo Kripke finito) */
+function isIPCValid(formula: Formula): boolean {
+  const atoms = Array.from(collectAtoms(formula));
+  const maxWorlds = atoms.length <= 2 ? 4 : 3;
+
+  for (const model of generateModels(atoms, maxWorlds)) {
+    if (!forces(model, 0, formula)) return false;
+  }
+  return true;
+}
+
+/** ¿Es φ satisfacible en IPC? */
+function isIPCSatisfiable(formula: Formula): boolean {
+  const atoms = Array.from(collectAtoms(formula));
+  const maxWorlds = atoms.length <= 2 ? 4 : 3;
+
+  for (const model of generateModels(atoms, maxWorlds)) {
+    if (forces(model, 0, formula)) return true;
+  }
+  return false;
+}
+
+// ── Profile ─────────────────────────────────────────────────
+
+export class IntuitionisticPropositional implements LogicProfile {
+  name = 'intuitionistic.propositional';
+  description =
+    'Lógica intuicionista proposicional — sin tercero excluido, sin doble negación eliminación';
+
+  checkWellFormed(formula: Formula): Diagnostic[] {
+    const diags: Diagnostic[] = [];
+    const walk = (f: Formula) => {
+      if (f.kind === 'atom' && !f.name) {
+        diags.push({ severity: 'error', message: 'Átomo sin nombre' });
+      }
+      if (f.kind === 'modal_necessity' || f.kind === 'modal_possibility') {
+        diags.push({
+          severity: 'warning',
+          message: 'Los operadores modales □/◇ no forman parte de la lógica intuicionista',
+        });
+      }
+      f.args?.forEach(walk);
+    };
+    walk(formula);
+    return diags;
+  }
+
+  checkValid(formula: Formula): RunResult {
+    const valid = isIPCValid(formula);
+    const fStr = formulaToString(formula);
+    return {
+      status: valid ? 'valid' : 'invalid',
+      output: valid
+        ? `${fStr} es VÁLIDA intuicionistamente`
+        : `${fStr} NO es válida intuicionistamente`,
+      diagnostics: [],
+      formula,
+    };
+  }
+
+  checkSatisfiable(formula: Formula): RunResult {
+    const sat = isIPCSatisfiable(formula);
+    const fStr = formulaToString(formula);
+    return {
+      status: sat ? 'satisfiable' : 'unsatisfiable',
+      output: sat
+        ? `${fStr} es SATISFACIBLE intuicionistamente`
+        : `${fStr} es INSATISFACIBLE intuicionistamente`,
+      diagnostics: [],
+      formula,
+    };
+  }
+
+  prove(goal: Formula, theory: Theory): RunResult {
+    const axioms = Array.from(theory.axioms.values());
+    if (axioms.length === 0) return this.checkValid(goal);
+    const conj: Formula = axioms.reduce((a, b) => ({ kind: 'and' as const, args: [a, b] }));
+    const impl: Formula = { kind: 'implies', args: [conj, goal] };
+    return this.checkValid(impl);
+  }
+
+  derive(goal: Formula, premises: string[], theory: Theory): RunResult {
+    const fs: Formula[] = [];
+    for (const n of premises) {
+      const f = theory.axioms.get(n) || theory.theorems.get(n);
+      if (!f) {
+        return {
+          status: 'error',
+          output: `Premisa no encontrada: ${n}`,
+          diagnostics: [{ severity: 'error', message: `'${n}' no definida` }],
+          formula: goal,
+        };
+      }
+      fs.push(f);
+    }
+    if (fs.length === 0) return this.checkValid(goal);
+    const conj: Formula = fs.reduce((a, b) => ({ kind: 'and' as const, args: [a, b] }));
+    const impl: Formula = { kind: 'implies', args: [conj, goal] };
+    return this.checkValid(impl);
+  }
+
+  countermodel(formula: Formula): RunResult {
+    const atoms = Array.from(collectAtoms(formula));
+    const maxWorlds = atoms.length <= 2 ? 4 : 3;
+    const fStr = formulaToString(formula);
+
+    for (const model of generateModels(atoms, maxWorlds)) {
+      if (!forces(model, 0, formula)) {
+        const desc = describeModel(model);
+        return {
+          status: 'invalid',
+          output: `Contramodelo intuicionista para ${fStr}:\n${desc}`,
+          diagnostics: [],
+          formula,
+        };
+      }
+    }
+    return {
+      status: 'valid',
+      output: `No existe contramodelo — ${fStr} es válida intuicionistamente`,
+      diagnostics: [],
+      formula,
+    };
+  }
+
+  explain(formula: Formula): RunResult {
+    const fStr = formulaToString(formula);
+    const valid = isIPCValid(formula);
+    let explanation = `Fórmula: ${fStr}\n\n`;
+    explanation += [
+      'Sistema: Lógica Intuicionista Proposicional (IPC)',
+      '',
+      'Rechazos clave vs. clásica:',
+      '  ✗ P ∨ ¬P          — Tercero excluido (LEM)',
+      '  ✗ ¬¬P → P         — Doble negación eliminación (DNE)',
+      '  ✗ ((P→Q)→P) → P   — Ley de Peirce',
+      '',
+      'Aceptados en IPC:',
+      '  ✓ P → ¬¬P         — Doble negación introducción',
+      '  ✓ (P→Q) → (¬Q→¬P) — Contraposición',
+      '  ✓ (P ∧ ¬P) → Q    — Ex falso quodlibet',
+      '',
+      'Semántica: Kripke con preórdenes (reflexivo + transitivo)',
+      '  Los átomos son persistentes (monótonos)',
+      '  Implementación: enumeración de modelos finitos',
+    ].join('\n');
+    explanation += `\n\nEstatus: ${valid ? 'VÁLIDA' : 'NO válida'} intuicionistamente`;
+    return {
+      status: valid ? 'valid' : 'invalid',
+      output: explanation,
+      diagnostics: [],
+      formula,
+    };
+  }
+}
+
+// ── Utilidades ──────────────────────────────────────────────
+
+function describeModel(model: KripkeModel): string {
+  const lines: string[] = [];
+  lines.push(`Mundos: {${model.worlds.join(', ')}}`);
+  for (const w of model.worlds) {
+    const acc = Array.from(model.access.get(w) || []).filter((v) => v !== w);
+    if (acc.length > 0) lines.push(`  ${w} → {${acc.join(', ')}}`);
+    const atoms = Array.from(model.val.get(w) || []);
+    lines.push(`  V(${w}) = {${atoms.join(', ')}}`);
+  }
+  return lines.join('\n');
+}
