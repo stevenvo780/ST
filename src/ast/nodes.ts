@@ -24,7 +24,9 @@ export type StatementKind =
   | 'context_decl'
   | 'render_cmd'
   | 'analyze_cmd'
-  | 'explain_cmd';
+  | 'explain_cmd'
+  | 'import_decl'
+  | 'proof_block';
 
 export interface ASTNode {
   kind: StatementKind;
@@ -107,6 +109,18 @@ export interface ExplainCmdNode extends ASTNode {
   formula: Formula;
 }
 
+export interface ImportDeclNode extends ASTNode {
+  kind: 'import_decl';
+  path: string;
+}
+
+export interface ProofBlockNode extends ASTNode {
+  kind: 'proof_block';
+  assumptions: { name: string; formula: Formula }[];
+  goal: Formula;
+  body: Statement[]; // derivar, check, etc. dentro del bloque
+}
+
 // --- Text Layer ---
 
 export interface LetPassageNode extends ASTNode {
@@ -179,7 +193,9 @@ export type Statement =
   | ContextDeclNode
   | RenderCmdNode
   | AnalyzeCmdNode
-  | ExplainCmdNode;
+  | ExplainCmdNode
+  | ImportDeclNode
+  | ProofBlockNode;
 
 export interface Program {
   statements: Statement[];

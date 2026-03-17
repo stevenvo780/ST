@@ -30,6 +30,12 @@ export enum TokenType {
   ANALYZE = 'ANALYZE',
   EXPLAIN = 'EXPLAIN',
   REFUTE = 'REFUTE',
+  NEXT = 'NEXT',       // X (temporal next)
+  UNTIL = 'UNTIL',     // U (temporal until)
+  IMPORT = 'IMPORT',   // import file
+  ASSUME = 'ASSUME',   // assume (natural deduction)
+  SHOW = 'SHOW',       // show goal
+  QED = 'QED',         // end proof block
 
   // Operators
   ARROW = 'ARROW', // ->
@@ -134,4 +140,15 @@ export const KEYWORDS: Record<string, TokenType> = {
   explicar: TokenType.EXPLAIN,
   refute: TokenType.REFUTE,
   refutar: TokenType.REFUTE,
+  next: TokenType.NEXT,
+  siguiente: TokenType.NEXT,
+  until: TokenType.UNTIL,
+  hasta: TokenType.UNTIL,
+  import: TokenType.IMPORT,
+  importar: TokenType.IMPORT,
+  assume: TokenType.ASSUME,
+  asumir: TokenType.ASSUME,
+  show: TokenType.SHOW,
+  demostrar: TokenType.SHOW,
+  qed: TokenType.QED,
 };

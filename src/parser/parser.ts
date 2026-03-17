@@ -26,6 +26,8 @@ import {
   RenderCmdNode,
   AnalyzeCmdNode,
   ExplainCmdNode,
+  ImportDeclNode,
+  ProofBlockNode,
 } from '../ast/nodes';
 
 export class Parser {
@@ -110,6 +112,10 @@ export class Parser {
         return this.parseAnalyzeCmd();
       case TokenType.EXPLAIN:
         return this.parseExplainCmd();
+      case TokenType.IMPORT:
+        return this.parseImportDecl();
+      case TokenType.ASSUME:
+        return this.parseProofBlock();
       case TokenType.NEWLINE:
         this.advance();
         return null;
@@ -359,6 +365,77 @@ export class Parser {
     return { kind: 'explain_cmd', formula, source: src };
   }
 
+  // import "path/to/file.st" | import path/to/file
+  private parseImportDecl(): ImportDeclNode {
+    const src = this.loc();
+    this.expect(TokenType.IMPORT);
+    // Acepta string entrecomillado o secuencia de ident.ident/ident
+    let path = '';
+    if (this.checkType(TokenType.STRING)) {
+      path = this.current().value;
+      this.advance();
+    } else {
+      path = this.expectIdent();
+      while (this.checkType(TokenType.DOT) || this.checkType(TokenType.IDENTIFIER)) {
+        if (this.match(TokenType.DOT)) {
+          path += '.';
+          if (this.checkType(TokenType.IDENTIFIER)) {
+            path += this.current().value;
+            this.advance();
+          }
+        } else {
+          break;
+        }
+      }
+    }
+    return { kind: 'import_decl', path, source: src };
+  }
+
+  // assume name : FORMULA\n ... \n show FORMULA\n ... \n qed
+  private parseProofBlock(): ProofBlockNode {
+    const src = this.loc();
+    const assumptions: { name: string; formula: Formula }[] = [];
+
+    // Parsear una o más assumptions
+    while (this.checkType(TokenType.ASSUME)) {
+      this.advance();
+      const name = this.expectIdent();
+      this.expectOneOf(TokenType.COLON, TokenType.EQUALS);
+      const formula = this.parseFormula();
+      assumptions.push({ name, formula });
+      this.skipNewlines();
+    }
+
+    // Esperar 'show FORMULA'
+    this.expect(TokenType.SHOW);
+    const goal = this.parseFormula();
+    this.skipNewlines();
+
+    // Parsear body statements hasta 'qed'
+    const body: Statement[] = [];
+    while (!this.checkType(TokenType.QED) && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.checkType(TokenType.QED)) break;
+      try {
+        const stmt = this.parseStatement();
+        if (stmt) body.push(stmt);
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Error de parseo';
+        this.diagnostics.push({
+          severity: 'error',
+          message,
+          file: this.file,
+          line: this.current().line,
+          column: this.current().column,
+        });
+        this.advanceToNextStatement();
+      }
+    }
+    this.expect(TokenType.QED);
+
+    return { kind: 'proof_block', assumptions, goal, body, source: src };
+  }
+
   // --- Parsing de fórmulas (precedencia) ---
   // Precedencia (de menor a mayor):
   // 1. <-> (bicondicional)
@@ -391,10 +468,19 @@ export class Parser {
   }
 
   private parseDisjunction(): Formula {
-    let left = this.parseConjunction();
+    let left = this.parseUntil();
     while (this.match(TokenType.OR)) {
-      const right = this.parseConjunction();
+      const right = this.parseUntil();
       left = { kind: 'or', args: [left, right], source: this.loc() };
+    }
+    return left;
+  }
+
+  private parseUntil(): Formula {
+    let left = this.parseConjunction();
+    while (this.match(TokenType.UNTIL)) {
+      const right = this.parseConjunction();
+      left = { kind: 'temporal_until', args: [left, right], source: this.loc() };
     }
     return left;
   }
@@ -430,6 +516,10 @@ export class Parser {
       const variable = this.expectIdent();
       const operand = this.parseUnary();
       return { kind: 'exists', variable, args: [operand], source: this.loc() };
+    }
+    if (this.match(TokenType.NEXT)) {
+      const operand = this.parseUnary();
+      return { kind: 'temporal_next', args: [operand], source: this.loc() };
     }
     return this.parseAtom();
   }
@@ -568,6 +658,12 @@ export class Parser {
         return arg0 && arg1
           ? `(${this.formulaToString(arg0)} = ${this.formulaToString(arg1)})`
           : '(? = ?)';
+      case 'temporal_next':
+        return arg0 ? `X(${this.formulaToString(arg0)})` : 'X(?)';
+      case 'temporal_until':
+        return arg0 && arg1
+          ? `(${this.formulaToString(arg0)} U ${this.formulaToString(arg1)})`
+          : '(? U ?)';
       default:
         return '?';
     }
@@ -666,6 +762,12 @@ export class Parser {
       TokenType.RENDER,
       TokenType.ANALYZE,
       TokenType.EXPLAIN,
+      TokenType.NEXT,
+      TokenType.UNTIL,
+      TokenType.IMPORT,
+      TokenType.ASSUME,
+      TokenType.SHOW,
+      TokenType.QED,
     ]);
     while (!this.isAtEnd()) {
       if (this.checkType(TokenType.NEWLINE)) {

@@ -161,12 +161,70 @@ export const FRAME_S4: FrameRules = {
 // ── Utilidades exportadas ───────────────────────────────────
 
 export function formulaEqual(a: Formula, b: Formula): boolean {
+  return alphaEqual(a, b, new Map(), new Map());
+}
+
+/**
+ * Alpha-equivalencia: ∀x.P(x) ≡ ∀y.P(y)
+ * Compara fórmulas módulo renombramiento de variables ligadas.
+ */
+function alphaEqual(
+  a: Formula,
+  b: Formula,
+  envA: Map<string, number>,
+  envB: Map<string, number>,
+  depth: number = 0,
+): boolean {
   if (a.kind !== b.kind) return false;
-  if (a.kind === 'atom' && b.kind === 'atom') return a.name === b.name;
+
+  // Átomos y variables: comparar nombres teniendo en cuenta bindings
+  if (a.kind === 'atom' && b.kind === 'atom') {
+    const nameA = a.name || '?';
+    const nameB = b.name || '?';
+    const boundA = envA.get(nameA);
+    const boundB = envB.get(nameB);
+    // Si ambos están ligados, comparar nivel de binding
+    if (boundA !== undefined && boundB !== undefined) return boundA === boundB;
+    // Si ninguno está ligado, comparar nombres directamente
+    if (boundA === undefined && boundB === undefined) return nameA === nameB;
+    // Uno ligado y otro libre → no iguales
+    return false;
+  }
+
+  // Predicados: comparar nombre y parámetros
+  if (a.kind === 'predicate' && b.kind === 'predicate') {
+    if (a.name !== b.name) return false;
+    const pa = a.params || [];
+    const pb = b.params || [];
+    if (pa.length !== pb.length) return false;
+    return pa.every((p, i) => {
+      const boundA = envA.get(p);
+      const boundB = envB.get(pb[i]);
+      if (boundA !== undefined && boundB !== undefined) return boundA === boundB;
+      if (boundA === undefined && boundB === undefined) return p === pb[i];
+      return false;
+    });
+  }
+
+  // Cuantificadores: extender el ambiente
+  if ((a.kind === 'forall' || a.kind === 'exists') && a.kind === b.kind) {
+    const varA = a.variable || '_';
+    const varB = b.variable || '_';
+    const newEnvA = new Map(envA);
+    const newEnvB = new Map(envB);
+    newEnvA.set(varA, depth);
+    newEnvB.set(varB, depth);
+    const aa = a.args || [];
+    const bb = b.args || [];
+    if (aa.length !== bb.length) return false;
+    return aa.every((ai, i) => alphaEqual(ai, bb[i], newEnvA, newEnvB, depth + 1));
+  }
+
+  // Resto: comparar sub-fórmulas recursivamente
   const aa = a.args || [];
   const bb = b.args || [];
   if (aa.length !== bb.length) return false;
-  return aa.every((ai, i) => formulaEqual(ai, bb[i]));
+  return aa.every((ai, i) => alphaEqual(ai, bb[i], envA, envB, depth));
 }
 
 export function formulaHash(f: Formula): string {
@@ -195,6 +253,10 @@ export function formulaHash(f: Formula): string {
       return `${f.name}(${(f.args || []).map(formulaHash).join(',')})`;
     case 'equals':
       return `(${formulaHash((f.args || [])[0])} = ${formulaHash((f.args || [])[1])})`;
+    case 'temporal_next':
+      return `X(${formulaHash((f.args || [])[0])})`;
+    case 'temporal_until':
+      return `(${formulaHash((f.args || [])[0])} U ${formulaHash((f.args || [])[1])})`;
     default:
       return f.kind;
   }

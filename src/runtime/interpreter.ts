@@ -34,6 +34,8 @@ import {
   RenderCmdNode,
   AnalyzeCmdNode,
   ExplainCmdNode,
+  ImportDeclNode,
+  ProofBlockNode,
 } from '../ast/nodes';
 import { registry } from '../profiles/interface';
 import { formulaToString } from '../profiles/classical/propositional';
@@ -75,6 +77,8 @@ export class Interpreter {
     };
   }
 
+  private importedFiles: Set<string> = new Set();
+
   reset(): void {
     this.theory = this.createEmptyTheory();
     this.textLayer = createTextLayerState();
@@ -82,6 +86,7 @@ export class Interpreter {
     this.results = [];
     this.stdoutLines = [];
     this.profile = null;
+    this.importedFiles.clear();
   }
 
   execute(source: string, file: string = '<stdin>'): ExecutionOutput {
@@ -214,6 +219,10 @@ export class Interpreter {
         return this.execAnalyzeCmd(stmt);
       case 'explain_cmd':
         return this.execExplainCmd(stmt);
+      case 'import_decl':
+        return this.execImportDecl(stmt);
+      case 'proof_block':
+        return this.execProofBlock(stmt);
     }
   }
 
@@ -470,6 +479,105 @@ export class Interpreter {
       };
       this.results.push(result);
     }
+  }
+
+  private execProofBlock(stmt: ProofBlockNode): void {
+    const profile = this.requireProfile();
+
+    // Guardar axiomas antes del bloque
+    const savedAxioms = new Map(this.theory.axioms);
+
+    // Registrar las asunciones como axiomas temporales
+    this.emit('── Proof Block ──');
+    for (const assumption of stmt.assumptions) {
+      this.theory.axioms.set(assumption.name, assumption.formula);
+      this.emit(`  assume ${assumption.name} = ${formulaToUnicode(assumption.formula)}`);
+    }
+    this.emit(`  show ${formulaToUnicode(stmt.goal)}`);
+
+    // Ejecutar body statements
+    for (const bodyStmt of stmt.body) {
+      try {
+        this.executeStatement(bodyStmt);
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        this.diagnostics.push({
+          severity: 'error',
+          message,
+          file: stmt.source.file,
+          line: bodyStmt.source.line,
+          column: bodyStmt.source.column,
+        });
+      }
+    }
+
+    // Verificar que el goal es derivable de las asunciones
+    const premiseNames = stmt.assumptions.map((a) => a.name);
+    const result = profile.derive(stmt.goal, premiseNames, this.theory);
+    this.results.push(result);
+
+    if (result.status === 'valid' || result.status === 'provable') {
+      this.emit(`  ✓ QED — ${formulaToUnicode(stmt.goal)} demostrado`);
+      // Registrar como teorema
+      const theoremName = `proof_${this.theory.theorems.size + 1}`;
+      // La implicación assumptions -> goal es un teorema
+      let implication: Formula = stmt.goal;
+      for (let i = stmt.assumptions.length - 1; i >= 0; i--) {
+        implication = {
+          kind: 'implies',
+          args: [stmt.assumptions[i].formula, implication],
+        };
+      }
+      this.theory.theorems.set(theoremName, implication);
+    } else {
+      this.emit(`  ✗ QED fallido — no se pudo demostrar ${formulaToUnicode(stmt.goal)}`);
+    }
+
+    // Restaurar axiomas (quitar las asunciones temporales)
+    this.theory.axioms = savedAxioms;
+    this.emit('── End Proof Block ──');
+  }
+
+  private execImportDecl(stmt: ImportDeclNode): void {
+    let filePath = stmt.path;
+    // Agregar extensión .st si no la tiene
+    if (!filePath.endsWith('.st')) filePath += '.st';
+
+    // Evitar imports circulares
+    if (this.importedFiles.has(filePath)) {
+      this.emit(`Import: ${filePath} (ya importado, saltar)`);
+      return;
+    }
+    this.importedFiles.add(filePath);
+
+    // Intentar leer el archivo (solo funciona en Node.js / CLI)
+    let source: string;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fs = require('fs');
+      const path = require('path');
+      // Resolver relativo al archivo actual si no es absoluto
+      const resolved = path.isAbsolute(filePath)
+        ? filePath
+        : path.resolve(path.dirname(stmt.source.file || '.'), filePath);
+      source = fs.readFileSync(resolved, 'utf-8');
+    } catch {
+      throw new Error(`No se pudo importar '${filePath}': archivo no encontrado`);
+    }
+
+    const parser = new Parser(filePath);
+    const program = parser.parse(source);
+    this.diagnostics.push(...parser.diagnostics);
+
+    if (parser.diagnostics.some((d) => d.severity === 'error')) {
+      throw new Error(`Errores de parseo en '${filePath}'`);
+    }
+
+    // Ejecutar statements del archivo importado en el contexto actual
+    for (const importedStmt of program.statements) {
+      this.executeStatement(importedStmt);
+    }
+    this.emit(`Import: ${filePath} cargado`);
   }
 
   private execExplainCmd(stmt: ExplainCmdNode): void {

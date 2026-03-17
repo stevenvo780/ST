@@ -113,6 +113,12 @@ export function formulaToString(f: Formula): string {
       return f.args && f.args[0] && f.args[1]
         ? `(${formulaToString(f.args[0])} = ${formulaToString(f.args[1])})`
         : '? = ?';
+    case 'temporal_next':
+      return f.args?.[0] ? `X(${formulaToString(f.args[0])})` : 'X(?)';
+    case 'temporal_until':
+      return f.args && f.args[0] && f.args[1]
+        ? `(${formulaToString(f.args[0])} U ${formulaToString(f.args[1])})`
+        : '? U ?';
     default:
       return '?';
   }

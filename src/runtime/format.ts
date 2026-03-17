@@ -53,6 +53,12 @@ export function formulaToUnicode(f: Formula): string {
       return f.args?.[0] && f.args?.[1]
         ? `(${formulaToUnicode(f.args[0])} = ${formulaToUnicode(f.args[1])})`
         : '? = ?';
+    case 'temporal_next':
+      return f.args?.[0] ? `X(${formulaToUnicode(f.args[0])})` : 'X?';
+    case 'temporal_until':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToUnicode(f.args[0])} U ${formulaToUnicode(f.args[1])})`
+        : '? U ?';
     default:
       return '?';
   }
@@ -104,6 +110,12 @@ export function formulaToLaTeX(f: Formula): string {
       return f.args?.[0] && f.args?.[1]
         ? `(${formulaToLaTeX(f.args[0])} = ${formulaToLaTeX(f.args[1])})`
         : '? = ?';
+    case 'temporal_next':
+      return f.args?.[0] ? `\\mathsf{X}\\,(${formulaToLaTeX(f.args[0])})` : '\\mathsf{X}\\,?';
+    case 'temporal_until':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToLaTeX(f.args[0])} \\mathbin{\\mathsf{U}} ${formulaToLaTeX(f.args[1])})`
+        : '? \\mathbin{\\mathsf{U}} ?';
     default:
       return '?';
   }

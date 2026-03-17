@@ -46,7 +46,9 @@ export type FormulaKind =
   | 'predicate'
   | 'equals'
   | 'modal_necessity'
-  | 'modal_possibility';
+  | 'modal_possibility'
+  | 'temporal_next'
+  | 'temporal_until';
 
 export interface Formula {
   kind: FormulaKind;
