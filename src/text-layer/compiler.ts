@@ -3,8 +3,16 @@
 // ============================================================
 
 import {
-  Anchor, Passage, Formalization, Claim, Support, Confidence, Context, Formula,
-  Theory, Diagnostic
+  Anchor,
+  Passage,
+  Formalization,
+  Claim,
+  Support,
+  Confidence,
+  Context,
+  Formula,
+  Theory,
+  Diagnostic,
 } from '../types';
 
 export interface TextLayerState {
@@ -48,7 +56,7 @@ export function parseAnchorPath(raw: string): Anchor {
 export function registerPassage(
   state: TextLayerState,
   name: string,
-  anchorPath: string
+  anchorPath: string,
 ): Diagnostic[] {
   const anchor = parseAnchorPath(anchorPath);
   state.passages.set(name, { name, anchor });
@@ -60,7 +68,7 @@ export function registerFormalization(
   state: TextLayerState,
   name: string,
   passageName: string,
-  formula: Formula
+  formula: Formula,
 ): Diagnostic[] {
   const diags: Diagnostic[] = [];
 
@@ -80,11 +88,15 @@ export function registerClaim(
   state: TextLayerState,
   name: string,
   formula?: Formula,
-  formalizationRef?: string
+  formalizationRef?: string,
 ): Diagnostic[] {
   const diags: Diagnostic[] = [];
 
-  if (formalizationRef && !state.formalizations.has(formalizationRef) && !state.passages.has(formalizationRef)) {
+  if (
+    formalizationRef &&
+    !state.formalizations.has(formalizationRef) &&
+    !state.passages.has(formalizationRef)
+  ) {
     diags.push({
       severity: 'warning',
       message: `Referencia '${formalizationRef}' no encontrada para claim '${name}'`,
@@ -99,7 +111,7 @@ export function registerClaim(
 export function registerSupport(
   state: TextLayerState,
   claimName: string,
-  sourceName: string
+  sourceName: string,
 ): Diagnostic[] {
   const diags: Diagnostic[] = [];
 
@@ -125,7 +137,7 @@ export function registerSupport(
 export function registerConfidence(
   state: TextLayerState,
   claimName: string,
-  value: number
+  value: number,
 ): Diagnostic[] {
   const diags: Diagnostic[] = [];
 
@@ -157,7 +169,7 @@ export function registerConfidence(
 export function registerContext(
   state: TextLayerState,
   claimName: string,
-  text: string
+  text: string,
 ): Diagnostic[] {
   const diags: Diagnostic[] = [];
 
@@ -179,10 +191,7 @@ export function registerContext(
 }
 
 // Compilar claims a la teoría
-export function compileClaimsToTheory(
-  state: TextLayerState,
-  theory: Theory
-): Diagnostic[] {
+export function compileClaimsToTheory(state: TextLayerState, theory: Theory): Diagnostic[] {
   const diags: Diagnostic[] = [];
 
   for (const [name, claim] of state.claims) {

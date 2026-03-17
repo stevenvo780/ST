@@ -138,8 +138,8 @@ function cmdCheck(args: string[]): void {
   const interpreter = new Interpreter();
   const output = interpreter.execute(source, filePath);
 
-  const errors = output.diagnostics.filter(d => d.severity === 'error');
-  const warnings = output.diagnostics.filter(d => d.severity === 'warning');
+  const errors = output.diagnostics.filter((d) => d.severity === 'error');
+  const warnings = output.diagnostics.filter((d) => d.severity === 'warning');
 
   if (errors.length === 0) {
     console.log(`✓ ${filePath}: sin errores`);
@@ -156,7 +156,7 @@ function cmdCheck(args: string[]): void {
       }
     }
     const hasNegativeResults = output.results.some(
-      r => r.status === 'invalid' || r.status === 'refutable'
+      (r) => r.status === 'invalid' || r.status === 'refutable',
     );
     process.exit(hasNegativeResults ? 4 : 0);
   } else {
@@ -271,10 +271,12 @@ function cmdProtocol(args: string[]): void {
       const response = handler.handle(request);
       console.log(JSON.stringify(response));
     } catch (e: any) {
-      console.log(JSON.stringify({
-        id: -1,
-        error: { code: -32700, message: `Parse error: ${e.message}` },
-      }));
+      console.log(
+        JSON.stringify({
+          id: -1,
+          error: { code: -32700, message: `Parse error: ${e.message}` },
+        }),
+      );
     }
   });
 }

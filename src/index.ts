@@ -4,12 +4,24 @@
 
 // API programática (uso recomendado para integración)
 export {
-  evaluate, parse, check, quickEval,
-  createInterpreter, listProfiles,
-  hover, symbols, gotoDefinition, completion, render,
-  type STEvalResult, type STParseResult, type STCheckResult,
-  type STInterpreter, type TheorySummary,
-  type STHoverResult, type STRenderResult,
+  evaluate,
+  parse,
+  check,
+  quickEval,
+  createInterpreter,
+  listProfiles,
+  hover,
+  symbols,
+  gotoDefinition,
+  completion,
+  render,
+  type STEvalResult,
+  type STParseResult,
+  type STCheckResult,
+  type STInterpreter,
+  type TheorySummary,
+  type STHoverResult,
+  type STRenderResult,
 } from './api';
 
 // Tipos
@@ -34,10 +46,16 @@ export { ParaconsistentBelnap } from './profiles/paraconsistent/belnap';
 
 // Text Layer
 export {
-  TextLayerState, createTextLayerState,
-  parseAnchorPath, registerPassage, registerFormalization,
-  registerClaim, registerSupport, registerConfidence,
-  registerContext, compileClaimsToTheory
+  TextLayerState,
+  createTextLayerState,
+  parseAnchorPath,
+  registerPassage,
+  registerFormalization,
+  registerClaim,
+  registerSupport,
+  registerConfidence,
+  registerContext,
+  compileClaimsToTheory,
 } from './text-layer/compiler';
 
 // Runtime

@@ -33,7 +33,7 @@ export interface ASTNode {
 
 export interface LogicDeclNode extends ASTNode {
   kind: 'logic_decl';
-  profile: string;  // e.g. "classical.propositional"
+  profile: string; // e.g. "classical.propositional"
 }
 
 export interface AxiomDeclNode extends ASTNode {
@@ -116,7 +116,7 @@ export type LetDeclNode = LetPassageNode | LetFormalizeNode;
 export interface ClaimDeclNode extends ASTNode {
   kind: 'claim_decl';
   name: string;
-  value: string;  // nombre de variable o fórmula serializada
+  value: string; // nombre de variable o fórmula serializada
   formula?: Formula;
 }
 

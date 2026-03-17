@@ -206,7 +206,9 @@ Formulas:
     if (tl.passages.size > 0) {
       console.log('Passages:');
       for (const [name, p] of tl.passages) {
-        console.log(`  ${name} -> ${p.anchor.path}${p.anchor.fragment ? '#' + p.anchor.fragment : ''}`);
+        console.log(
+          `  ${name} -> ${p.anchor.path}${p.anchor.fragment ? '#' + p.anchor.fragment : ''}`,
+        );
       }
     }
 

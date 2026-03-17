@@ -6,11 +6,24 @@ import { Token, TokenType } from '../lexer/tokens';
 import { Lexer } from '../lexer/lexer';
 import { Formula, Diagnostic, SourceLocation } from '../types';
 import {
-  Program, Statement, LogicDeclNode, AxiomDeclNode, TheoremDeclNode,
-  DeriveCmdNode, CheckValidCmdNode, CheckSatisfiableCmdNode,
-  CheckEquivalentCmdNode, ProveCmdNode, CountermodelCmdNode,
-  TruthTableCmdNode, LetDeclNode, ClaimDeclNode, SupportDeclNode,
-  ConfidenceDeclNode, ContextDeclNode, RenderCmdNode
+  Program,
+  Statement,
+  LogicDeclNode,
+  AxiomDeclNode,
+  TheoremDeclNode,
+  DeriveCmdNode,
+  CheckValidCmdNode,
+  CheckSatisfiableCmdNode,
+  CheckEquivalentCmdNode,
+  ProveCmdNode,
+  CountermodelCmdNode,
+  TruthTableCmdNode,
+  LetDeclNode,
+  ClaimDeclNode,
+  SupportDeclNode,
+  ConfidenceDeclNode,
+  ContextDeclNode,
+  RenderCmdNode,
 } from '../ast/nodes';
 
 export class Parser {
@@ -241,7 +254,13 @@ export class Parser {
     const saved = this.pos;
     try {
       const formula = this.parseFormula();
-      return { kind: 'claim_decl', name, value: this.formulaToString(formula), formula, source: src };
+      return {
+        kind: 'claim_decl',
+        name,
+        value: this.formulaToString(formula),
+        formula,
+        source: src,
+      };
     } catch {
       this.pos = saved;
       const value = this.expectIdent();
@@ -368,7 +387,7 @@ export class Parser {
 
     throw new Error(
       `Se esperaba formula en linea ${this.current().line}, columna ${this.current().column}, ` +
-      `encontrado: '${this.current().value}' (${this.current().type})`
+        `encontrado: '${this.current().value}' (${this.current().type})`,
     );
   }
 
@@ -389,13 +408,20 @@ export class Parser {
 
   private formulaToString(f: Formula): string {
     switch (f.kind) {
-      case 'atom': return f.name || '?';
-      case 'not': return `!${this.formulaToString(f.args![0])}`;
-      case 'and': return `(${this.formulaToString(f.args![0])} & ${this.formulaToString(f.args![1])})`;
-      case 'or': return `(${this.formulaToString(f.args![0])} | ${this.formulaToString(f.args![1])})`;
-      case 'implies': return `(${this.formulaToString(f.args![0])} -> ${this.formulaToString(f.args![1])})`;
-      case 'biconditional': return `(${this.formulaToString(f.args![0])} <-> ${this.formulaToString(f.args![1])})`;
-      default: return '?';
+      case 'atom':
+        return f.name || '?';
+      case 'not':
+        return `!${this.formulaToString(f.args![0])}`;
+      case 'and':
+        return `(${this.formulaToString(f.args![0])} & ${this.formulaToString(f.args![1])})`;
+      case 'or':
+        return `(${this.formulaToString(f.args![0])} | ${this.formulaToString(f.args![1])})`;
+      case 'implies':
+        return `(${this.formulaToString(f.args![0])} -> ${this.formulaToString(f.args![1])})`;
+      case 'biconditional':
+        return `(${this.formulaToString(f.args![0])} <-> ${this.formulaToString(f.args![1])})`;
+      default:
+        return '?';
     }
   }
 
@@ -434,7 +460,7 @@ export class Parser {
     }
     throw new Error(
       `Se esperaba ${type}, encontrado '${this.current().value}' (${this.current().type}) ` +
-      `en linea ${this.current().line}, columna ${this.current().column}`
+        `en linea ${this.current().line}, columna ${this.current().column}`,
     );
   }
 
@@ -446,7 +472,7 @@ export class Parser {
     }
     throw new Error(
       `Se esperaba ${types.join(' o ')}, encontrado '${this.current().value}' (${this.current().type}) ` +
-      `en linea ${this.current().line}, columna ${this.current().column}`
+        `en linea ${this.current().line}, columna ${this.current().column}`,
     );
   }
 

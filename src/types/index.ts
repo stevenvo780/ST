@@ -50,10 +50,10 @@ export type FormulaKind =
 
 export interface Formula {
   kind: FormulaKind;
-  name?: string;           // para átomos y predicados
-  args?: Formula[];        // sub-fórmulas
-  variable?: string;       // para cuantificadores
-  terms?: string[];        // para predicados
+  name?: string; // para átomos y predicados
+  args?: Formula[]; // sub-fórmulas
+  variable?: string; // para cuantificadores
+  terms?: string[]; // para predicados
   source?: SourceLocation;
 }
 
@@ -168,7 +168,7 @@ export interface LogicProfile {
 
 export interface Anchor {
   path: string;
-  fragment?: string;     // heading, bloque, rango
+  fragment?: string; // heading, bloque, rango
   type: 'block' | 'paragraph' | 'heading' | 'range';
 }
 
@@ -181,7 +181,7 @@ export interface Passage {
 
 export interface Formalization {
   name: string;
-  passage: string;        // nombre del passage
+  passage: string; // nombre del passage
   formula: Formula;
   source?: SourceLocation;
 }
@@ -190,7 +190,7 @@ export interface Claim {
   name: string;
   formula?: Formula;
   formalization?: string; // nombre de la formalización
-  support?: string;       // nombre del passage/source
+  support?: string; // nombre del passage/source
   confidence?: number;
   context?: string;
   source?: SourceLocation;

@@ -272,11 +272,20 @@ export class Lexer {
         if (this.pos < this.source.length) {
           const escaped = this.source[this.pos];
           switch (escaped) {
-            case 'n': value += '\n'; break;
-            case 't': value += '\t'; break;
-            case '\\': value += '\\'; break;
-            case '"': value += '"'; break;
-            default: value += escaped;
+            case 'n':
+              value += '\n';
+              break;
+            case 't':
+              value += '\t';
+              break;
+            case '\\':
+              value += '\\';
+              break;
+            case '"':
+              value += '"';
+              break;
+            default:
+              value += escaped;
           }
           this.advance();
         }

@@ -3,8 +3,15 @@
 // ============================================================
 
 import {
-  Formula, Theory, Diagnostic, RunResult, ExecutionOutput,
-  LogicProfile, Claim, TruthTableResult, Valuation
+  Formula,
+  Theory,
+  Diagnostic,
+  RunResult,
+  ExecutionOutput,
+  LogicProfile,
+  Claim,
+  TruthTableResult,
+  Valuation,
 } from '../types';
 import { Parser } from '../parser/parser';
 import { Program, Statement } from '../ast/nodes';
@@ -14,10 +21,15 @@ import { ClassicalFirstOrder } from '../profiles/classical/first-order';
 import { ModalK } from '../profiles/modal/k';
 import { ParaconsistentBelnap } from '../profiles/paraconsistent/belnap';
 import {
-  TextLayerState, createTextLayerState,
-  registerPassage, registerFormalization, registerClaim,
-  registerSupport, registerConfidence, registerContext,
-  compileClaimsToTheory
+  TextLayerState,
+  createTextLayerState,
+  registerPassage,
+  registerFormalization,
+  registerClaim,
+  registerSupport,
+  registerConfidence,
+  registerContext,
+  compileClaimsToTheory,
 } from '../text-layer/compiler';
 
 // Registrar todos los perfiles
@@ -78,10 +90,13 @@ export class Interpreter {
     const program = parser.parse(source);
     this.diagnostics.push(...parser.diagnostics);
 
-    if (parser.diagnostics.some(d => d.severity === 'error')) {
+    if (parser.diagnostics.some((d) => d.severity === 'error')) {
       return {
         stdout: '',
-        stderr: this.diagnostics.filter(d => d.severity === 'error').map(d => d.message).join('\n'),
+        stderr: this.diagnostics
+          .filter((d) => d.severity === 'error')
+          .map((d) => d.message)
+          .join('\n'),
         exitCode: 1,
         diagnostics: this.diagnostics,
         results: [],
@@ -102,10 +117,13 @@ export class Interpreter {
       }
     }
 
-    const hasErrors = this.diagnostics.some(d => d.severity === 'error');
+    const hasErrors = this.diagnostics.some((d) => d.severity === 'error');
     return {
       stdout: this.stdoutLines.join('\n'),
-      stderr: this.diagnostics.filter(d => d.severity === 'error').map(d => d.message).join('\n'),
+      stderr: this.diagnostics
+        .filter((d) => d.severity === 'error')
+        .map((d) => d.message)
+        .join('\n'),
       exitCode: hasErrors ? 3 : 0,
       diagnostics: this.diagnostics,
       results: this.results,
@@ -120,10 +138,10 @@ export class Interpreter {
     this.results = [];
     this.stdoutLines = [];
 
-    if (parser.diagnostics.some(d => d.severity === 'error')) {
+    if (parser.diagnostics.some((d) => d.severity === 'error')) {
       return {
         stdout: '',
-        stderr: parser.diagnostics.map(d => d.message).join('\n'),
+        stderr: parser.diagnostics.map((d) => d.message).join('\n'),
         exitCode: 1,
         diagnostics: this.diagnostics,
         results: [],
@@ -143,8 +161,11 @@ export class Interpreter {
 
     return {
       stdout: this.stdoutLines.join('\n'),
-      stderr: this.diagnostics.filter(d => d.severity === 'error').map(d => d.message).join('\n'),
-      exitCode: this.diagnostics.some(d => d.severity === 'error') ? 3 : 0,
+      stderr: this.diagnostics
+        .filter((d) => d.severity === 'error')
+        .map((d) => d.message)
+        .join('\n'),
+      exitCode: this.diagnostics.some((d) => d.severity === 'error') ? 3 : 0,
       diagnostics: this.diagnostics,
       results: this.results,
     };
@@ -197,7 +218,9 @@ export class Interpreter {
   private execLogicDecl(stmt: any): void {
     const p = registry.get(stmt.profile);
     if (!p) {
-      throw new Error(`Perfil logico desconocido: '${stmt.profile}'. Disponibles: ${registry.list().join(', ')}`);
+      throw new Error(
+        `Perfil logico desconocido: '${stmt.profile}'. Disponibles: ${registry.list().join(', ')}`,
+      );
     }
     this.profile = p;
     this.theory.profile = stmt.profile;
@@ -288,9 +311,16 @@ export class Interpreter {
       this.diagnostics.push(...diags);
       this.emit(`Passage ${stmt.name} = [[${stmt.anchorPath}]]`);
     } else if (stmt.letType === 'formalize') {
-      const diags = registerFormalization(this.textLayer, stmt.name, stmt.passageName, stmt.formula);
+      const diags = registerFormalization(
+        this.textLayer,
+        stmt.name,
+        stmt.passageName,
+        stmt.formula,
+      );
       this.diagnostics.push(...diags);
-      this.emit(`Formalizacion ${stmt.name}: ${stmt.passageName} -> ${formulaToString(stmt.formula)}`);
+      this.emit(
+        `Formalizacion ${stmt.name}: ${stmt.passageName} -> ${formulaToString(stmt.formula)}`,
+      );
     }
   }
 
@@ -343,7 +373,9 @@ export class Interpreter {
       this.emit('  Prueba:');
       for (const step of result.proof.steps) {
         const premisesStr = step.premises.length > 0 ? ` [de ${step.premises.join(', ')}]` : '';
-        this.emit(`    ${step.stepNumber}. ${formulaToString(step.formula)}  — ${step.justification}${premisesStr}`);
+        this.emit(
+          `    ${step.stepNumber}. ${formulaToString(step.formula)}  — ${step.justification}${premisesStr}`,
+        );
       }
     }
 
@@ -357,30 +389,39 @@ export class Interpreter {
 
   private statusIcon(status: string): string {
     switch (status) {
-      case 'valid': return '✓';
-      case 'invalid': return '✗';
-      case 'satisfiable': return '◎';
-      case 'unsatisfiable': return '⊘';
-      case 'provable': return '✓';
-      case 'refutable': return '✗';
-      case 'unknown': return '?';
-      case 'error': return '⚠';
-      default: return '•';
+      case 'valid':
+        return '✓';
+      case 'invalid':
+        return '✗';
+      case 'satisfiable':
+        return '◎';
+      case 'unsatisfiable':
+        return '⊘';
+      case 'provable':
+        return '✓';
+      case 'refutable':
+        return '✗';
+      case 'unknown':
+        return '?';
+      case 'error':
+        return '⚠';
+      default:
+        return '•';
     }
   }
 
   private formatTruthTable(formula: Formula, tt: TruthTableResult): string {
     const lines: string[] = [];
     const header = [...tt.variables, formulaToString(formula)];
-    const colWidths = header.map(h => Math.max(h.length, 5));
+    const colWidths = header.map((h) => Math.max(h.length, 5));
 
     // Header
     lines.push(header.map((h, i) => h.padEnd(colWidths[i])).join(' | '));
-    lines.push(colWidths.map(w => '-'.repeat(w)).join('-+-'));
+    lines.push(colWidths.map((w) => '-'.repeat(w)).join('-+-'));
 
     // Rows
     for (const row of tt.rows) {
-      const vals = tt.variables.map(v => (row.valuation[v] ? 'T' : 'F'));
+      const vals = tt.variables.map((v) => (row.valuation[v] ? 'T' : 'F'));
       vals.push(row.result ? 'T' : 'F');
       lines.push(vals.map((v, i) => v.padEnd(colWidths[i])).join(' | '));
     }
@@ -394,7 +435,13 @@ export class Interpreter {
   }
 
   // Getters para el estado (usados por REPL)
-  getTheory(): Theory { return this.theory; }
-  getProfile(): LogicProfile | null { return this.profile; }
-  getTextLayer(): TextLayerState { return this.textLayer; }
+  getTheory(): Theory {
+    return this.theory;
+  }
+  getProfile(): LogicProfile | null {
+    return this.profile;
+  }
+  getTextLayer(): TextLayerState {
+    return this.textLayer;
+  }
 }

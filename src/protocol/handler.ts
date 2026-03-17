@@ -3,8 +3,14 @@
 // ============================================================
 
 import {
-  ProtocolRequest, ProtocolResponse, Diagnostic, SymbolInfo,
-  HoverInfo, CompletionItem, RunResult, SourceLocation
+  ProtocolRequest,
+  ProtocolResponse,
+  Diagnostic,
+  SymbolInfo,
+  HoverInfo,
+  CompletionItem,
+  RunResult,
+  SourceLocation,
 } from '../types';
 import { Parser } from '../parser/parser';
 import { Interpreter } from '../runtime/interpreter';
@@ -46,7 +52,7 @@ export class ProtocolHandler {
 
   private handleParse(request: ProtocolRequest): ProtocolResponse {
     const source = request.params.source as string;
-    const file = request.params.file as string || '<stdin>';
+    const file = (request.params.file as string) || '<stdin>';
     const parser = new Parser(file);
     const program = parser.parse(source);
     return {
@@ -58,7 +64,7 @@ export class ProtocolHandler {
 
   private handleCheck(request: ProtocolRequest): ProtocolResponse {
     const source = request.params.source as string;
-    const file = request.params.file as string || '<stdin>';
+    const file = (request.params.file as string) || '<stdin>';
     const parser = new Parser(file);
     const program = parser.parse(source);
     const diagnostics = [...parser.diagnostics];
@@ -74,14 +80,14 @@ export class ProtocolHandler {
 
     return {
       id: request.id,
-      result: { valid: diagnostics.filter(d => d.severity === 'error').length === 0 },
+      result: { valid: diagnostics.filter((d) => d.severity === 'error').length === 0 },
       diagnostics,
     };
   }
 
   private handleRun(request: ProtocolRequest): ProtocolResponse {
     const source = request.params.source as string;
-    const file = request.params.file as string || '<stdin>';
+    const file = (request.params.file as string) || '<stdin>';
     const output = this.interpreter.execute(source, file);
     return {
       id: request.id,
@@ -94,7 +100,7 @@ export class ProtocolHandler {
     const source = request.params.source as string;
     const line = request.params.line as number;
     const column = request.params.column as number;
-    const file = request.params.file as string || '<stdin>';
+    const file = (request.params.file as string) || '<stdin>';
 
     const parser = new Parser(file);
     const program = parser.parse(source);
@@ -114,7 +120,7 @@ export class ProtocolHandler {
 
   private handleSymbols(request: ProtocolRequest): ProtocolResponse {
     const source = request.params.source as string;
-    const file = request.params.file as string || '<stdin>';
+    const file = (request.params.file as string) || '<stdin>';
     const parser = new Parser(file);
     const program = parser.parse(source);
 
@@ -159,7 +165,7 @@ export class ProtocolHandler {
   private handleGotoDefinition(request: ProtocolRequest): ProtocolResponse {
     const source = request.params.source as string;
     const name = request.params.name as string;
-    const file = request.params.file as string || '<stdin>';
+    const file = (request.params.file as string) || '<stdin>';
     const parser = new Parser(file);
     const program = parser.parse(source);
 
@@ -175,21 +181,96 @@ export class ProtocolHandler {
   private handleCompletion(request: ProtocolRequest): ProtocolResponse {
     const items: CompletionItem[] = [
       { label: 'logic', kind: 'keyword', detail: 'Declarar perfil logico', insertText: 'logic ' },
-      { label: 'axiom', kind: 'keyword', detail: 'Declarar axioma', insertText: 'axiom ${1:name} = ${2:formula}' },
-      { label: 'theorem', kind: 'keyword', detail: 'Declarar teorema', insertText: 'theorem ${1:name} = ${2:formula}' },
-      { label: 'derive', kind: 'keyword', detail: 'Derivar formula', insertText: 'derive ${1:formula} from {${2:premises}}' },
-      { label: 'check valid', kind: 'keyword', detail: 'Verificar validez', insertText: 'check valid ${1:formula}' },
-      { label: 'check satisfiable', kind: 'keyword', detail: 'Verificar satisfacibilidad', insertText: 'check satisfiable ${1:formula}' },
-      { label: 'prove', kind: 'keyword', detail: 'Probar formula', insertText: 'prove ${1:formula} from {${2:premises}}' },
-      { label: 'countermodel', kind: 'keyword', detail: 'Buscar contramodelo', insertText: 'countermodel ${1:formula}' },
-      { label: 'truth_table', kind: 'keyword', detail: 'Tabla de verdad', insertText: 'truth_table ${1:formula}' },
-      { label: 'let', kind: 'keyword', detail: 'Declarar variable', insertText: 'let ${1:name} = ' },
-      { label: 'passage', kind: 'keyword', detail: 'Declarar pasaje', insertText: 'passage([[${1:path}]])' },
-      { label: 'formalize', kind: 'keyword', detail: 'Formalizar pasaje', insertText: 'formalize ${1:passage} as ${2:formula}' },
-      { label: 'claim', kind: 'keyword', detail: 'Declarar claim', insertText: 'claim ${1:name} = ${2:value}' },
-      { label: 'support', kind: 'keyword', detail: 'Registrar soporte', insertText: 'support ${1:claim} <- ${2:source}' },
-      { label: 'confidence', kind: 'keyword', detail: 'Registrar confianza', insertText: 'confidence ${1:claim} = ${2:value}' },
-      { label: 'context', kind: 'keyword', detail: 'Registrar contexto', insertText: 'context ${1:claim} = "${2:text}"' },
+      {
+        label: 'axiom',
+        kind: 'keyword',
+        detail: 'Declarar axioma',
+        insertText: 'axiom ${1:name} = ${2:formula}',
+      },
+      {
+        label: 'theorem',
+        kind: 'keyword',
+        detail: 'Declarar teorema',
+        insertText: 'theorem ${1:name} = ${2:formula}',
+      },
+      {
+        label: 'derive',
+        kind: 'keyword',
+        detail: 'Derivar formula',
+        insertText: 'derive ${1:formula} from {${2:premises}}',
+      },
+      {
+        label: 'check valid',
+        kind: 'keyword',
+        detail: 'Verificar validez',
+        insertText: 'check valid ${1:formula}',
+      },
+      {
+        label: 'check satisfiable',
+        kind: 'keyword',
+        detail: 'Verificar satisfacibilidad',
+        insertText: 'check satisfiable ${1:formula}',
+      },
+      {
+        label: 'prove',
+        kind: 'keyword',
+        detail: 'Probar formula',
+        insertText: 'prove ${1:formula} from {${2:premises}}',
+      },
+      {
+        label: 'countermodel',
+        kind: 'keyword',
+        detail: 'Buscar contramodelo',
+        insertText: 'countermodel ${1:formula}',
+      },
+      {
+        label: 'truth_table',
+        kind: 'keyword',
+        detail: 'Tabla de verdad',
+        insertText: 'truth_table ${1:formula}',
+      },
+      {
+        label: 'let',
+        kind: 'keyword',
+        detail: 'Declarar variable',
+        insertText: 'let ${1:name} = ',
+      },
+      {
+        label: 'passage',
+        kind: 'keyword',
+        detail: 'Declarar pasaje',
+        insertText: 'passage([[${1:path}]])',
+      },
+      {
+        label: 'formalize',
+        kind: 'keyword',
+        detail: 'Formalizar pasaje',
+        insertText: 'formalize ${1:passage} as ${2:formula}',
+      },
+      {
+        label: 'claim',
+        kind: 'keyword',
+        detail: 'Declarar claim',
+        insertText: 'claim ${1:name} = ${2:value}',
+      },
+      {
+        label: 'support',
+        kind: 'keyword',
+        detail: 'Registrar soporte',
+        insertText: 'support ${1:claim} <- ${2:source}',
+      },
+      {
+        label: 'confidence',
+        kind: 'keyword',
+        detail: 'Registrar confianza',
+        insertText: 'confidence ${1:claim} = ${2:value}',
+      },
+      {
+        label: 'context',
+        kind: 'keyword',
+        detail: 'Registrar contexto',
+        insertText: 'context ${1:claim} = "${2:text}"',
+      },
     ];
 
     return { id: request.id, result: items };
@@ -197,8 +278,8 @@ export class ProtocolHandler {
 
   private handleRender(request: ProtocolRequest): ProtocolResponse {
     const source = request.params.source as string;
-    const format = request.params.format as string || 'markdown';
-    const file = request.params.file as string || '<stdin>';
+    const format = (request.params.format as string) || 'markdown';
+    const file = (request.params.file as string) || '<stdin>';
 
     const output = this.interpreter.execute(source, file);
     const rendered = this.renderOutput(output, format);
@@ -213,9 +294,15 @@ export class ProtocolHandler {
   private getStatementHoverInfo(stmt: Statement): HoverInfo | null {
     switch (stmt.kind) {
       case 'axiom_decl':
-        return { content: `**Axioma** \`${stmt.name}\` = ${formulaToString(stmt.formula)}`, range: stmt.source };
+        return {
+          content: `**Axioma** \`${stmt.name}\` = ${formulaToString(stmt.formula)}`,
+          range: stmt.source,
+        };
       case 'theorem_decl':
-        return { content: `**Teorema** \`${stmt.name}\` = ${formulaToString(stmt.formula)}`, range: stmt.source };
+        return {
+          content: `**Teorema** \`${stmt.name}\` = ${formulaToString(stmt.formula)}`,
+          range: stmt.source,
+        };
       case 'claim_decl':
         return { content: `**Claim** \`${stmt.name}\``, range: stmt.source };
       default:

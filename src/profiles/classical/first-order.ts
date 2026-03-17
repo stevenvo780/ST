@@ -3,13 +3,19 @@
 // ============================================================
 
 import {
-  Formula, Diagnostic, RunResult, Theory, LogicProfile, TruthTableResult
+  Formula,
+  Diagnostic,
+  RunResult,
+  Theory,
+  LogicProfile,
+  TruthTableResult,
 } from '../../types';
 import { formulaToString } from './propositional';
 
 export class ClassicalFirstOrder implements LogicProfile {
   name = 'classical.first_order';
-  description = 'Logica clasica de primer orden con igualdad (stub — contrato definido, motor pendiente)';
+  description =
+    'Logica clasica de primer orden con igualdad (stub — contrato definido, motor pendiente)';
 
   checkWellFormed(formula: Formula): Diagnostic[] {
     return [];
@@ -19,10 +25,12 @@ export class ClassicalFirstOrder implements LogicProfile {
     return {
       status: 'unknown',
       output: `[classical.first_order] Motor no implementado aun. Formula: ${formulaToString(formula)}`,
-      diagnostics: [{
-        severity: 'warning',
-        message: 'Perfil classical.first_order aun no tiene motor completo',
-      }],
+      diagnostics: [
+        {
+          severity: 'warning',
+          message: 'Perfil classical.first_order aun no tiene motor completo',
+        },
+      ],
       formula,
     };
   }

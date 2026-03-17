@@ -62,7 +62,7 @@ export interface STCheckResult {
 
 /**
  * Ejecuta código ST completo y devuelve resultado estructurado.
- * 
+ *
  * @example
  * ```ts
  * const r = evaluate(`
@@ -94,7 +94,7 @@ export function evaluate(source: string, file?: string): STEvalResult {
 export function parse(source: string, file?: string): STParseResult {
   const parser = new Parser(file || '<api>');
   const program = parser.parse(source);
-  const hasErrors = parser.diagnostics.some(d => d.severity === 'error');
+  const hasErrors = parser.diagnostics.some((d) => d.severity === 'error');
   return {
     ok: !hasErrors,
     program: hasErrors ? null : program,
@@ -109,7 +109,7 @@ export function parse(source: string, file?: string): STParseResult {
 export function check(source: string, file?: string): STCheckResult {
   const parser = new Parser(file || '<api>');
   parser.parse(source);
-  const hasErrors = parser.diagnostics.some(d => d.severity === 'error');
+  const hasErrors = parser.diagnostics.some((d) => d.severity === 'error');
   return {
     ok: !hasErrors,
     diagnostics: parser.diagnostics,
@@ -119,7 +119,7 @@ export function check(source: string, file?: string): STCheckResult {
 /**
  * Evalúa una expresión lógica rápida (auto-prepone "logic classical.propositional").
  * Útil para validaciones inline sin necesidad de declarar perfil.
- * 
+ *
  * @example
  * ```ts
  * const r = quickEval('check valid (P -> (Q -> P))');
@@ -136,7 +136,7 @@ export function quickEval(expression: string): STEvalResult {
 /**
  * Intérprete con estado persistente. Permite ejecutar líneas incrementalmente
  * manteniendo axiomas, teoremas, claims y perfil entre llamadas.
- * 
+ *
  * @example
  * ```ts
  * const st = createInterpreter();
@@ -268,15 +268,20 @@ export interface STRenderResult {
 /**
  * Obtiene información de hover para una posición en el código ST.
  * Útil para tooltips en editores.
- * 
+ *
  * @returns HoverInfo o null si no hay info en esa posición
  */
-export function hover(source: string, line: number, column: number, file?: string): HoverInfo | null {
+export function hover(
+  source: string,
+  line: number,
+  column: number,
+  file?: string,
+): HoverInfo | null {
   const handler = new ProtocolHandler();
   const resp = handler.handle({
     id: 0,
     method: 'hover',
-    params: { source, line, column, file: file || '<api>' }
+    params: { source, line, column, file: file || '<api>' },
   });
   return (resp.result as HoverInfo | null) ?? null;
 }
@@ -290,7 +295,7 @@ export function symbols(source: string, file?: string): SymbolInfo[] {
   const resp = handler.handle({
     id: 0,
     method: 'symbols',
-    params: { source, file: file || '<api>' }
+    params: { source, file: file || '<api>' },
   });
   return (resp.result as SymbolInfo[]) ?? [];
 }
@@ -298,7 +303,7 @@ export function symbols(source: string, file?: string): SymbolInfo[] {
 /**
  * Busca la definición de un símbolo por nombre en el código ST.
  * Útil para "Go to Definition" en editores.
- * 
+ *
  * @returns SourceLocation de la definición o null si no se encuentra
  */
 export function gotoDefinition(source: string, name: string, file?: string): SourceLocation | null {
@@ -306,7 +311,7 @@ export function gotoDefinition(source: string, name: string, file?: string): Sou
   const resp = handler.handle({
     id: 0,
     method: 'goto_definition',
-    params: { source, name, file: file || '<api>' }
+    params: { source, name, file: file || '<api>' },
   });
   return (resp.result as SourceLocation | null) ?? null;
 }
@@ -320,14 +325,14 @@ export function completion(): CompletionItem[] {
   const resp = handler.handle({
     id: 0,
     method: 'completion',
-    params: {}
+    params: {},
   });
   return (resp.result as CompletionItem[]) ?? [];
 }
 
 /**
  * Ejecuta y renderiza el código ST en el formato especificado.
- * 
+ *
  * @param format 'markdown' | 'json' (default: 'markdown')
  */
 export function render(source: string, format?: string, file?: string): STRenderResult {
@@ -335,7 +340,7 @@ export function render(source: string, format?: string, file?: string): STRender
   const resp = handler.handle({
     id: 0,
     method: 'render',
-    params: { source, format: format || 'markdown', file: file || '<api>' }
+    params: { source, format: format || 'markdown', file: file || '<api>' },
   });
   const result = resp.result as { rendered: string; format: string } | undefined;
   return {

@@ -3,8 +3,17 @@
 // ============================================================
 
 import {
-  Formula, Diagnostic, RunResult, Theory, LogicProfile,
-  TruthTableResult, TruthTableRow, Valuation, Proof, ProofStep, Model
+  Formula,
+  Diagnostic,
+  RunResult,
+  Theory,
+  LogicProfile,
+  TruthTableResult,
+  TruthTableRow,
+  Valuation,
+  Proof,
+  ProofStep,
+  Model,
 } from '../../types';
 
 // --- Utilidades de fórmulas ---
@@ -67,17 +76,23 @@ function generateValuations(atoms: string[]): Valuation[] {
 
 export function formulaToString(f: Formula): string {
   switch (f.kind) {
-    case 'atom': return f.name || '?';
+    case 'atom':
+      return f.name || '?';
     case 'not': {
       const inner = f.args![0];
       if (inner.kind === 'atom') return `!${formulaToString(inner)}`;
       return `!(${formulaToString(inner)})`;
     }
-    case 'and': return `(${formulaToString(f.args![0])} & ${formulaToString(f.args![1])})`;
-    case 'or': return `(${formulaToString(f.args![0])} | ${formulaToString(f.args![1])})`;
-    case 'implies': return `(${formulaToString(f.args![0])} -> ${formulaToString(f.args![1])})`;
-    case 'biconditional': return `(${formulaToString(f.args![0])} <-> ${formulaToString(f.args![1])})`;
-    default: return '?';
+    case 'and':
+      return `(${formulaToString(f.args![0])} & ${formulaToString(f.args![1])})`;
+    case 'or':
+      return `(${formulaToString(f.args![0])} | ${formulaToString(f.args![1])})`;
+    case 'implies':
+      return `(${formulaToString(f.args![0])} -> ${formulaToString(f.args![1])})`;
+    case 'biconditional':
+      return `(${formulaToString(f.args![0])} <-> ${formulaToString(f.args![1])})`;
+    default:
+      return '?';
   }
 }
 
@@ -94,7 +109,7 @@ function formulasEqual(a: Formula, b: Formula): boolean {
 // --- Motor de derivación ---
 
 interface DerivationState {
-  known: Map<string, Formula>;    // fórmulas conocidas por nombre o hash
+  known: Map<string, Formula>; // fórmulas conocidas por nombre o hash
   steps: ProofStep[];
   stepCount: number;
 }
@@ -181,8 +196,7 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
         }
 
         // Modus Tollens: de !B y (A -> B), derivar !A
-        if (f1.kind === 'not' && f2.kind === 'implies' &&
-            formulasEqual(f1.args![0], f2.args![1])) {
+        if (f1.kind === 'not' && f2.kind === 'implies' && formulasEqual(f1.args![0], f2.args![1])) {
           const conclusion: Formula = { kind: 'not', args: [f2.args![0]] };
           const hash = formulaHash(conclusion);
           if (!state.known.has(hash)) {
@@ -276,7 +290,7 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           args: [
             { kind: 'not', args: [f1.args![1]] },
             { kind: 'not', args: [f1.args![0]] },
-          ]
+          ],
         };
         const hash = formulaHash(contra);
         if (!state.known.has(hash)) {
@@ -327,20 +341,20 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
 
   // Fallback: verificar semánticamente
   const allAxiomFormulas = premiseNames
-    .map(n => theory.axioms.get(n) || theory.theorems.get(n))
+    .map((n) => theory.axioms.get(n) || theory.theorems.get(n))
     .filter((f): f is Formula => f !== undefined);
 
   if (allAxiomFormulas.length > 0) {
     const atoms = new Set<string>();
-    for (const f of allAxiomFormulas) collectAtoms(f).forEach(a => atoms.add(a));
-    collectAtoms(goal).forEach(a => atoms.add(a));
+    for (const f of allAxiomFormulas) collectAtoms(f).forEach((a) => atoms.add(a));
+    collectAtoms(goal).forEach((a) => atoms.add(a));
 
     const atomList = Array.from(atoms);
     const valuations = generateValuations(atomList);
 
     let semanticallyValid = true;
     for (const v of valuations) {
-      const premisesTrue = allAxiomFormulas.every(f => evaluate(f, v));
+      const premisesTrue = allAxiomFormulas.every((f) => evaluate(f, v));
       if (premisesTrue && !evaluate(goal, v)) {
         semanticallyValid = false;
         break;
@@ -371,13 +385,13 @@ function findStep(steps: ProofStep[], formula: Formula): number {
 function traceBack(steps: ProofStep[], goal: Formula): ProofStep[] {
   const goalHash = formulaHash(goal);
   const needed = new Set<number>();
-  const goalStep = steps.find(s => formulaHash(s.formula) === goalHash);
+  const goalStep = steps.find((s) => formulaHash(s.formula) === goalHash);
   if (!goalStep) return steps;
 
   function trace(stepNum: number) {
     if (needed.has(stepNum)) return;
     needed.add(stepNum);
-    const step = steps.find(s => s.stepNumber === stepNum);
+    const step = steps.find((s) => s.stepNumber === stepNum);
     if (step) {
       for (const p of step.premises) {
         trace(p);
@@ -386,14 +400,15 @@ function traceBack(steps: ProofStep[], goal: Formula): ProofStep[] {
   }
 
   trace(goalStep.stepNumber);
-  return steps.filter(s => needed.has(s.stepNumber));
+  return steps.filter((s) => needed.has(s.stepNumber));
 }
 
 // --- Perfil Classical Propositional ---
 
 export class ClassicalPropositional implements LogicProfile {
   name = 'classical.propositional';
-  description = 'Logica clasica proposicional con tabla de verdad, validez, satisfacibilidad, derivacion y contramodelo';
+  description =
+    'Logica clasica proposicional con tabla de verdad, validez, satisfacibilidad, derivacion y contramodelo';
 
   checkWellFormed(formula: Formula): Diagnostic[] {
     const diags: Diagnostic[] = [];
@@ -406,7 +421,10 @@ export class ClassicalPropositional implements LogicProfile {
           break;
         case 'not':
           if (!f.args || f.args.length !== 1) {
-            diags.push({ severity: 'error', message: 'Negacion requiere exactamente un argumento' });
+            diags.push({
+              severity: 'error',
+              message: 'Negacion requiere exactamente un argumento',
+            });
           } else {
             check(f.args[0]);
           }
@@ -416,7 +434,10 @@ export class ClassicalPropositional implements LogicProfile {
         case 'implies':
         case 'biconditional':
           if (!f.args || f.args.length !== 2) {
-            diags.push({ severity: 'error', message: `${f.kind} requiere exactamente dos argumentos` });
+            diags.push({
+              severity: 'error',
+              message: `${f.kind} requiere exactamente dos argumentos`,
+            });
           } else {
             check(f.args[0]);
             check(f.args[1]);
@@ -456,7 +477,7 @@ export class ClassicalPropositional implements LogicProfile {
       };
     } else {
       // Encontrar contramodelo
-      const cm = tt.rows.find(r => !r.result);
+      const cm = tt.rows.find((r) => !r.result);
       return {
         status: 'invalid',
         output: `${formulaToString(formula)} NO es valida`,
@@ -476,7 +497,7 @@ export class ClassicalPropositional implements LogicProfile {
 
     const tt = this.truthTable(formula);
     if (tt.isSatisfiable) {
-      const sat = tt.rows.find(r => r.result);
+      const sat = tt.rows.find((r) => r.result);
       return {
         status: 'satisfiable',
         output: `${formulaToString(formula)} es SATISFACIBLE`,
@@ -591,8 +612,8 @@ export class ClassicalPropositional implements LogicProfile {
     explanation += `Contradiccion: ${tt.isContradiction ? 'si' : 'no'}\n`;
     explanation += `Satisfacible: ${tt.isSatisfiable ? 'si' : 'no'}\n`;
     explanation += `Total valuaciones: ${tt.rows.length}\n`;
-    explanation += `Verdaderas: ${tt.rows.filter(r => r.result).length}\n`;
-    explanation += `Falsas: ${tt.rows.filter(r => !r.result).length}\n`;
+    explanation += `Verdaderas: ${tt.rows.filter((r) => r.result).length}\n`;
+    explanation += `Falsas: ${tt.rows.filter((r) => !r.result).length}\n`;
 
     return {
       status: tt.isTautology ? 'valid' : tt.isSatisfiable ? 'satisfiable' : 'unsatisfiable',
@@ -607,7 +628,7 @@ export class ClassicalPropositional implements LogicProfile {
     const atoms = Array.from(collectAtoms(formula)).sort();
     const valuations = generateValuations(atoms);
 
-    const rows: TruthTableRow[] = valuations.map(v => ({
+    const rows: TruthTableRow[] = valuations.map((v) => ({
       valuation: v,
       result: evaluate(formula, v),
     }));
@@ -615,9 +636,9 @@ export class ClassicalPropositional implements LogicProfile {
     return {
       variables: atoms,
       rows,
-      isTautology: rows.every(r => r.result),
-      isContradiction: rows.every(r => !r.result),
-      isSatisfiable: rows.some(r => r.result),
+      isTautology: rows.every((r) => r.result),
+      isContradiction: rows.every((r) => !r.result),
+      isSatisfiable: rows.some((r) => r.result),
     };
   }
 
@@ -640,7 +661,7 @@ export class ClassicalPropositional implements LogicProfile {
       };
     }
 
-    const cm = tt.rows.find(r => !r.result);
+    const cm = tt.rows.find((r) => !r.result);
     return {
       status: 'invalid',
       output: `${formulaToString(a)} y ${formulaToString(b)} NO son equivalentes`,

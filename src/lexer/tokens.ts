@@ -27,23 +27,23 @@ export enum TokenType {
   RENDER = 'RENDER',
 
   // Operators
-  ARROW = 'ARROW',           // ->
-  AND = 'AND',               // &
-  OR = 'OR',                 // |
-  NOT = 'NOT',               // !
+  ARROW = 'ARROW', // ->
+  AND = 'AND', // &
+  OR = 'OR', // |
+  NOT = 'NOT', // !
   BICONDITIONAL = 'BICONDITIONAL', // <->
   BACK_ARROW = 'BACK_ARROW', // <-
-  EQUALS = 'EQUALS',         // =
+  EQUALS = 'EQUALS', // =
 
   // Delimiters
-  LPAREN = 'LPAREN',         // (
-  RPAREN = 'RPAREN',         // )
-  LBRACE = 'LBRACE',         // {
-  RBRACE = 'RBRACE',         // }
+  LPAREN = 'LPAREN', // (
+  RPAREN = 'RPAREN', // )
+  LBRACE = 'LBRACE', // {
+  RBRACE = 'RBRACE', // }
   LBRACKET_DOUBLE = 'LBRACKET_DOUBLE', // [[
   RBRACKET_DOUBLE = 'RBRACKET_DOUBLE', // ]]
-  LBRACKET = 'LBRACKET',     // [
-  RBRACKET = 'RBRACKET',     // ]
+  LBRACKET = 'LBRACKET', // [
+  RBRACKET = 'RBRACKET', // ]
 
   // Literals
   IDENTIFIER = 'IDENTIFIER',
@@ -51,10 +51,10 @@ export enum TokenType {
   NUMBER = 'NUMBER',
 
   // Punctuation
-  COMMA = 'COMMA',           // ,
-  COLON = 'COLON',           // :
-  HASH = 'HASH',             // #
-  DOT = 'DOT',               // .
+  COMMA = 'COMMA', // ,
+  COLON = 'COLON', // :
+  HASH = 'HASH', // #
+  DOT = 'DOT', // .
 
   // Special
   NEWLINE = 'NEWLINE',
@@ -70,25 +70,25 @@ export interface Token {
 }
 
 export const KEYWORDS: Record<string, TokenType> = {
-  'logic': TokenType.LOGIC,
-  'axiom': TokenType.AXIOM,
-  'theorem': TokenType.THEOREM,
-  'derive': TokenType.DERIVE,
-  'from': TokenType.FROM,
-  'check': TokenType.CHECK,
-  'valid': TokenType.VALID,
-  'satisfiable': TokenType.SATISFIABLE,
-  'equivalent': TokenType.EQUIVALENT,
-  'prove': TokenType.PROVE,
-  'countermodel': TokenType.COUNTERMODEL,
-  'truth_table': TokenType.TRUTH_TABLE,
-  'let': TokenType.LET,
-  'passage': TokenType.PASSAGE,
-  'formalize': TokenType.FORMALIZE,
-  'as': TokenType.AS,
-  'claim': TokenType.CLAIM,
-  'support': TokenType.SUPPORT,
-  'confidence': TokenType.CONFIDENCE,
-  'context': TokenType.CONTEXT,
-  'render': TokenType.RENDER,
+  logic: TokenType.LOGIC,
+  axiom: TokenType.AXIOM,
+  theorem: TokenType.THEOREM,
+  derive: TokenType.DERIVE,
+  from: TokenType.FROM,
+  check: TokenType.CHECK,
+  valid: TokenType.VALID,
+  satisfiable: TokenType.SATISFIABLE,
+  equivalent: TokenType.EQUIVALENT,
+  prove: TokenType.PROVE,
+  countermodel: TokenType.COUNTERMODEL,
+  truth_table: TokenType.TRUTH_TABLE,
+  let: TokenType.LET,
+  passage: TokenType.PASSAGE,
+  formalize: TokenType.FORMALIZE,
+  as: TokenType.AS,
+  claim: TokenType.CLAIM,
+  support: TokenType.SUPPORT,
+  confidence: TokenType.CONFIDENCE,
+  context: TokenType.CONTEXT,
+  render: TokenType.RENDER,
 };
