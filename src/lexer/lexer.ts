@@ -1,6 +1,6 @@
-// ============================================================
-// ST Lexer — Tokenizador
-// ============================================================
+/**
+ * ST Lexer — Tokenizador
+ */
 
 import { Token, TokenType, KEYWORDS } from './tokens';
 import { Diagnostic } from '../types';

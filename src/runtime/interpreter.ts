@@ -1,6 +1,6 @@
-// ============================================================
-// ST Runtime — Intérprete de scripts .st
-// ============================================================
+/**
+ * ST Runtime — Intérprete de scripts .st
+ */
 
 import {
   Theory,

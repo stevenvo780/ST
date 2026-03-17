@@ -1,6 +1,6 @@
-// ============================================================
-// ST Parser — Parser recursivo descendente
-// ============================================================
+/**
+ * ST Parser — Parser recursivo descendente
+ */
 
 import { Token, TokenType } from '../lexer/tokens';
 import { Lexer } from '../lexer/lexer';

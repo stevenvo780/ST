@@ -1,6 +1,6 @@
-// ============================================================
-// ST — Exports públicos
-// ============================================================
+/**
+ * ST — Exports públicos
+ */
 
 // API programática (uso recomendado para integración)
 export {

@@ -1,6 +1,6 @@
-// ============================================================
-// ST Text Layer — Compilador texto -> formula/claim
-// ============================================================
+/**
+ * ST Text Layer — Compilador texto -> formula/claim
+ */
 
 import { Anchor, Formula, Theory, Diagnostic, TextLayerState } from '../types';
 

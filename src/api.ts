@@ -1,10 +1,10 @@
-// ============================================================
-// ST — API programática para uso como librería
-// ============================================================
-// Uso:
-//   import { evaluate, parse, check, createInterpreter } from 'st-lang/api';
-//   const result = evaluate('logic classical.propositional\ncheck valid (P -> P)');
-// ============================================================
+/**
+ * ST — API programática para uso como librería
+ *
+ * Uso:
+ *   import { evaluate, parse, check, createInterpreter } from 'st-lang/api';
+ *   const result = evaluate('logic classical.propositional\ncheck valid (P -> P)');
+ */
 
 import { Parser } from './parser/parser';
 import { Interpreter } from './runtime/interpreter';
