@@ -28,6 +28,8 @@ import {
   ExplainCmdNode,
   ImportDeclNode,
   ProofBlockNode,
+  TheoryDeclNode,
+  TheoryMember,
 } from '../ast/nodes';
 
 export class Parser {
@@ -116,6 +118,8 @@ export class Parser {
         return this.parseImportDecl();
       case TokenType.ASSUME:
         return this.parseProofBlock();
+      case TokenType.THEORY:
+        return this.parseTheoryDecl();
       case TokenType.NEWLINE:
         this.advance();
         return null;
@@ -340,7 +344,14 @@ export class Parser {
   private parseRenderCmd(): RenderCmdNode {
     const src = this.loc();
     this.expect(TokenType.RENDER);
-    const target = this.expectIdent();
+    // El target puede ser un identificador o la keyword 'theory' (que ahora es un token especial)
+    let target: string;
+    if (this.checkType(TokenType.THEORY)) {
+      target = this.current().value;
+      this.advance();
+    } else {
+      target = this.expectIdent();
+    }
     let format = 'markdown';
     // Opcionalmente leer --format
     // Simplificado: si hay un ident 'markdown' o 'json' o 'text' después, lo tomamos
@@ -448,6 +459,55 @@ export class Parser {
     return { kind: 'proof_block', assumptions, goal, body, source: src };
   }
 
+  // theory Name { ... } | theory Name extends Parent { ... }
+  private parseTheoryDecl(): TheoryDeclNode {
+    const src = this.loc();
+    this.expect(TokenType.THEORY);
+    const name = this.expectName();
+
+    // Herencia opcional: extends Parent
+    let parent: string | undefined;
+    if (this.match(TokenType.EXTENDS)) {
+      parent = this.expectName();
+    }
+
+    this.expect(TokenType.LBRACE);
+    this.skipNewlines();
+
+    const members: TheoryMember[] = [];
+
+    while (!this.checkType(TokenType.RBRACE) && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.checkType(TokenType.RBRACE)) break;
+
+      // Visibilidad: private/privado o public (default)
+      let visibility: 'public' | 'private' = 'public';
+      if (this.match(TokenType.PRIVATE)) {
+        visibility = 'private';
+      }
+
+      try {
+        const stmt = this.parseStatement();
+        if (stmt) {
+          members.push({ statement: stmt, visibility });
+        }
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Error de parseo en theory';
+        this.diagnostics.push({
+          severity: 'error',
+          message,
+          file: this.file,
+          line: this.current().line,
+          column: this.current().column,
+        });
+        this.advanceToNextStatement();
+      }
+    }
+    this.expect(TokenType.RBRACE);
+
+    return { kind: 'theory_decl', name, parent, members, source: src };
+  }
+
   // --- Parsing de fórmulas (precedencia) ---
   // Precedencia (de menor a mayor):
   // 1. <-> (bicondicional)
@@ -544,10 +604,36 @@ export class Parser {
       return inner;
     }
 
+    // Dot notation con keyword como prefijo: Logic.mp, Theory.axiom, etc.
+    // Si el token actual es una keyword seguida de DOT + IDENTIFIER, tratarlo como nombre calificado
+    if (this.checkType(TokenType.DOT) === false &&
+        this.current().type !== TokenType.IDENTIFIER &&
+        this.current().type !== TokenType.NEWLINE &&
+        this.current().type !== TokenType.EOF &&
+        this.peek(1) === TokenType.DOT &&
+        this.peek(2) === TokenType.IDENTIFIER) {
+      const tok = this.current();
+      this.advance(); // consumir keyword
+      this.advance(); // consumir DOT
+      const memberTok = this.current();
+      this.advance(); // consumir IDENTIFIER
+      return { kind: 'atom', name: `${tok.value}.${memberTok.value}`, source: { line: tok.line, column: tok.column } };
+    }
+
     // Predicado o Atomo proposicional
     if (this.checkType(TokenType.IDENTIFIER)) {
       const tok = this.current();
       this.advance();
+
+      // Notación con punto: Theory.member (acceso calificado)
+      if (this.checkType(TokenType.DOT) && this.peek(1) === TokenType.IDENTIFIER) {
+        this.advance(); // consumir DOT
+        const memberTok = this.current();
+        this.advance(); // consumir IDENTIFIER
+        // Nombre calificado: "Theory.member"
+        return { kind: 'atom', name: `${tok.value}.${memberTok.value}`, source: { line: tok.line, column: tok.column } };
+      }
+
       if (this.match(TokenType.LPAREN)) {
         // Predicado: P(x, y, ...)
         const args: string[] = [];
@@ -753,6 +839,34 @@ export class Parser {
     return tok.value;
   }
 
+  /**
+   * Acepta un IDENTIFIER o cualquier keyword como nombre
+   * (para soportar nombres como "Logic", "Theory", etc. que colisionan con keywords)
+   */
+  private expectName(): string {
+    const tok = this.current();
+    if (tok.type === TokenType.IDENTIFIER) {
+      this.advance();
+      return tok.value;
+    }
+    // Aceptar cualquier keyword como nombre en contextos de nombre
+    if (tok.type !== TokenType.NEWLINE && tok.type !== TokenType.EOF &&
+        tok.type !== TokenType.LPAREN && tok.type !== TokenType.RPAREN &&
+        tok.type !== TokenType.LBRACE && tok.type !== TokenType.RBRACE &&
+        tok.type !== TokenType.COLON && tok.type !== TokenType.EQUALS &&
+        tok.type !== TokenType.ARROW && tok.type !== TokenType.AND &&
+        tok.type !== TokenType.OR && tok.type !== TokenType.NOT &&
+        tok.type !== TokenType.DOT && tok.type !== TokenType.COMMA &&
+        tok.type !== TokenType.STRING && tok.type !== TokenType.NUMBER) {
+      this.advance();
+      return tok.value;
+    }
+    throw new Error(
+      `Se esperaba nombre/identificador, encontrado '${tok.value}' (${tok.type}) ` +
+        `en linea ${tok.line}, columna ${tok.column}`,
+    );
+  }
+
   private loc(): SourceLocation {
     const tok = this.current();
     return { line: tok.line, column: tok.column, file: this.file };
@@ -790,6 +904,7 @@ export class Parser {
       TokenType.ASSUME,
       TokenType.SHOW,
       TokenType.QED,
+      TokenType.THEORY,
     ]);
     while (!this.isAtEnd()) {
       if (this.checkType(TokenType.NEWLINE)) {

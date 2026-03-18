@@ -12,7 +12,7 @@ import {
 } from '../types';
 import { Parser } from '../parser/parser';
 import { Interpreter } from '../runtime/interpreter';
-import { Statement } from '../ast/nodes';
+import { Statement, TheoryDeclNode } from '../ast/nodes';
 import { formulaToString } from '../profiles/classical/propositional';
 
 export class ProtocolHandler {
@@ -128,6 +128,25 @@ export class ProtocolHandler {
         case 'theorem_decl':
           theoremDefs.set(stmt.name, { formula: formulaToString(stmt.formula), line: stmt.source.line });
           break;
+        case 'theory_decl':
+          // Registrar miembros de la teoría como defs prefijados
+          for (const member of stmt.members) {
+            const ms = member.statement;
+            const qPrefix = `${stmt.name}.`;
+            if (ms.kind === 'let_decl') {
+              if (ms.letType === 'description') {
+                letDefs.set(qPrefix + ms.name, { description: ms.description, line: ms.source.line });
+              } else if (ms.letType === 'formula') {
+                const desc = 'description' in ms ? (ms as { description?: string }).description : undefined;
+                letDefs.set(qPrefix + ms.name, { formula: formulaToString(ms.formula), description: desc, line: ms.source.line });
+              }
+            } else if (ms.kind === 'axiom_decl') {
+              axiomDefs.set(qPrefix + ms.name, { formula: formulaToString(ms.formula), line: ms.source.line });
+            } else if (ms.kind === 'theorem_decl') {
+              theoremDefs.set(qPrefix + ms.name, { formula: formulaToString(ms.formula), line: ms.source.line });
+            }
+          }
+          break;
       }
     }
 
@@ -185,18 +204,20 @@ export class ProtocolHandler {
     return { id: request.id, result: null };
   }
 
-  /** Extrae la palabra (identificador) en la posición de columna dada */
+  /** Extrae la palabra (identificador, con soporte dot notation) en la posición de columna dada */
   private getWordAtColumn(lineText: string, column: number): string | null {
     const col = column - 1; // 0-based
     if (col < 0 || col >= lineText.length) return null;
-    // Encontrar inicio de la palabra
+    // Encontrar inicio de la palabra (soporta puntos para dot notation)
     let start = col;
-    while (start > 0 && /[a-zA-Z0-9_]/.test(lineText[start - 1])) start--;
+    while (start > 0 && /[a-zA-Z0-9_.]/.test(lineText[start - 1])) start--;
     // Encontrar fin de la palabra
     let end = col;
-    while (end < lineText.length && /[a-zA-Z0-9_]/.test(lineText[end])) end++;
+    while (end < lineText.length && /[a-zA-Z0-9_.]/.test(lineText[end])) end++;
     const word = lineText.substring(start, end);
-    return word.length > 0 ? word : null;
+    // Limpiar puntos al inicio/final
+    const cleaned = word.replace(/^\.+|\.+$/g, '');
+    return cleaned.length > 0 ? cleaned : null;
   }
 
   private handleSymbols(request: ProtocolRequest): ProtocolResponse {
@@ -241,6 +262,39 @@ export class ProtocolHandler {
             location: stmt.source,
           });
           break;
+        case 'theory_decl': {
+          // Agregar la teoría como símbolo
+          const theoryStmt = stmt as TheoryDeclNode;
+          symbols.push({
+            name: theoryStmt.name,
+            kind: 'axiom',
+            description: `Theory${theoryStmt.parent ? ` extends ${theoryStmt.parent}` : ''}`,
+            detail: `${theoryStmt.members.length} miembros`,
+            location: theoryStmt.source,
+          });
+          // Agregar cada miembro como símbolo con prefijo
+          for (const member of theoryStmt.members) {
+            const ms = member.statement;
+            if ('name' in ms) {
+              const memberName = `${theoryStmt.name}.${(ms as { name: string }).name}`;
+              const vis = member.visibility === 'private' ? '🔒 ' : '';
+              if (ms.kind === 'axiom_decl') {
+                symbols.push({ name: memberName, kind: 'axiom', detail: `${vis}${formulaToString(ms.formula)}`, location: ms.source });
+              } else if (ms.kind === 'theorem_decl') {
+                symbols.push({ name: memberName, kind: 'theorem', detail: `${vis}${formulaToString(ms.formula)}`, location: ms.source });
+              } else if (ms.kind === 'let_decl') {
+                symbols.push({
+                  name: memberName,
+                  kind: ms.letType === 'description' ? 'variable' : 'formula',
+                  description: ms.letType === 'description' ? ms.description : undefined,
+                  detail: `${vis}${ms.letType === 'formula' ? formulaToString(ms.formula) : ms.letType === 'description' ? `"${ms.description}"` : ''}`,
+                  location: ms.source,
+                });
+              }
+            }
+          }
+          break;
+        }
       }
     }
 
@@ -701,6 +755,44 @@ export class ProtocolHandler {
         detail: 'Cerrar proof block',
         insertText: 'qed',
       },
+
+      // ── Theory blocks (OOP) ─────────────────────────────────────
+      {
+        label: 'theory',
+        kind: 'keyword',
+        detail: 'Declarar bloque de teoría (encapsula axiomas, let, teoremas)',
+        insertText: 'theory ${1:Name} {\n  ${2}\n}',
+      },
+      {
+        label: 'teoria',
+        kind: 'keyword',
+        detail: 'Declarar bloque de teoría (español)',
+        insertText: 'teoria ${1:Nombre} {\n  ${2}\n}',
+      },
+      {
+        label: 'theory extends',
+        kind: 'keyword',
+        detail: 'Declarar teoría que hereda de otra (herencia OOP)',
+        insertText: 'theory ${1:Child} extends ${2:Parent} {\n  ${3}\n}',
+      },
+      {
+        label: 'teoria extiende',
+        kind: 'keyword',
+        detail: 'Declarar teoría con herencia (español)',
+        insertText: 'teoria ${1:Hijo} extiende ${2:Padre} {\n  ${3}\n}',
+      },
+      {
+        label: 'private',
+        kind: 'keyword',
+        detail: 'Miembro privado de teoría (no accesible via dot notation)',
+        insertText: 'private ${1:statement}',
+      },
+      {
+        label: 'privado',
+        kind: 'keyword',
+        detail: 'Miembro privado de teoría (español)',
+        insertText: 'privado ${1:statement}',
+      },
     ];
 
     return { id: request.id, result: items };
@@ -746,6 +838,16 @@ export class ProtocolHandler {
         } else if (stmt.letType === 'passage') {
           content += ` = passage([[${stmt.anchorPath}]])`;
         }
+        return { content, range: stmt.source };
+      }
+      case 'theory_decl': {
+        const theoryStmt = stmt as TheoryDeclNode;
+        const parentStr = theoryStmt.parent ? ` extends \`${theoryStmt.parent}\`` : '';
+        const pubCount = theoryStmt.members.filter(m => m.visibility === 'public').length;
+        const privCount = theoryStmt.members.filter(m => m.visibility === 'private').length;
+        let content = `**Theory** \`${theoryStmt.name}\`${parentStr}\n\n`;
+        content += `📦 ${pubCount} miembros públicos`;
+        if (privCount > 0) content += `, 🔒 ${privCount} privados`;
         return { content, range: stmt.source };
       }
       default:

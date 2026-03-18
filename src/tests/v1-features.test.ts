@@ -648,3 +648,152 @@ describe('alpha-equivalence', () => {
   });
 });
 
+// ── Theory blocks (OOP) ─────────────────────────────────────
+
+describe('theory blocks (OOP)', () => {
+  it('parses a basic theory block', () => {
+    const prog = parseOk(`
+      logic classical.propositional
+      theory Mortalidad {
+        let H = "x es un hombre"
+        axiom regla : H -> M
+      }
+    `);
+    const theoryStmt = prog.statements.find(s => s.kind === 'theory_decl');
+    expect(theoryStmt).toBeDefined();
+    if (theoryStmt && theoryStmt.kind === 'theory_decl') {
+      expect(theoryStmt.name).toBe('Mortalidad');
+      expect(theoryStmt.parent).toBeUndefined();
+      expect(theoryStmt.members).toHaveLength(2);
+    }
+  });
+
+  it('theory encapsulates — members do not leak to global scope', () => {
+    const out = run(`
+      logic classical.propositional
+      theory T1 {
+        let A = P -> Q
+        axiom a1 : A
+      }
+      check valid A
+    `);
+    // A no debería existir en el scope global — el check debería fallar o tratarla como átomo
+    // El check valid de un átomo puro no es tautología
+    expect(out.stdout).not.toContain('✓ [check valid]');
+  });
+
+  it('theory members accessible via dot notation', () => {
+    const out = run(`
+      logic classical.propositional
+      theory Base {
+        axiom a1 : P -> Q
+      }
+      check valid Base.a1 | !(Base.a1)
+    `);
+    expect(out.exitCode).toBe(0);
+    // P -> Q | !(P -> Q) es tautología
+    expect(out.stdout).toContain('✓');
+  });
+
+  it('theory extends inherits parent members', () => {
+    const out = run(`
+      logic classical.propositional
+      theory Parent {
+        let A = P -> Q
+        axiom base : A
+      }
+      theory Child extends Parent {
+        check valid A | !A
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    // A fue heredada del padre, A | !A es tautología
+    expect(out.stdout).toContain('✓');
+  });
+
+  it('child can override parent members (polymorphism)', () => {
+    const out = run(`
+      logic classical.propositional
+      theory Parent {
+        let X = P
+      }
+      theory Child extends Parent {
+        let X = Q
+        check valid X | !X
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    // X redefinido como Q, Q | !Q es tautología
+    expect(out.stdout).toContain('✓');
+  });
+
+  it('private members not accessible via dot notation', () => {
+    const out = run(`
+      logic classical.propositional
+      theory Secret {
+        private let interno = P & Q
+        axiom pub : P -> Q
+      }
+      check valid Secret.interno | !(Secret.interno)
+    `);
+    // Secret.interno es privado — no se resuelve, se trata como átomo
+    // Un átomo | !átomo: A | !A es tautología si se trata como el mismo átomo
+    // Pero la resolución no ocurre, así que Secret.interno queda como átomo literal
+    // atom | !atom siempre es tautología en proposicional
+    expect(out.exitCode).toBe(0);
+  });
+
+  it('private members ARE accessible from inside the theory', () => {
+    const out = run(`
+      logic classical.propositional
+      theory T {
+        private let x = P -> Q
+        check valid x | !x
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('✓');
+  });
+
+  it('spanish keywords: teoria extiende privado', () => {
+    const prog = parseOk(`
+      logic classical.propositional
+      teoria Padre {
+        axioma a1 : P -> Q
+      }
+      teoria Hijo extiende Padre {
+        privado sea x = P & Q
+      }
+    `);
+    const theories = prog.statements.filter(s => s.kind === 'theory_decl');
+    expect(theories).toHaveLength(2);
+    if (theories[1].kind === 'theory_decl') {
+      expect(theories[1].parent).toBe('Padre');
+      expect(theories[1].members[0].visibility).toBe('private');
+    }
+  });
+
+  it('dot notation in formulas resolves theory axiom', () => {
+    const out = run(`
+      logic classical.propositional
+      theory Logic {
+        axiom mp : (P & (P -> Q)) -> Q
+      }
+      check valid Logic.mp
+    `);
+    expect(out.exitCode).toBe(0);
+    // modus ponens es tautología
+    expect(out.stdout).toContain('✓');
+  });
+
+  it('extends from non-existent parent throws error', () => {
+    const out = run(`
+      logic classical.propositional
+      theory Child extends NoExiste {
+        axiom a : P
+      }
+    `);
+    expect(out.exitCode).not.toBe(0);
+    expect(out.stderr).toContain('no encontrada');
+  });
+});

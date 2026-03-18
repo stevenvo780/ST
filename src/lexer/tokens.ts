@@ -36,6 +36,9 @@ export enum TokenType {
   ASSUME = 'ASSUME',   // assume (natural deduction)
   SHOW = 'SHOW',       // show goal
   QED = 'QED',         // end proof block
+  THEORY = 'THEORY',   // theory block (OOP)
+  EXTENDS = 'EXTENDS', // theory inheritance
+  PRIVATE = 'PRIVATE', // private member (encapsulation)
 
   // Operators
   ARROW = 'ARROW', // ->
@@ -151,4 +154,10 @@ export const KEYWORDS: Record<string, TokenType> = {
   show: TokenType.SHOW,
   demostrar: TokenType.SHOW,
   qed: TokenType.QED,
+  theory: TokenType.THEORY,
+  teoria: TokenType.THEORY,
+  extends: TokenType.EXTENDS,
+  extiende: TokenType.EXTENDS,
+  private: TokenType.PRIVATE,
+  privado: TokenType.PRIVATE,
 };

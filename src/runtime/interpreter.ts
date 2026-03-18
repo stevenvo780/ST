@@ -36,6 +36,7 @@ import {
   ExplainCmdNode,
   ImportDeclNode,
   ProofBlockNode,
+  TheoryDeclNode,
 } from '../ast/nodes';
 import { registry } from '../profiles/interface';
 import { formulaToString } from '../profiles/classical/propositional';
@@ -54,6 +55,20 @@ import {
   compileClaimsToTheory,
 } from '../text-layer/compiler';
 
+/**
+ * Scope de una teoría (OOP): encapsula axiomas, teoremas, let-bindings y descripciones
+ */
+interface TheoryScope {
+  name: string;
+  parent?: string;
+  letBindings: Map<string, Formula>;
+  letDescriptions: Map<string, string>;
+  axioms: Map<string, Formula>;
+  theorems: Map<string, Formula>;
+  /** Miembros privados — no accesibles desde fuera via dot notation */
+  privateMembers: Set<string>;
+}
+
 export class Interpreter {
   private theory: Theory;
   private profile: LogicProfile | null = null;
@@ -63,6 +78,9 @@ export class Interpreter {
   private stdoutLines: string[] = [];
   private letBindings: Map<string, Formula> = new Map();
   private letDescriptions: Map<string, string> = new Map();
+  private theories: Map<string, TheoryScope> = new Map();
+  /** Nombre de la teoría actual (si estamos dentro de una) */
+  private currentTheoryName: string | null = null;
 
   constructor() {
     this.theory = this.createEmptyTheory();
@@ -91,6 +109,8 @@ export class Interpreter {
     this.importedFiles.clear();
     this.letBindings.clear();
     this.letDescriptions.clear();
+    this.theories.clear();
+    this.currentTheoryName = null;
   }
 
   execute(source: string, file: string = '<stdin>'): ExecutionOutput {
@@ -228,6 +248,8 @@ export class Interpreter {
         return this.execImportDecl(stmt);
       case 'proof_block':
         return this.execProofBlock(stmt);
+      case 'theory_decl':
+        return this.execTheoryDecl(stmt);
     }
   }
 
@@ -242,25 +264,59 @@ export class Interpreter {
   /**
    * Sustituye recursivamente los átomos que coincidan con variables `let`
    * por sus fórmulas definidas. Detecta ciclos para evitar recursión infinita.
+   * Soporta notación con punto: Theory.member resuelve desde el scope de la teoría.
    */
   private resolveFormula(f: Formula, visited: Set<string> = new Set()): Formula {
     if (!f) return f;
 
-    // Si es un átomo y existe como let binding, sustituir
-    if (f.kind === 'atom' && f.name && this.letBindings.has(f.name)) {
-      if (visited.has(f.name)) {
-        // Ciclo detectado — devolver como átomo sin sustituir
+    // Si es un átomo, intentar resolver
+    if (f.kind === 'atom' && f.name) {
+      // Dot notation: Theory.member
+      if (f.name.includes('.')) {
+        const [theoryName, memberName] = f.name.split('.', 2);
+        const scope = this.theories.get(theoryName);
+        if (scope) {
+          // Verificar encapsulamiento: miembros privados no accesibles desde fuera
+          if (scope.privateMembers.has(memberName) && this.currentTheoryName !== theoryName) {
+            // Miembro privado — no resolver, dejar como átomo
+            return f;
+          }
+          // Buscar en letBindings de la teoría
+          if (scope.letBindings.has(memberName)) {
+            if (visited.has(f.name)) return f;
+            visited.add(f.name);
+            return this.resolveFormula(scope.letBindings.get(memberName)!, new Set(visited));
+          }
+          // Buscar en axiomas de la teoría
+          if (scope.axioms.has(memberName)) {
+            if (visited.has(f.name)) return f;
+            visited.add(f.name);
+            return this.resolveFormula(scope.axioms.get(memberName)!, new Set(visited));
+          }
+          // Buscar en teoremas de la teoría
+          if (scope.theorems.has(memberName)) {
+            if (visited.has(f.name)) return f;
+            visited.add(f.name);
+            return this.resolveFormula(scope.theorems.get(memberName)!, new Set(visited));
+          }
+        }
+        // No se encontró — dejar como átomo con punto
         return f;
       }
-      visited.add(f.name);
-      // Resolver recursivamente (la fórmula destino puede contener más variables)
-      return this.resolveFormula(this.letBindings.get(f.name)!, new Set(visited));
+
+      // Binding local normal
+      if (this.letBindings.has(f.name)) {
+        if (visited.has(f.name)) {
+          return f;
+        }
+        visited.add(f.name);
+        return this.resolveFormula(this.letBindings.get(f.name)!, new Set(visited));
+      }
     }
 
     // Recorrer hijos recursivamente
     if (f.args && f.args.length > 0) {
       const newArgs = f.args.map(a => a ? this.resolveFormula(a, new Set(visited)) : a);
-      // Solo crear nuevo nodo si algo cambió
       const changed = newArgs.some((a, i) => a !== f.args![i]);
       if (changed) {
         return { ...f, args: newArgs };
@@ -603,6 +659,136 @@ export class Interpreter {
     this.emit('── End Proof Block ──');
   }
 
+  private execTheoryDecl(stmt: TheoryDeclNode): void {
+    const theoryName = stmt.name;
+
+    // Si ya existe una teoría con este nombre, sobreescribirla
+    // Crear scope vacío
+    const scope: TheoryScope = {
+      name: theoryName,
+      parent: stmt.parent,
+      letBindings: new Map(),
+      letDescriptions: new Map(),
+      axioms: new Map(),
+      theorems: new Map(),
+      privateMembers: new Set(),
+    };
+
+    // HERENCIA: Si extends Parent, copiar bindings/axiomas/teoremas del padre
+    if (stmt.parent) {
+      const parentScope = this.theories.get(stmt.parent);
+      if (!parentScope) {
+        throw new Error(`Teoría padre '${stmt.parent}' no encontrada. Declárela antes de '${theoryName}'.`);
+      }
+      // Copiar todo del padre (no los miembros privados del padre al hijo)
+      for (const [k, v] of parentScope.letBindings) {
+        if (!parentScope.privateMembers.has(k)) {
+          scope.letBindings.set(k, v);
+        }
+      }
+      for (const [k, v] of parentScope.letDescriptions) {
+        if (!parentScope.privateMembers.has(k)) {
+          scope.letDescriptions.set(k, v);
+        }
+      }
+      for (const [k, v] of parentScope.axioms) {
+        if (!parentScope.privateMembers.has(k)) {
+          scope.axioms.set(k, v);
+        }
+      }
+      for (const [k, v] of parentScope.theorems) {
+        if (!parentScope.privateMembers.has(k)) {
+          scope.theorems.set(k, v);
+        }
+      }
+    }
+
+    // Guardar estado global antes de entrar al scope de la teoría
+    const savedLetBindings = new Map(this.letBindings);
+    const savedLetDescriptions = new Map(this.letDescriptions);
+    const savedAxioms = new Map(this.theory.axioms);
+    const savedTheorems = new Map(this.theory.theorems);
+    const savedTheoryName = this.currentTheoryName;
+
+    // Establecer el scope de la teoría como contexto actual
+    // Inyectar bindings heredados al scope local para que los statements internos los vean
+    for (const [k, v] of scope.letBindings) {
+      this.letBindings.set(k, v);
+    }
+    for (const [k, v] of scope.letDescriptions) {
+      this.letDescriptions.set(k, v);
+    }
+    for (const [k, v] of scope.axioms) {
+      this.theory.axioms.set(k, v);
+    }
+    for (const [k, v] of scope.theorems) {
+      this.theory.theorems.set(k, v);
+    }
+
+    this.currentTheoryName = theoryName;
+
+    this.emit(`── Theory ${theoryName}${stmt.parent ? ` extends ${stmt.parent}` : ''} ──`);
+
+    // Ejecutar los miembros del body
+    for (const member of stmt.members) {
+      // Registrar visibilidad
+      const memberStmt = member.statement;
+      const memberName = 'name' in memberStmt ? (memberStmt as { name: string }).name : null;
+
+      if (member.visibility === 'private' && memberName) {
+        scope.privateMembers.add(memberName);
+      }
+
+      try {
+        this.executeStatement(memberStmt);
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        this.diagnostics.push({
+          severity: 'error',
+          message: `[theory ${theoryName}] ${message}`,
+          file: stmt.source.file,
+          line: memberStmt.source.line,
+          column: memberStmt.source.column,
+        });
+      }
+    }
+
+    // Capturar lo que los statements internos produjeron en el scope
+    // (nuevos letBindings, axiomas, teoremas, descriptions)
+    for (const [k, v] of this.letBindings) {
+      if (!savedLetBindings.has(k)) {
+        scope.letBindings.set(k, v);
+      }
+    }
+    for (const [k, v] of this.letDescriptions) {
+      if (!savedLetDescriptions.has(k)) {
+        scope.letDescriptions.set(k, v);
+      }
+    }
+    for (const [k, v] of this.theory.axioms) {
+      if (!savedAxioms.has(k)) {
+        scope.axioms.set(k, v);
+      }
+    }
+    for (const [k, v] of this.theory.theorems) {
+      if (!savedTheorems.has(k)) {
+        scope.theorems.set(k, v);
+      }
+    }
+
+    // Restaurar estado global (encapsulamiento — los internos no escapan)
+    this.letBindings = savedLetBindings;
+    this.letDescriptions = savedLetDescriptions;
+    this.theory.axioms = savedAxioms;
+    this.theory.theorems = savedTheorems;
+    this.currentTheoryName = savedTheoryName;
+
+    // Registrar la teoría
+    this.theories.set(theoryName, scope);
+
+    this.emit(`── End Theory ${theoryName} ──`);
+  }
+
   private execImportDecl(stmt: ImportDeclNode): void {
     let filePath = stmt.path;
     // Agregar extensión .st si no la tiene
@@ -775,5 +961,8 @@ export class Interpreter {
   }
   getLetBindings(): Map<string, Formula> {
     return this.letBindings;
+  }
+  getTheories(): Map<string, TheoryScope> {
+    return this.theories;
   }
 }

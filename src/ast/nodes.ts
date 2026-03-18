@@ -26,7 +26,8 @@ export type StatementKind =
   | 'analyze_cmd'
   | 'explain_cmd'
   | 'import_decl'
-  | 'proof_block';
+  | 'proof_block'
+  | 'theory_decl';
 
 export interface ASTNode {
   kind: StatementKind;
@@ -121,6 +122,18 @@ export interface ProofBlockNode extends ASTNode {
   body: Statement[]; // derivar, check, etc. dentro del bloque
 }
 
+export interface TheoryMember {
+  statement: Statement;
+  visibility: 'public' | 'private';
+}
+
+export interface TheoryDeclNode extends ASTNode {
+  kind: 'theory_decl';
+  name: string;
+  parent?: string; // extends Parent
+  members: TheoryMember[];
+}
+
 // --- Text Layer ---
 
 export interface LetPassageNode extends ASTNode {
@@ -203,7 +216,8 @@ export type Statement =
   | AnalyzeCmdNode
   | ExplainCmdNode
   | ImportDeclNode
-  | ProofBlockNode;
+  | ProofBlockNode
+  | TheoryDeclNode;
 
 export interface Program {
   statements: Statement[];
