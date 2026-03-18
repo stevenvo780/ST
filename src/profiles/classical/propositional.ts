@@ -83,6 +83,20 @@ function generateValuations(atoms: string[]): Valuation[] {
   return valuations;
 }
 
+/**
+ * Aplana recursivamente nodos binarios del mismo kind asociativo.
+ * Ej: or(or(P,Q), R) → [P, Q, R]
+ */
+function collectAssociativeArgs(f: Formula, kind: 'and' | 'or'): Formula[] {
+  if (f.kind !== kind || !f.args?.length) return [f];
+  const items: Formula[] = [];
+  for (const arg of f.args) {
+    if (!arg) continue;
+    items.push(...collectAssociativeArgs(arg, kind));
+  }
+  return items;
+}
+
 export function formulaToString(f: Formula): string {
   switch (f.kind) {
     case 'atom':
@@ -95,11 +109,11 @@ export function formulaToString(f: Formula): string {
     }
     case 'and':
       return f.args && f.args[0] && f.args[1]
-        ? `(${formulaToString(f.args[0])} & ${formulaToString(f.args[1])})`
+        ? `(${collectAssociativeArgs(f, 'and').map(formulaToString).join(' & ')})`
         : '? & ?';
     case 'or':
       return f.args && f.args[0] && f.args[1]
-        ? `(${formulaToString(f.args[0])} | ${formulaToString(f.args[1])})`
+        ? `(${collectAssociativeArgs(f, 'or').map(formulaToString).join(' | ')})`
         : '? | ?';
     case 'implies':
       return f.args && f.args[0] && f.args[1]

@@ -613,6 +613,16 @@ export class Parser {
     return ids;
   }
 
+  private collectAssociativeArgs(f: Formula, kind: 'and' | 'or'): Formula[] {
+    if (f.kind !== kind || !f.args?.length) return [f];
+    const items: Formula[] = [];
+    for (const arg of f.args) {
+      if (!arg) continue;
+      items.push(...this.collectAssociativeArgs(arg, kind));
+    }
+    return items;
+  }
+
   private formulaToString(f: Formula): string {
     const arg0 = f.args?.[0];
     const arg1 = f.args?.[1];
@@ -640,11 +650,11 @@ export class Parser {
       }
       case 'and':
         return arg0 && arg1
-          ? `(${this.formulaToString(arg0)} & ${this.formulaToString(arg1)})`
+          ? `(${this.collectAssociativeArgs(f, 'and').map(a => this.formulaToString(a)).join(' & ')})`
           : '(? & ?)';
       case 'or':
         return arg0 && arg1
-          ? `(${this.formulaToString(arg0)} | ${this.formulaToString(arg1)})`
+          ? `(${this.collectAssociativeArgs(f, 'or').map(a => this.formulaToString(a)).join(' | ')})`
           : '(? | ?)';
       case 'implies':
         return arg0 && arg1

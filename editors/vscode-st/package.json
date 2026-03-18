@@ -3,7 +3,7 @@
   "displayName": "ST Symbolic Theory Language",
   "description": "Language support for ST (Symbolic Theory Language) — Logic, proofs, and text formalization.",
   "version": "0.1.0",
-  "publisher": "humanizar",
+  "publisher": "StevenVallejo",
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -7,6 +7,21 @@
 
 import { Formula } from '../types';
 
+/**
+ * Aplana recursivamente nodos binarios del mismo kind asociativo
+ * para representarlos como operación n-aria plana.
+ * Ej: or(or(P,Q), R) → [P, Q, R]
+ */
+function collectAssociativeArgs(f: Formula, kind: 'and' | 'or'): Formula[] {
+  if (f.kind !== kind || !f.args?.length) return [f];
+  const items: Formula[] = [];
+  for (const arg of f.args) {
+    if (!arg) continue;
+    items.push(...collectAssociativeArgs(arg, kind));
+  }
+  return items;
+}
+
 /** Convierte una fórmula AST a notación Unicode legible (estilo libro de texto). */
 export function formulaToUnicode(f: Formula): string {
   switch (f.kind) {
@@ -21,11 +36,11 @@ export function formulaToUnicode(f: Formula): string {
     }
     case 'and':
       return f.args?.[0] && f.args?.[1]
-        ? `(${formulaToUnicode(f.args[0])} ∧ ${formulaToUnicode(f.args[1])})`
+        ? `(${collectAssociativeArgs(f, 'and').map(formulaToUnicode).join(' ∧ ')})`
         : '? ∧ ?';
     case 'or':
       return f.args?.[0] && f.args?.[1]
-        ? `(${formulaToUnicode(f.args[0])} ∨ ${formulaToUnicode(f.args[1])})`
+        ? `(${collectAssociativeArgs(f, 'or').map(formulaToUnicode).join(' ∨ ')})`
         : '? ∨ ?';
     case 'implies':
       return f.args?.[0] && f.args?.[1]
@@ -78,11 +93,11 @@ export function formulaToLaTeX(f: Formula): string {
     }
     case 'and':
       return f.args?.[0] && f.args?.[1]
-        ? `(${formulaToLaTeX(f.args[0])} \\land ${formulaToLaTeX(f.args[1])})`
+        ? `(${collectAssociativeArgs(f, 'and').map(formulaToLaTeX).join(' \\land ')})`
         : '? \\land ?';
     case 'or':
       return f.args?.[0] && f.args?.[1]
-        ? `(${formulaToLaTeX(f.args[0])} \\lor ${formulaToLaTeX(f.args[1])})`
+        ? `(${collectAssociativeArgs(f, 'or').map(formulaToLaTeX).join(' \\lor ')})`
         : '? \\lor ?';
     case 'implies':
       return f.args?.[0] && f.args?.[1]
