@@ -61,6 +61,7 @@ export class Interpreter {
   private diagnostics: Diagnostic[] = [];
   private results: RunResult[] = [];
   private stdoutLines: string[] = [];
+  private letBindings: Map<string, Formula> = new Map();
 
   constructor() {
     this.theory = this.createEmptyTheory();
@@ -87,6 +88,7 @@ export class Interpreter {
     this.stdoutLines = [];
     this.profile = null;
     this.importedFiles.clear();
+    this.letBindings.clear();
   }
 
   execute(source: string, file: string = '<stdin>'): ExecutionOutput {
@@ -234,6 +236,37 @@ export class Interpreter {
     return p;
   }
 
+  /**
+   * Sustituye recursivamente los átomos que coincidan con variables `let`
+   * por sus fórmulas definidas. Detecta ciclos para evitar recursión infinita.
+   */
+  private resolveFormula(f: Formula, visited: Set<string> = new Set()): Formula {
+    if (!f) return f;
+
+    // Si es un átomo y existe como let binding, sustituir
+    if (f.kind === 'atom' && f.name && this.letBindings.has(f.name)) {
+      if (visited.has(f.name)) {
+        // Ciclo detectado — devolver como átomo sin sustituir
+        return f;
+      }
+      visited.add(f.name);
+      // Resolver recursivamente (la fórmula destino puede contener más variables)
+      return this.resolveFormula(this.letBindings.get(f.name)!, new Set(visited));
+    }
+
+    // Recorrer hijos recursivamente
+    if (f.args && f.args.length > 0) {
+      const newArgs = f.args.map(a => a ? this.resolveFormula(a, new Set(visited)) : a);
+      // Solo crear nuevo nodo si algo cambió
+      const changed = newArgs.some((a, i) => a !== f.args![i]);
+      if (changed) {
+        return { ...f, args: newArgs };
+      }
+    }
+
+    return f;
+  }
+
   private execLogicDecl(stmt: LogicDeclNode): void {
     const p = registry.get(stmt.profile);
     if (!p) {
@@ -248,37 +281,42 @@ export class Interpreter {
 
   private execAxiomDecl(stmt: AxiomDeclNode): void {
     const profile = this.requireProfile();
-    const diags = profile.checkWellFormed(stmt.formula);
+    const resolved = this.resolveFormula(stmt.formula);
+    const diags = profile.checkWellFormed(resolved);
     this.diagnostics.push(...diags);
-    this.theory.axioms.set(stmt.name, stmt.formula);
-    this.emit(`Axioma ${stmt.name} = ${formulaToString(stmt.formula)}`);
+    this.theory.axioms.set(stmt.name, resolved);
+    this.emit(`Axioma ${stmt.name} = ${formulaToString(resolved)}`);
   }
 
   private execTheoremDecl(stmt: TheoremDeclNode): void {
     const profile = this.requireProfile();
-    const diags = profile.checkWellFormed(stmt.formula);
+    const resolved = this.resolveFormula(stmt.formula);
+    const diags = profile.checkWellFormed(resolved);
     this.diagnostics.push(...diags);
-    this.theory.theorems.set(stmt.name, stmt.formula);
-    this.emit(`Teorema ${stmt.name} = ${formulaToString(stmt.formula)}`);
+    this.theory.theorems.set(stmt.name, resolved);
+    this.emit(`Teorema ${stmt.name} = ${formulaToString(resolved)}`);
   }
 
   private execDeriveCmd(stmt: DeriveCmdNode): void {
     const profile = this.requireProfile();
-    const result = profile.derive(stmt.goal, stmt.premises, this.theory);
+    const resolved = this.resolveFormula(stmt.goal);
+    const result = profile.derive(resolved, stmt.premises, this.theory);
     this.results.push(result);
     this.emitResult('derive', result);
   }
 
   private execCheckValidCmd(stmt: CheckValidCmdNode): void {
     const profile = this.requireProfile();
-    const result = profile.checkValid(stmt.formula);
+    const resolved = this.resolveFormula(stmt.formula);
+    const result = profile.checkValid(resolved);
     this.results.push(result);
     this.emitResult('check valid', result);
   }
 
   private execCheckSatisfiableCmd(stmt: CheckSatisfiableCmdNode): void {
     const profile = this.requireProfile();
-    const result = profile.checkSatisfiable(stmt.formula);
+    const resolved = this.resolveFormula(stmt.formula);
+    const result = profile.checkSatisfiable(resolved);
     this.results.push(result);
     this.emitResult('check satisfiable', result);
   }
@@ -288,21 +326,25 @@ export class Interpreter {
     if (!profile.checkEquivalent) {
       throw new Error('Este perfil no soporta check equivalent');
     }
-    const result = profile.checkEquivalent(stmt.left, stmt.right);
+    const resolvedL = this.resolveFormula(stmt.left);
+    const resolvedR = this.resolveFormula(stmt.right);
+    const result = profile.checkEquivalent(resolvedL, resolvedR);
     this.results.push(result);
     this.emitResult('check equivalent', result);
   }
 
   private execProveCmd(stmt: ProveCmdNode): void {
     const profile = this.requireProfile();
-    const result = profile.prove(stmt.goal, this.theory);
+    const resolved = this.resolveFormula(stmt.goal);
+    const result = profile.prove(resolved, this.theory);
     this.results.push(result);
     this.emitResult('prove', result);
   }
 
   private execCountermodelCmd(stmt: CountermodelCmdNode): void {
     const profile = this.requireProfile();
-    const result = profile.countermodel(stmt.formula);
+    const resolved = this.resolveFormula(stmt.formula);
+    const result = profile.countermodel(resolved);
     this.results.push(result);
     this.emitResult('countermodel', result);
   }
@@ -312,7 +354,7 @@ export class Interpreter {
     if (!profile.truthTable) {
       throw new Error('Este perfil no soporta truth_table');
     }
-    const formula = stmt.formula;
+    const formula = this.resolveFormula(stmt.formula);
     const tt = profile.truthTable(formula);
     const result: RunResult = {
       status: tt.isTautology ? 'valid' : tt.isSatisfiable ? 'satisfiable' : 'unsatisfiable',
@@ -336,9 +378,13 @@ export class Interpreter {
       this.diagnostics.push(...diags);
       this.emit(`Formalizacion ${stmt.name}: ${stmt.passageName} -> ${formulaToString(formula)}`);
     } else if (stmt.letType === 'formula' && stmt.formula) {
-      // Alias de fórmula: registrar como axioma implícito para derivaciones
-      this.theory.axioms.set(stmt.name, stmt.formula);
-      this.emit(`Let ${stmt.name} = ${formulaToUnicode(stmt.formula)}`);
+      // Resolver posibles variables anidadas en la propia definición
+      const resolved = this.resolveFormula(stmt.formula);
+      // Registrar como binding para sustitución futura
+      this.letBindings.set(stmt.name, resolved);
+      // También como axioma implícito para derivaciones
+      this.theory.axioms.set(stmt.name, resolved);
+      this.emit(`Let ${stmt.name} = ${formulaToUnicode(resolved)}`);
     }
   }
 
@@ -430,8 +476,8 @@ export class Interpreter {
 
   private execAnalyzeCmd(stmt: AnalyzeCmdNode): void {
     const profile = this.requireProfile();
-    const premises = stmt.premises;
-    const conclusion = stmt.conclusion;
+    const premises = stmt.premises.map(p => this.resolveFormula(p));
+    const conclusion = this.resolveFormula(stmt.conclusion);
     const fallacies = detectFallacies(premises, conclusion, profile);
     const pStr = premises.map((p) => formulaToUnicode(p)).join(', ');
     const cStr = formulaToUnicode(conclusion);
@@ -484,16 +530,19 @@ export class Interpreter {
   private execProofBlock(stmt: ProofBlockNode): void {
     const profile = this.requireProfile();
 
-    // Guardar axiomas antes del bloque
+    // Guardar axiomas y letBindings antes del bloque
     const savedAxioms = new Map(this.theory.axioms);
+    const savedLetBindings = new Map(this.letBindings);
 
-    // Registrar las asunciones como axiomas temporales
+    // Registrar las asunciones como axiomas temporales (con resolución de variables)
     this.emit('── Proof Block ──');
     for (const assumption of stmt.assumptions) {
-      this.theory.axioms.set(assumption.name, assumption.formula);
-      this.emit(`  assume ${assumption.name} = ${formulaToUnicode(assumption.formula)}`);
+      const resolved = this.resolveFormula(assumption.formula);
+      this.theory.axioms.set(assumption.name, resolved);
+      this.emit(`  assume ${assumption.name} = ${formulaToUnicode(resolved)}`);
     }
-    this.emit(`  show ${formulaToUnicode(stmt.goal)}`);
+    const resolvedGoal = this.resolveFormula(stmt.goal);
+    this.emit(`  show ${formulaToUnicode(resolvedGoal)}`);
 
     // Ejecutar body statements
     for (const bodyStmt of stmt.body) {
@@ -513,15 +562,15 @@ export class Interpreter {
 
     // Verificar que el goal es derivable de las asunciones
     const premiseNames = stmt.assumptions.map((a) => a.name);
-    const result = profile.derive(stmt.goal, premiseNames, this.theory);
+    const result = profile.derive(resolvedGoal, premiseNames, this.theory);
     this.results.push(result);
 
     if (result.status === 'valid' || result.status === 'provable') {
-      this.emit(`  ✓ QED — ${formulaToUnicode(stmt.goal)} demostrado`);
+      this.emit(`  ✓ QED — ${formulaToUnicode(resolvedGoal)} demostrado`);
       // Registrar como teorema
       const theoremName = `proof_${this.theory.theorems.size + 1}`;
       // La implicación assumptions -> goal es un teorema
-      let implication: Formula = stmt.goal;
+      let implication: Formula = resolvedGoal;
       for (let i = stmt.assumptions.length - 1; i >= 0; i--) {
         implication = {
           kind: 'implies',
@@ -530,11 +579,12 @@ export class Interpreter {
       }
       this.theory.theorems.set(theoremName, implication);
     } else {
-      this.emit(`  ✗ QED fallido — no se pudo demostrar ${formulaToUnicode(stmt.goal)}`);
+      this.emit(`  ✗ QED fallido — no se pudo demostrar ${formulaToUnicode(resolvedGoal)}`);
     }
 
-    // Restaurar axiomas (quitar las asunciones temporales)
+    // Restaurar axiomas y letBindings (quitar las asunciones temporales)
     this.theory.axioms = savedAxioms;
+    this.letBindings = savedLetBindings;
     this.emit('── End Proof Block ──');
   }
 
@@ -582,7 +632,8 @@ export class Interpreter {
 
   private execExplainCmd(stmt: ExplainCmdNode): void {
     const profile = this.requireProfile();
-    const result = profile.explain(stmt.formula);
+    const resolved = this.resolveFormula(stmt.formula);
+    const result = profile.explain(resolved);
     this.results.push(result);
     if (result.output) this.emit(result.output);
   }
