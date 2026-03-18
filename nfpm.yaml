@@ -1,0 +1,17 @@
+name: "st-lang"
+arch: "amd64"
+platform: "linux"
+version: "${VERSION:-1.5.1}"
+section: "devel"
+priority: "optional"
+maintainer: "Steven Velez <stevenvo780@gmail.com>"
+description: "ST — Symbolic Theory Language Interpreter"
+vendor: "Humanizar"
+homepage: "https://github.com/stevenvo780/ST"
+license: "MIT"
+contents:
+  - src: "./st"
+    dst: "/usr/bin/st"
+    type: "file"
+    file_info:
+      mode: 0755

@@ -119,6 +119,22 @@ export function formulaToString(f: Formula): string {
       return f.args && f.args[0] && f.args[1]
         ? `(${formulaToString(f.args[0])} U ${formulaToString(f.args[1])})`
         : '? U ?';
+    case 'modal_necessity':
+      return f.args?.[0] ? `[](${formulaToString(f.args[0])})` : '[](?)';
+    case 'modal_possibility':
+      return f.args?.[0] ? `<>(${formulaToString(f.args[0])})` : '<>(?)';
+    case 'forall':
+      return f.variable && f.args?.[0]
+        ? `forall ${f.variable}(${formulaToString(f.args[0])})`
+        : 'forall ?(?)';
+    case 'exists':
+      return f.variable && f.args?.[0]
+        ? `exists ${f.variable}(${formulaToString(f.args[0])})`
+        : 'exists ?(?)';
+    case 'predicate':
+      return f.name
+        ? `${f.name}(${(f.params || []).join(', ')})`
+        : '?(...)';
     default:
       return '?';
   }
@@ -142,6 +158,7 @@ export function toNNF(f: Formula): Formula {
         case 'biconditional':
         case 'modal_necessity':
         case 'modal_possibility':
+        case 'temporal_next':
         case 'forall':
         case 'exists':
           return { ...node, args: args.map((a) => simplify(a, false)) };
@@ -176,6 +193,9 @@ export function toNNF(f: Formula): Formula {
           return { kind: 'modal_possibility', args: [simplify(args[0], true)] };
         case 'modal_possibility':
           return { kind: 'modal_necessity', args: [simplify(args[0], true)] };
+        case 'temporal_next':
+          // ¬X(φ) ≡ X(¬φ) — next conmuta con negación en LTL
+          return { kind: 'temporal_next', args: [simplify(args[0], true)] };
         case 'forall':
           return {
             kind: 'exists',

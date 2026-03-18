@@ -404,4 +404,27 @@ export class AristotelianSyllogistic implements LogicProfile {
       formula,
     };
   }
+
+  checkEquivalent(a: Formula, b: Formula): RunResult {
+    const catA = extractCategorical(a);
+    const catB = extractCategorical(b);
+    if (catA && catB) {
+      const equiv =
+        catA.type === catB.type &&
+        catA.subject === catB.subject &&
+        catA.predicate === catB.predicate;
+      return {
+        status: equiv ? 'valid' : 'invalid',
+        output: equiv
+          ? `${categoricalToString(catA)} y ${categoricalToString(catB)} son EQUIVALENTES`
+          : `${categoricalToString(catA)} y ${categoricalToString(catB)} NO son equivalentes`,
+        diagnostics: [],
+      };
+    }
+    return {
+      status: 'unknown',
+      output: `No se pueden comparar como proposiciones categóricas: ${formulaToString(a)} vs ${formulaToString(b)}`,
+      diagnostics: [],
+    };
+  }
 }

@@ -29,6 +29,14 @@
   "bin": {
     "st": "./bin/st"
   },
+  "pkg": {
+    "scripts": [
+      "dist/**/*.js"
+    ],
+    "assets": [
+      "dist/**/*.js"
+    ]
+  },
   "files": [
     "dist",
     "bin",

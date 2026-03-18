@@ -134,4 +134,18 @@ export abstract class BaseTableauProfile implements LogicProfile {
       formula,
     };
   }
+
+  checkEquivalent(a: Formula, b: Formula): RunResult {
+    const biconditional: Formula = { kind: 'biconditional', args: [a, b] };
+    const valid = isValid(biconditional, this.frameRules);
+    const fA = this.formatFormula(a);
+    const fB = this.formatFormula(b);
+    return {
+      status: valid ? 'valid' : 'invalid',
+      output: valid
+        ? `${fA} y ${fB} son EQUIVALENTES en ${this.name}`
+        : `${fA} y ${fB} NO son equivalentes en ${this.name}`,
+      diagnostics: [],
+    };
+  }
 }

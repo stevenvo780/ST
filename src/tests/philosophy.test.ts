@@ -481,23 +481,23 @@ check valid ((P & !P) -> Q)
   });
 
   // ── Priest / Belnap: Información inconsistente pero útil ──
-  it('Belnap: Ex Falso no explota — (P & !P) -> Q no preserva designación', () => {
+  it('Belnap: Ex Falso no explota — de P y !P no se puede derivar Q arbitraria', () => {
     const r = evaluate(`
 logic paraconsistent.belnap
 // En Belnap, la inferencia de premisas contradictorias a cualquier Q
-// NO es válida: (P & !P) -> Q no siempre da valor designado.
+// NO es válida: de P y !P no se puede derivar una Q arbitraria.
 // Esto es BUENO: Belnap tolera contradicciones sin explosión.
-// Si P=B, Q=N: (B & B) -> N = B -> N = (!B | N) = (B | N) = T (designado)
-// Pero si P=T, Q=F: (T & F) -> F = F -> F = (!F | F) = (T | F) = T
-// Revisemos con prove: la prueba falla porque la implicación material no preserva.
+// Con semántica de entailment correcta (preservación de valores designados):
+// Si P=B (Both), entonces P es designado y !P=B es designado.
+// Pero Q=F (no designado) → las premisas no fuerzan que Q sea designado.
 axiom fuente1 : P
 axiom fuente2 : !P
-axiom dato_independiente : Q
-prove Q from {fuente1, fuente2, dato_independiente}
+derive Q from {fuente1, fuente2}
 `);
     expect(r.ok).toBe(true);
-    // En Belnap prove, se evalúa (premisas -> goal) con 4 valores.
-    // La conjunción de los axiomas no siempre implica Q designadamente.
+    // En Belnap prove con entailment correcto:
+    // Existe valuación donde P=B (premisas designadas) pero Q=F (no designado).
+    // Por tanto Q NO se sigue de {P, !P}.
     expect(r.results[0].status).toBe('refutable');
   });
 

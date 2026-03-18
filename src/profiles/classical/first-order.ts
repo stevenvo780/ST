@@ -86,6 +86,21 @@ export class ClassicalFirstOrder implements LogicProfile {
     return { status: 'unknown', output: `FOL`, diagnostics: [], formula };
   }
 
+  checkEquivalent(a: Formula, b: Formula): RunResult {
+    const biconditional: Formula = { kind: 'biconditional', args: [a, b] };
+    const result = this.checkValid(biconditional);
+    const fA = formulaToString(a);
+    const fB = formulaToString(b);
+    return {
+      status: result.status === 'valid' ? 'valid' : 'invalid',
+      output:
+        result.status === 'valid'
+          ? `${fA} y ${fB} son EQUIVALENTES en FOL`
+          : `${fA} y ${fB} NO son equivalentes en FOL`,
+      diagnostics: [],
+    };
+  }
+
   private solve(initialNodes: FONode[]): boolean {
     const constants = new Set<string>(['c0']);
     const collect = (f: Formula) => {
@@ -116,9 +131,20 @@ export class ClassicalFirstOrder implements LogicProfile {
 
     const type = (f: Formula) => {
       if (f.kind === 'and') return 'alfa';
-      if (f.kind === 'or') return 'beta';
+      if (f.kind === 'or' || f.kind === 'implies') return 'beta';
+      if (f.kind === 'biconditional') return 'beta';
       if (f.kind === 'exists') return 'delta';
       if (f.kind === 'forall') return 'gamma';
+      if (f.kind === 'not') {
+        const inner = (f.args || [])[0];
+        if (inner) {
+          if (inner.kind === 'and') return 'beta';   // ¬(A∧B) = ¬A∨¬B
+          if (inner.kind === 'or') return 'alfa';     // ¬(A∨B) = ¬A∧¬B
+          if (inner.kind === 'implies') return 'alfa'; // ¬(A→B) = A∧¬B
+          if (inner.kind === 'exists') return 'gamma'; // ¬∃x = ∀x¬
+          if (inner.kind === 'forall') return 'delta'; // ¬∀x = ∃x¬
+        }
+      }
       return 'atom';
     };
 
@@ -188,6 +214,131 @@ export class ClassicalFirstOrder implements LogicProfile {
               depth + 1,
             )
           );
+        case 'implies':
+          // A → B ≡ ¬A ∨ B (beta)
+          return (
+            this.solveRecursive(
+              [{ formula: { kind: 'not', args: [args[0]] } }, ...rest],
+              constants,
+              nextProcessed,
+              depth + 1,
+            ) &&
+            this.solveRecursive(
+              [{ formula: args[1] }, ...rest],
+              constants,
+              nextProcessed,
+              depth + 1,
+            )
+          );
+        case 'biconditional':
+          // A ↔ B ≡ (A∧B) ∨ (¬A∧¬B) (beta)
+          return (
+            this.solveRecursive(
+              [{ formula: args[0] }, { formula: args[1] }, ...rest],
+              constants,
+              nextProcessed,
+              depth + 1,
+            ) &&
+            this.solveRecursive(
+              [
+                { formula: { kind: 'not', args: [args[0]] } },
+                { formula: { kind: 'not', args: [args[1]] } },
+                ...rest,
+              ],
+              constants,
+              nextProcessed,
+              depth + 1,
+            )
+          );
+        case 'not': {
+          const inner = args[0];
+          if (!inner) return false;
+          switch (inner.kind) {
+            case 'and':
+              // ¬(A∧B) = ¬A∨¬B (beta)
+              return (
+                (inner.args || []).length >= 2 &&
+                this.solveRecursive(
+                  [{ formula: { kind: 'not', args: [inner.args![0]] } }, ...rest],
+                  constants,
+                  nextProcessed,
+                  depth + 1,
+                ) &&
+                this.solveRecursive(
+                  [{ formula: { kind: 'not', args: [inner.args![1]] } }, ...rest],
+                  constants,
+                  nextProcessed,
+                  depth + 1,
+                )
+              );
+            case 'or':
+              // ¬(A∨B) = ¬A∧¬B (alfa)
+              return this.solveRecursive(
+                [
+                  ...((inner.args || []).map((a) => ({ formula: { kind: 'not' as const, args: [a] } }))),
+                  ...rest,
+                ],
+                constants,
+                nextProcessed,
+                depth + 1,
+              );
+            case 'implies':
+              // ¬(A→B) = A∧¬B (alfa)
+              return this.solveRecursive(
+                [
+                  { formula: (inner.args || [])[0] },
+                  { formula: { kind: 'not', args: [(inner.args || [])[1]] } },
+                  ...rest,
+                ],
+                constants,
+                nextProcessed,
+                depth + 1,
+              );
+            case 'forall': {
+              // ¬∀x.φ = ∃x.¬φ (delta)
+              const variable = inner.variable;
+              if (!(inner.args || [])[0] || !variable) return false;
+              const newC = `c${constants.size}`;
+              const nextConstants = new Set(constants).add(newC);
+              return this.solveRecursive(
+                [
+                  { formula: { kind: 'not', args: [this.substitute(inner.args![0], variable, newC)] } },
+                  ...rest,
+                ],
+                nextConstants,
+                nextProcessed,
+                depth + 1,
+              );
+            }
+            case 'exists': {
+              // ¬∃x.φ = ∀x.¬φ (gamma)
+              const variable = inner.variable;
+              if (!(inner.args || [])[0] || !variable) return false;
+              const negForall: Formula = {
+                kind: 'forall',
+                variable,
+                args: [{ kind: 'not', args: [inner.args![0]] }],
+              };
+              return this.solveRecursive(
+                [{ formula: negForall }, ...rest],
+                constants,
+                nextProcessed,
+                depth + 1,
+              );
+            }
+            case 'not':
+              // ¬¬A = A (doble negación)
+              return this.solveRecursive(
+                [{ formula: (inner.args || [])[0] }, ...rest],
+                constants,
+                nextProcessed,
+                depth + 1,
+              );
+            default:
+              break;
+          }
+          break;
+        }
       }
     }
     return false;
@@ -200,6 +351,8 @@ export class ClassicalFirstOrder implements LogicProfile {
     const sub = (n: Formula): Formula => {
       if (n.kind === 'predicate' && n.params)
         return { ...n, params: n.params.map((p) => (p === v ? c : p)) };
+      if (n.kind === 'atom' && n.name === v)
+        return { ...n, name: c };
       if ((n.kind === 'forall' || n.kind === 'exists') && n.variable === v) return n;
       if (n.args) return { ...n, args: n.args.map(sub) };
       return n;
@@ -208,6 +361,19 @@ export class ClassicalFirstOrder implements LogicProfile {
   }
 
   private isEqual(a: Formula, b: Formula): boolean {
-    return this.formulaHash(a) === this.formulaHash(b);
+    if (a.kind !== b.kind) return false;
+    if (a.kind === 'atom' && b.kind === 'atom') return a.name === b.name;
+    if (a.kind === 'predicate' && b.kind === 'predicate') {
+      if (a.name !== b.name) return false;
+      const pa = a.params || [];
+      const pb = b.params || [];
+      if (pa.length !== pb.length) return false;
+      return pa.every((p, i) => p === pb[i]);
+    }
+    if (a.variable !== b.variable) return false;
+    const aa = a.args || [];
+    const ba = b.args || [];
+    if (aa.length !== ba.length) return false;
+    return aa.every((ai, i) => this.isEqual(ai, ba[i]));
   }
 }

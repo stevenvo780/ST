@@ -322,6 +322,8 @@ function classify(f: Formula): FormulaClass {
       return 'gamma';
     case 'modal_possibility':
       return 'delta';
+    case 'temporal_next':
+      return 'delta';
     default:
       return 'literal';
   }

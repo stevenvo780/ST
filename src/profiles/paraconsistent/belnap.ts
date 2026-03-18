@@ -118,17 +118,41 @@ export class ParaconsistentBelnap implements LogicProfile {
   }
 
   prove(goal: Formula, theory: Theory): RunResult {
-    // Para prove en Belnap, verificamos si la inferencia es válida (preservación de valores designados)
+    // Entailment correcto en Belnap: para toda valuación donde TODAS las premisas
+    // son designadas (T o B), el goal también es designado.
     const axioms = Array.from(theory.axioms.values());
-    const tt = this.generateBelnapTable({ kind: 'implies', args: [this.conjoin(axioms), goal] });
-    const designated = new Set(['T', 'B']);
-    const isProvable = tt.rows.every((r) => designated.has(String(r.result)));
+    if (axioms.length === 0) return this.checkValid(goal);
+
+    const allFormulas = [...axioms, goal];
+    const atoms = new Set<string>();
+    for (const f of allFormulas) {
+      for (const a of this.collectAtoms(f)) atoms.add(a);
+    }
+    const atomsArr = Array.from(atoms).sort();
+    const valuations = this.generateBelnapValuations(atomsArr);
+    const designated = new Set<BelnapValue>(['T', 'B']);
+
+    for (const v of valuations) {
+      const bv = v as unknown as Record<string, BelnapValue>;
+      const allPremisesDesignated = axioms.every((ax) =>
+        designated.has(this.evaluateBelnap(ax, bv)),
+      );
+      if (allPremisesDesignated) {
+        const goalDesignated = designated.has(this.evaluateBelnap(goal, bv));
+        if (!goalDesignated) {
+          return {
+            status: 'refutable',
+            output: `${formulaToString(goal)} no es demostrable en Belnap (premisas designadas pero goal no)`,
+            diagnostics: [],
+            formula: goal,
+          };
+        }
+      }
+    }
 
     return {
-      status: isProvable ? 'provable' : 'refutable',
-      output: isProvable
-        ? `${formulaToString(goal)} se sigue de la teoria en Belnap`
-        : `${formulaToString(goal)} no es demostrable en Belnap`,
+      status: 'provable',
+      output: `${formulaToString(goal)} se sigue de la teoria en Belnap (preserva valores designados)`,
       diagnostics: [],
       formula: goal,
     };
@@ -139,16 +163,40 @@ export class ParaconsistentBelnap implements LogicProfile {
       .map((p) => theory.axioms.get(p) || theory.theorems.get(p))
       .filter((f): f is Formula => f !== undefined);
 
-    const tt = this.generateBelnapTable({
-      kind: 'implies',
-      args: [this.conjoin(premiseFormulas), goal],
-    });
-    const designated = new Set(['T', 'B']);
-    const isProvable = tt.rows.every((r) => designated.has(String(r.result)));
+    if (premiseFormulas.length === 0) return this.checkValid(goal);
+
+    // Entailment correcto: para toda valuación donde TODAS las premisas son
+    // designadas (T o B), el goal también es designado.
+    const allFormulas = [...premiseFormulas, goal];
+    const atoms = new Set<string>();
+    for (const f of allFormulas) {
+      for (const a of this.collectAtoms(f)) atoms.add(a);
+    }
+    const atomsArr = Array.from(atoms).sort();
+    const valuations = this.generateBelnapValuations(atomsArr);
+    const designated = new Set<BelnapValue>(['T', 'B']);
+
+    for (const v of valuations) {
+      const bv = v as unknown as Record<string, BelnapValue>;
+      const allPremisesDesignated = premiseFormulas.every((pf) =>
+        designated.has(this.evaluateBelnap(pf, bv)),
+      );
+      if (allPremisesDesignated) {
+        const goalDesignated = designated.has(this.evaluateBelnap(goal, bv));
+        if (!goalDesignated) {
+          return {
+            status: 'refutable',
+            output: `No se puede derivar en Belnap (premisas designadas pero goal no)`,
+            diagnostics: [],
+            formula: goal,
+          };
+        }
+      }
+    }
 
     return {
-      status: isProvable ? 'provable' : 'refutable',
-      output: isProvable ? `Derivacion exitosa en Belnap` : `No se puede derivar en Belnap`,
+      status: 'provable',
+      output: `Derivacion exitosa en Belnap (preserva valores designados)`,
       diagnostics: [],
       formula: goal,
     };
@@ -183,6 +231,29 @@ export class ParaconsistentBelnap implements LogicProfile {
       output: `Logica de Belnap (4-valores): ${formulaToString(formula)}`,
       diagnostics: [],
       formula,
+    };
+  }
+
+  checkEquivalent(a: Formula, b: Formula): RunResult {
+    const biconditional: Formula = { kind: 'biconditional', args: [a, b] };
+    const tt = this.generateBelnapTable(biconditional);
+    const designated = new Set(['T', 'B']);
+    const isEquiv = tt.rows.every((r) => designated.has(String(r.result)));
+
+    if (isEquiv) {
+      return {
+        status: 'valid',
+        output: `${formulaToString(a)} y ${formulaToString(b)} son EQUIVALENTES en Belnap`,
+        truthTable: tt,
+        diagnostics: [],
+      };
+    }
+
+    return {
+      status: 'invalid',
+      output: `${formulaToString(a)} y ${formulaToString(b)} NO son equivalentes en Belnap`,
+      truthTable: tt,
+      diagnostics: [],
     };
   }
 

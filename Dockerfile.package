@@ -1,0 +1,35 @@
+FROM node:20-slim AS builder
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install nfpm (latest version)
+RUN NFPM_VERSION=$(curl -s https://api.github.com/repos/goreleaser/nfpm/releases/latest | grep tag_name | cut -d '"' -f 4 | sed 's/v//') && \
+    curl -sfL "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_Linux_x86_64.tar.gz" | tar -xz -C /usr/local/bin nfpm
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+# Package into a single binary using pkg
+# Note: we use bin/st as entrypoint, which requires dist/cli/index.js
+RUN npx pkg . --targets node20-linux-x64 --output st
+
+# Create packages using nfpm
+RUN VERSION=$(node -p "require('./package.json').version") && \
+    export VERSION && \
+    nfpm package --config nfpm.yaml --target st-lang_${VERSION}_amd64.deb && \
+    nfpm package --config nfpm.yaml --target st-lang-${VERSION}-1.x86_64.rpm
+
+# Export results stage
+FROM scratch
+COPY --from=builder /app/*.deb /
+COPY --from=builder /app/*.rpm /
+COPY --from=builder /app/st /

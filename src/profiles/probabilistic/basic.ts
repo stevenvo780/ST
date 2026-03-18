@@ -326,4 +326,9 @@ export class ProbabilisticBasic implements LogicProfile {
       isSatisfiable: somePositive,
     };
   }
+
+  checkEquivalent(a: Formula, b: Formula): RunResult {
+    const biconditional: Formula = { kind: 'biconditional', args: [a, b] };
+    return this.checkValid(biconditional);
+  }
 }
