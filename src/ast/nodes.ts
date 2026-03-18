@@ -139,6 +139,7 @@ export interface TheoryMember {
 export interface TheoryDeclNode extends ASTNode {
   kind: 'theory_decl';
   name: string;
+  params?: string[]; // Parámetros del "constructor"
   parent?: string; // extends Parent
   members: TheoryMember[];
 }

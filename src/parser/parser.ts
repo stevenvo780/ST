@@ -48,6 +48,7 @@ export class Parser {
   private file: string;
   public diagnostics: Diagnostic[] = [];
   private knownFunctionNames: Set<string> = new Set();
+  private knownTheoryNames: Set<string> = new Set();
 
   constructor(file: string = '<stdin>') {
     this.file = file;
@@ -91,11 +92,17 @@ export class Parser {
   private parseStatement(): Statement | null {
     const tok = this.current();
 
+    // Detección de llamada a función: nombre(...)
     if (
       this.peek(1) === TokenType.LPAREN &&
       (tok.type === TokenType.IDENTIFIER || this.knownFunctionNames.has(tok.value))
     ) {
       return this.parseFnCall();
+    }
+
+    // Detección de llamada a método: objeto.metodo(...)
+    if (tok.type === TokenType.IDENTIFIER && this.peek(1) === TokenType.DOT && this.peek(2) === TokenType.IDENTIFIER && this.peek(3) === TokenType.LPAREN) {
+      return this.parseMemberFnCall();
     }
 
     switch (tok.type) {
@@ -495,11 +502,25 @@ export class Parser {
     return { kind: 'proof_block', assumptions, goal, body, source: src };
   }
 
-  // theory Name { ... } | theory Name extends Parent { ... }
+  // theory Name(params) { ... } | theory Name extends Parent { ... }
   private parseTheoryDecl(): TheoryDeclNode {
     const src = this.loc();
     this.expect(TokenType.THEORY);
     const name = this.expectName();
+    this.knownTheoryNames.add(name);
+
+    // Parámetros opcionales (constructor): theory Math(n)
+    let params: string[] | undefined;
+    if (this.match(TokenType.LPAREN)) {
+      params = [];
+      if (!this.checkType(TokenType.RPAREN)) {
+        params.push(this.expectName());
+        while (this.match(TokenType.COMMA)) {
+          params.push(this.expectName());
+        }
+      }
+      this.expect(TokenType.RPAREN);
+    }
 
     // Herencia opcional: extends Parent
     let parent: string | undefined;
@@ -541,7 +562,7 @@ export class Parser {
     }
     this.expect(TokenType.RBRACE);
 
-    return { kind: 'theory_decl', name, parent, members, source: src };
+    return { kind: 'theory_decl', name, params, parent, members, source: src };
   }
 
   // --- print "texto" | print formula ---
@@ -719,6 +740,25 @@ export class Parser {
     }
     this.expect(TokenType.RPAREN);
     return { kind: 'fn_call', name, args, source: src };
+  }
+
+  // --- obj.method(arg1, arg2) ---
+  private parseMemberFnCall(): FnCallNode {
+    const src = this.loc();
+    const obj = this.expectIdent();
+    this.expect(TokenType.DOT);
+    const method = this.expectIdent();
+    const fullName = `${obj}.${method}`;
+    this.expect(TokenType.LPAREN);
+    const args: Formula[] = [];
+    if (!this.checkType(TokenType.RPAREN)) {
+      args.push(this.parseFormula());
+      while (this.match(TokenType.COMMA)) {
+        args.push(this.parseFormula());
+      }
+    }
+    this.expect(TokenType.RPAREN);
+    return { kind: 'fn_call', name: fullName, args, source: src };
   }
 
   // --- Helper: parsear un bloque { statements } ---
@@ -916,6 +956,15 @@ export class Parser {
       return { kind: 'number', value: parseFloat(tok.value), source: { line: tok.line, column: tok.column } };
     }
 
+    // Literal de texto (String)
+    if (this.checkType(TokenType.STRING)) {
+      const tok = this.current();
+      this.advance();
+      // Lo representamos como un átomo especial o un nuevo kind. 
+      // Por simplicidad para el motor lógico, lo tratamos como un átomo cuyo nombre es el valor del string entre comillas.
+      return { kind: 'atom', name: `"${tok.value}"`, source: { line: tok.line, column: tok.column } };
+    }
+
     // Paréntesis
     if (this.match(TokenType.LPAREN)) {
       const inner = this.parseFormula();
@@ -955,8 +1004,7 @@ export class Parser {
 
       if (this.match(TokenType.LPAREN)) {
         // Podría ser un predicado P(x, y) o una llamada a función fn(arg1, arg2)
-        // Por ahora, si el nombre está en knownFunctionNames, lo tratamos como llamada a función
-        if (this.knownFunctionNames.has(tok.value)) {
+        if (this.knownFunctionNames.has(tok.value) || this.knownTheoryNames.has(tok.value)) {
           const args: Formula[] = [];
           if (!this.checkType(TokenType.RPAREN)) {
             args.push(this.parseFormula());
@@ -974,20 +1022,23 @@ export class Parser {
         }
 
         // Predicado: P(x, y, ...)
-        const args: string[] = [];
+        const args: Formula[] = [];
         if (!this.checkType(TokenType.RPAREN)) {
-          args.push(this.expectIdent());
+          args.push(this.parseFormula());
           while (this.match(TokenType.COMMA)) {
-            args.push(this.expectIdent());
+            args.push(this.parseFormula());
           }
         }
         this.expect(TokenType.RPAREN);
+
+        const paramStrings = args.map((a) => this.formulaToString(a));
         const predFormula: Formula = {
           kind: 'predicate',
           name: tok.value,
-          params: args,
+          params: paramStrings,
           source: { line: tok.line, column: tok.column },
         };
+
         // FOL igualdad: P(x) = Q(y) (raro pero posible)
         if (this.checkType(TokenType.EQUALS)) {
           this.advance();
@@ -1000,6 +1051,7 @@ export class Parser {
         }
         return predFormula;
       }
+
       // FOL igualdad: x = y (identidad entre términos)
       if (this.checkType(TokenType.EQUALS)) {
         this.advance();
