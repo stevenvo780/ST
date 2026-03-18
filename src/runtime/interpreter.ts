@@ -37,6 +37,14 @@ import {
   ImportDeclNode,
   ProofBlockNode,
   TheoryDeclNode,
+  PrintCmdNode,
+  SetCmdNode,
+  IfStmtNode,
+  ForStmtNode,
+  WhileStmtNode,
+  FnDeclNode,
+  ReturnStmtNode,
+  FnCallNode,
 } from '../ast/nodes';
 import { registry } from '../profiles/interface';
 import { formulaToString } from '../profiles/classical/propositional';
@@ -81,6 +89,11 @@ export class Interpreter {
   private theories: Map<string, TheoryScope> = new Map();
   /** Nombre de la teoría actual (si estamos dentro de una) */
   private currentTheoryName: string | null = null;
+  /** Funciones declaradas */
+  private functions: Map<string, FnDeclNode> = new Map();
+  /** Señal de return activa (para salir de funciones) */
+  private returnSignal: boolean = false;
+  private returnValue: Formula | undefined = undefined;
 
   constructor() {
     this.theory = this.createEmptyTheory();
@@ -111,6 +124,9 @@ export class Interpreter {
     this.letDescriptions.clear();
     this.theories.clear();
     this.currentTheoryName = null;
+    this.functions.clear();
+    this.returnSignal = false;
+    this.returnValue = undefined;
   }
 
   execute(source: string, file: string = '<stdin>'): ExecutionOutput {
@@ -207,6 +223,7 @@ export class Interpreter {
   }
 
   private executeStatement(stmt: Statement): void {
+    if (this.returnSignal) return;
     switch (stmt.kind) {
       case 'logic_decl':
         return this.execLogicDecl(stmt);
@@ -250,6 +267,22 @@ export class Interpreter {
         return this.execProofBlock(stmt);
       case 'theory_decl':
         return this.execTheoryDecl(stmt);
+      case 'print_cmd':
+        return this.execPrintCmd(stmt);
+      case 'set_cmd':
+        return this.execSetCmd(stmt);
+      case 'if_stmt':
+        return this.execIfStmt(stmt);
+      case 'for_stmt':
+        return this.execForStmt(stmt);
+      case 'while_stmt':
+        return this.execWhileStmt(stmt);
+      case 'fn_decl':
+        return this.execFnDecl(stmt);
+      case 'return_stmt':
+        return this.execReturnStmt(stmt);
+      case 'fn_call':
+        return this.execFnCall(stmt);
     }
   }
 
@@ -799,6 +832,194 @@ export class Interpreter {
     this.theories.set(theoryName, scope);
 
     this.emit(`── End Theory ${theoryName} ──`);
+  }
+
+  // =============================================
+  // Control flow & funciones (v1.5.8)
+  // =============================================
+
+  private execPrintCmd(stmt: PrintCmdNode): void {
+    if (stmt.value !== null) {
+      // String literal
+      this.emit(stmt.value);
+    } else if (stmt.formula) {
+      const resolved = this.resolveFormula(stmt.formula);
+      this.emit(formulaToUnicode(resolved));
+    }
+  }
+
+  private execSetCmd(stmt: SetCmdNode): void {
+    const resolved = this.resolveFormula(stmt.formula);
+    this.letBindings.set(stmt.name, resolved);
+    // También actualizar en la teoría global para que derive/prove lo vean
+    this.theory.axioms.set(stmt.name, resolved);
+    this.emit(`Set ${stmt.name} = ${formulaToUnicode(resolved)}`);
+  }
+
+  private execIfStmt(stmt: IfStmtNode): void {
+    const profile = this.requireProfile();
+
+    for (const branch of stmt.branches) {
+      const resolved = this.resolveFormula(branch.formula);
+      let matched = false;
+
+      if (branch.condition === 'valid' || branch.condition === 'invalid') {
+        const result = profile.checkValid(resolved);
+        matched = branch.condition === 'valid'
+          ? result.status === 'valid'
+          : result.status !== 'valid';
+      } else {
+        // satisfiable / unsatisfiable
+        const result = profile.checkSatisfiable(resolved);
+        matched = branch.condition === 'satisfiable'
+          ? (result.status === 'satisfiable' || result.status === 'valid')
+          : (result.status === 'unsatisfiable');
+      }
+
+      if (matched) {
+        for (const bodyStmt of branch.body) {
+          if (this.returnSignal) return;
+          this.executeStatement(bodyStmt);
+        }
+        return; // solo ejecuta la primera rama que matchea
+      }
+    }
+
+    // else branch
+    if (stmt.elseBranch) {
+      for (const bodyStmt of stmt.elseBranch) {
+        if (this.returnSignal) return;
+        this.executeStatement(bodyStmt);
+      }
+    }
+  }
+
+  private execForStmt(stmt: ForStmtNode): void {
+    const savedBinding = this.letBindings.get(stmt.variable);
+
+    for (const item of stmt.items) {
+      if (this.returnSignal) break;
+      const resolved = this.resolveFormula(item);
+      this.letBindings.set(stmt.variable, resolved);
+      for (const bodyStmt of stmt.body) {
+        if (this.returnSignal) break;
+        this.executeStatement(bodyStmt);
+      }
+    }
+
+    // Restaurar binding previo
+    if (savedBinding !== undefined) {
+      this.letBindings.set(stmt.variable, savedBinding);
+    } else {
+      this.letBindings.delete(stmt.variable);
+    }
+  }
+
+  private execWhileStmt(stmt: WhileStmtNode): void {
+    const profile = this.requireProfile();
+    const maxIter = stmt.maxIterations || 1000;
+    let iter = 0;
+
+    while (iter < maxIter) {
+      if (this.returnSignal) break;
+      iter++;
+
+      const resolved = this.resolveFormula(stmt.formula);
+      let matched = false;
+
+      if (stmt.condition === 'valid' || stmt.condition === 'invalid') {
+        const result = profile.checkValid(resolved);
+        matched = stmt.condition === 'valid'
+          ? result.status === 'valid'
+          : result.status !== 'valid';
+      } else {
+        const result = profile.checkSatisfiable(resolved);
+        matched = stmt.condition === 'satisfiable'
+          ? (result.status === 'satisfiable' || result.status === 'valid')
+          : (result.status === 'unsatisfiable');
+      }
+
+      if (!matched) break;
+
+      for (const bodyStmt of stmt.body) {
+        if (this.returnSignal) break;
+        this.executeStatement(bodyStmt);
+      }
+    }
+
+    if (iter >= maxIter) {
+      this.diagnostics.push({
+        severity: 'warning',
+        message: `while: se alcanzó el límite de ${maxIter} iteraciones`,
+        file: stmt.source.file,
+        line: stmt.source.line,
+        column: stmt.source.column,
+      });
+    }
+  }
+
+  private execFnDecl(stmt: FnDeclNode): void {
+    this.functions.set(stmt.name, stmt);
+    this.emit(`Función ${stmt.name}(${stmt.params.join(', ')}) declarada`);
+  }
+
+  private execReturnStmt(stmt: ReturnStmtNode): void {
+    if (stmt.formula) {
+      this.returnValue = this.resolveFormula(stmt.formula);
+    } else {
+      this.returnValue = undefined;
+    }
+    this.returnSignal = true;
+  }
+
+  private execFnCall(stmt: FnCallNode): void {
+    const fn = this.functions.get(stmt.name);
+    if (!fn) {
+      throw new Error(`Función '${stmt.name}' no declarada`);
+    }
+    if (stmt.args.length !== fn.params.length) {
+      throw new Error(
+        `Función '${stmt.name}' espera ${fn.params.length} argumento(s), recibió ${stmt.args.length}`,
+      );
+    }
+
+    // Guardar bindings actuales de los parámetros
+    const savedBindings = new Map<string, Formula | undefined>();
+    for (const param of fn.params) {
+      savedBindings.set(param, this.letBindings.get(param));
+    }
+
+    // Vincular argumentos a parámetros
+    for (let i = 0; i < fn.params.length; i++) {
+      const resolved = this.resolveFormula(stmt.args[i]);
+      this.letBindings.set(fn.params[i], resolved);
+    }
+
+    // Ejecutar cuerpo de la función
+    const savedReturnSignal = this.returnSignal;
+    const savedReturnValue = this.returnValue;
+    this.returnSignal = false;
+    this.returnValue = undefined;
+
+    for (const bodyStmt of fn.body) {
+      if (this.returnSignal) break;
+      this.executeStatement(bodyStmt);
+    }
+
+    // Capturar valor de retorno (si lo hay) — queda en this.returnValue
+    // Por ahora no hacemos nada con él, pero está disponible para extensión futura
+    this.returnSignal = savedReturnSignal;
+    this.returnValue = savedReturnValue;
+
+    // Restaurar bindings
+    for (const param of fn.params) {
+      const prev = savedBindings.get(param);
+      if (prev !== undefined) {
+        this.letBindings.set(param, prev);
+      } else {
+        this.letBindings.delete(param);
+      }
+    }
   }
 
   private execImportDecl(stmt: ImportDeclNode): void {

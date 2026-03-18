@@ -30,6 +30,15 @@ import {
   ProofBlockNode,
   TheoryDeclNode,
   TheoryMember,
+  PrintCmdNode,
+  SetCmdNode,
+  IfStmtNode,
+  IfBranch,
+  ForStmtNode,
+  WhileStmtNode,
+  FnDeclNode,
+  ReturnStmtNode,
+  FnCallNode,
 } from '../ast/nodes';
 
 export class Parser {
@@ -37,6 +46,7 @@ export class Parser {
   private pos: number = 0;
   private file: string;
   public diagnostics: Diagnostic[] = [];
+  private knownFunctionNames: Set<string> = new Set();
 
   constructor(file: string = '<stdin>') {
     this.file = file;
@@ -80,6 +90,13 @@ export class Parser {
   private parseStatement(): Statement | null {
     const tok = this.current();
 
+    if (
+      this.peek(1) === TokenType.LPAREN &&
+      (tok.type === TokenType.IDENTIFIER || this.knownFunctionNames.has(tok.value))
+    ) {
+      return this.parseFnCall();
+    }
+
     switch (tok.type) {
       case TokenType.LOGIC:
         return this.parseLogicDecl();
@@ -120,6 +137,22 @@ export class Parser {
         return this.parseProofBlock();
       case TokenType.THEORY:
         return this.parseTheoryDecl();
+      case TokenType.PRINT:
+        return this.parsePrintCmd();
+      case TokenType.SET:
+        return this.parseSetCmd();
+      case TokenType.IF:
+        return this.parseIfStmt();
+      case TokenType.FOR:
+        return this.parseForStmt();
+      case TokenType.WHILE:
+        return this.parseWhileStmt();
+      case TokenType.FN:
+        return this.parseFnDecl();
+      case TokenType.RETURN:
+        return this.parseReturnStmt();
+      case TokenType.IDENTIFIER:
+        throw new Error(`Statement inesperado: '${tok.value}' (${tok.type})`);
       case TokenType.NEWLINE:
         this.advance();
         return null;
@@ -508,6 +541,195 @@ export class Parser {
     return { kind: 'theory_decl', name, parent, members, source: src };
   }
 
+  // --- print "texto" | print formula ---
+  private parsePrintCmd(): PrintCmdNode {
+    const src = this.loc();
+    this.expect(TokenType.PRINT);
+    if (this.checkType(TokenType.STRING)) {
+      const value = this.current().value;
+      this.advance();
+      return { kind: 'print_cmd', value, source: src };
+    }
+    // Imprimir resultado de fórmula
+    const formula = this.parseFormula();
+    return { kind: 'print_cmd', value: null, formula, source: src };
+  }
+
+  // --- set x = formula ---
+  private parseSetCmd(): SetCmdNode {
+    const src = this.loc();
+    this.expect(TokenType.SET);
+    const name = this.expectName();
+    this.expectOneOf(TokenType.EQUALS, TokenType.COLON);
+    const formula = this.parseFormula();
+    return { kind: 'set_cmd', name, formula, source: src };
+  }
+
+  // --- if valid FORMULA { } else if satisfiable FORMULA { } else { } ---
+  private parseIfStmt(): IfStmtNode {
+    const src = this.loc();
+    const branches: IfBranch[] = [];
+    let elseBranch: Statement[] | undefined;
+
+    // Primera rama: if
+    this.expect(TokenType.IF);
+    branches.push(this.parseConditionBranch());
+
+    // Ramas else if
+    while (this.checkElseIf()) {
+      this.expect(TokenType.ELSE);
+      this.expect(TokenType.IF);
+      branches.push(this.parseConditionBranch());
+    }
+
+    // Rama else
+    if (this.match(TokenType.ELSE)) {
+      elseBranch = this.parseBlock();
+    }
+
+    return { kind: 'if_stmt', branches, elseBranch, source: src };
+  }
+
+  private checkElseIf(): boolean {
+    // Mira si hay else seguido de if (con posibles newlines entre medio)
+    if (!this.checkType(TokenType.ELSE)) return false;
+    // Buscar if después de else (puede haber newlines)
+    let lookahead = 1;
+    while (this.peek(lookahead) === TokenType.NEWLINE) lookahead++;
+    return this.peek(lookahead) === TokenType.IF;
+  }
+
+  private parseConditionBranch(): IfBranch {
+    const condition = this.parseConditionKeyword();
+    const formula = this.parseFormula();
+    const body = this.parseBlock();
+    return { condition, formula, body };
+  }
+
+  private parseConditionKeyword(): 'valid' | 'satisfiable' | 'unsatisfiable' | 'invalid' {
+    if (this.match(TokenType.VALID)) return 'valid';
+    if (this.match(TokenType.SATISFIABLE)) return 'satisfiable';
+    // Aceptar "invalid" / "unsatisfiable" como identifiers
+    if (this.checkType(TokenType.IDENTIFIER)) {
+      const v = this.current().value.toLowerCase();
+      if (v === 'invalid' || v === 'invalido') {
+        this.advance();
+        return 'invalid';
+      }
+      if (v === 'unsatisfiable' || v === 'insatisfacible') {
+        this.advance();
+        return 'unsatisfiable';
+      }
+    }
+    // Default: valid
+    return 'valid';
+  }
+
+  // --- for x in {A, B, C} { body } ---
+  private parseForStmt(): ForStmtNode {
+    const src = this.loc();
+    this.expect(TokenType.FOR);
+    const variable = this.expectName();
+    this.expect(TokenType.IN);
+    this.expect(TokenType.LBRACE);
+    const items: Formula[] = [];
+    if (!this.checkType(TokenType.RBRACE)) {
+      items.push(this.parseFormula());
+      while (this.match(TokenType.COMMA)) {
+        items.push(this.parseFormula());
+      }
+    }
+    this.expect(TokenType.RBRACE);
+    const body = this.parseBlock();
+    return { kind: 'for_stmt', variable, items, body, source: src };
+  }
+
+  // --- while valid FORMULA { body } ---
+  private parseWhileStmt(): WhileStmtNode {
+    const src = this.loc();
+    this.expect(TokenType.WHILE);
+    const condition = this.parseConditionKeyword();
+    const formula = this.parseFormula();
+    const body = this.parseBlock();
+    return { kind: 'while_stmt', condition, formula, body, maxIterations: 1000, source: src };
+  }
+
+  // --- fn nombre(param1, param2) { body } ---
+  private parseFnDecl(): FnDeclNode {
+    const src = this.loc();
+    this.expect(TokenType.FN);
+    const name = this.expectName();
+    this.knownFunctionNames.add(name);
+    this.expect(TokenType.LPAREN);
+    const params: string[] = [];
+    if (!this.checkType(TokenType.RPAREN)) {
+      params.push(this.expectName());
+      while (this.match(TokenType.COMMA)) {
+        params.push(this.expectName());
+      }
+    }
+    this.expect(TokenType.RPAREN);
+    const body = this.parseBlock();
+    return { kind: 'fn_decl', name, params, body, source: src };
+  }
+
+  // --- return formula ---
+  private parseReturnStmt(): ReturnStmtNode {
+    const src = this.loc();
+    this.expect(TokenType.RETURN);
+    let formula: Formula | undefined;
+    // Si hay algo después del return que no sea newline/EOF/}
+    if (!this.checkType(TokenType.NEWLINE) && !this.checkType(TokenType.EOF) &&
+        !this.checkType(TokenType.RBRACE)) {
+      formula = this.parseFormula();
+    }
+    return { kind: 'return_stmt', formula, source: src };
+  }
+
+  // --- nombre(arg1, arg2) — llamada a función ---
+  private parseFnCall(): FnCallNode {
+    const src = this.loc();
+    const name = this.expectName();
+    this.expect(TokenType.LPAREN);
+    const args: Formula[] = [];
+    if (!this.checkType(TokenType.RPAREN)) {
+      args.push(this.parseFormula());
+      while (this.match(TokenType.COMMA)) {
+        args.push(this.parseFormula());
+      }
+    }
+    this.expect(TokenType.RPAREN);
+    return { kind: 'fn_call', name, args, source: src };
+  }
+
+  // --- Helper: parsear un bloque { statements } ---
+  private parseBlock(): Statement[] {
+    this.skipNewlines();
+    this.expect(TokenType.LBRACE);
+    this.skipNewlines();
+    const body: Statement[] = [];
+    while (!this.checkType(TokenType.RBRACE) && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.checkType(TokenType.RBRACE)) break;
+      try {
+        const stmt = this.parseStatement();
+        if (stmt) body.push(stmt);
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Error de parseo en bloque';
+        this.diagnostics.push({
+          severity: 'error',
+          message,
+          file: this.file,
+          line: this.current().line,
+          column: this.current().column,
+        });
+        this.advanceToNextStatement();
+      }
+    }
+    this.expect(TokenType.RBRACE);
+    return body;
+  }
+
   // --- Parsing de fórmulas (precedencia) ---
   // Precedencia (de menor a mayor):
   // 1. <-> (bicondicional)
@@ -558,15 +780,82 @@ export class Parser {
   }
 
   private parseConjunction(): Formula {
-    let left = this.parseUnary();
+    let left = this.parseComparison();
     while (this.match(TokenType.AND)) {
-      const right = this.parseUnary();
+      const right = this.parseComparison();
       left = { kind: 'and', args: [left, right], source: this.loc() };
     }
     return left;
   }
 
+  // --- Arithmetic precedence ---
+
+  private parseComparison(): Formula {
+    let left = this.parseAdditive();
+    while (
+      this.checkType(TokenType.LT) ||
+      this.checkType(TokenType.GT) ||
+      this.checkType(TokenType.LTE) ||
+      this.checkType(TokenType.GTE)
+    ) {
+      if (this.match(TokenType.LT)) {
+        const right = this.parseAdditive();
+        left = { kind: 'less', args: [left, right], source: this.loc() };
+      } else if (this.match(TokenType.GT)) {
+        const right = this.parseAdditive();
+        left = { kind: 'greater', args: [left, right], source: this.loc() };
+      } else if (this.match(TokenType.LTE)) {
+        const right = this.parseAdditive();
+        left = { kind: 'less_eq', args: [left, right], source: this.loc() };
+      } else if (this.match(TokenType.GTE)) {
+        const right = this.parseAdditive();
+        left = { kind: 'greater_eq', args: [left, right], source: this.loc() };
+      }
+    }
+    return left;
+  }
+
+  private parseAdditive(): Formula {
+    let left = this.parseMultiplicative();
+    while (this.checkType(TokenType.PLUS) || this.checkType(TokenType.MINUS)) {
+      if (this.match(TokenType.PLUS)) {
+        const right = this.parseMultiplicative();
+        left = { kind: 'add', args: [left, right], source: this.loc() };
+      } else if (this.match(TokenType.MINUS)) {
+        const right = this.parseMultiplicative();
+        left = { kind: 'subtract', args: [left, right], source: this.loc() };
+      }
+    }
+    return left;
+  }
+
+  private parseMultiplicative(): Formula {
+    let left = this.parseUnary();
+    while (
+      this.checkType(TokenType.STAR) ||
+      this.checkType(TokenType.SLASH) ||
+      this.checkType(TokenType.PERCENT)
+    ) {
+      if (this.match(TokenType.STAR)) {
+        const right = this.parseUnary();
+        left = { kind: 'multiply', args: [left, right], source: this.loc() };
+      } else if (this.match(TokenType.SLASH)) {
+        const right = this.parseUnary();
+        left = { kind: 'divide', args: [left, right], source: this.loc() };
+      } else if (this.match(TokenType.PERCENT)) {
+        const right = this.parseUnary();
+        left = { kind: 'modulo', args: [left, right], source: this.loc() };
+      }
+    }
+    return left;
+  }
+
   private parseUnary(): Formula {
+    // Unary minus: -expr → subtract(0, expr)
+    if (this.match(TokenType.MINUS)) {
+      const operand = this.parseUnary();
+      return { kind: 'subtract', args: [{ kind: 'number', value: 0, source: this.loc() }, operand], source: this.loc() };
+    }
     if (this.match(TokenType.NOT)) {
       const operand = this.parseUnary();
       return { kind: 'not', args: [operand], source: this.loc() };
@@ -597,6 +886,13 @@ export class Parser {
   }
 
   private parseAtom(): Formula {
+    // Literal numérico
+    if (this.checkType(TokenType.NUMBER)) {
+      const tok = this.current();
+      this.advance();
+      return { kind: 'number', value: parseFloat(tok.value), source: { line: tok.line, column: tok.column } };
+    }
+
     // Paréntesis
     if (this.match(TokenType.LPAREN)) {
       const inner = this.parseFormula();
@@ -905,6 +1201,13 @@ export class Parser {
       TokenType.SHOW,
       TokenType.QED,
       TokenType.THEORY,
+      TokenType.PRINT,
+      TokenType.SET,
+      TokenType.IF,
+      TokenType.FOR,
+      TokenType.WHILE,
+      TokenType.FN,
+      TokenType.RETURN,
     ]);
     while (!this.isAtEnd()) {
       if (this.checkType(TokenType.NEWLINE)) {

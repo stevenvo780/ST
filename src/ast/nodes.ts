@@ -27,7 +27,15 @@ export type StatementKind =
   | 'explain_cmd'
   | 'import_decl'
   | 'proof_block'
-  | 'theory_decl';
+  | 'theory_decl'
+  | 'print_cmd'
+  | 'set_cmd'
+  | 'if_stmt'
+  | 'for_stmt'
+  | 'while_stmt'
+  | 'fn_decl'
+  | 'return_stmt'
+  | 'fn_call';
 
 export interface ASTNode {
   kind: StatementKind;
@@ -134,6 +142,65 @@ export interface TheoryDeclNode extends ASTNode {
   members: TheoryMember[];
 }
 
+// --- Control flow & funciones ---
+
+export interface PrintCmdNode extends ASTNode {
+  kind: 'print_cmd';
+  value: string | null; // string literal (null si es fórmula)
+  formula?: Formula;    // fórmula a imprimir
+}
+
+export interface SetCmdNode extends ASTNode {
+  kind: 'set_cmd';
+  name: string;
+  formula: Formula;
+}
+
+export interface IfBranch {
+  condition: 'valid' | 'satisfiable' | 'unsatisfiable' | 'invalid';
+  formula: Formula;
+  body: Statement[];
+}
+
+export interface IfStmtNode extends ASTNode {
+  kind: 'if_stmt';
+  branches: IfBranch[];        // if + else if branches
+  elseBranch?: Statement[];    // else branch
+}
+
+export interface ForStmtNode extends ASTNode {
+  kind: 'for_stmt';
+  variable: string;
+  items: Formula[];  // {A, B, C}
+  body: Statement[];
+}
+
+export interface WhileStmtNode extends ASTNode {
+  kind: 'while_stmt';
+  condition: 'valid' | 'satisfiable' | 'unsatisfiable' | 'invalid';
+  formula: Formula;
+  body: Statement[];
+  maxIterations: number; // safety limit
+}
+
+export interface FnDeclNode extends ASTNode {
+  kind: 'fn_decl';
+  name: string;
+  params: string[];
+  body: Statement[];
+}
+
+export interface ReturnStmtNode extends ASTNode {
+  kind: 'return_stmt';
+  formula?: Formula;
+}
+
+export interface FnCallNode extends ASTNode {
+  kind: 'fn_call';
+  name: string;
+  args: Formula[];
+}
+
 // --- Text Layer ---
 
 export interface LetPassageNode extends ASTNode {
@@ -217,7 +284,15 @@ export type Statement =
   | ExplainCmdNode
   | ImportDeclNode
   | ProofBlockNode
-  | TheoryDeclNode;
+  | TheoryDeclNode
+  | PrintCmdNode
+  | SetCmdNode
+  | IfStmtNode
+  | ForStmtNode
+  | WhileStmtNode
+  | FnDeclNode
+  | ReturnStmtNode
+  | FnCallNode;
 
 export interface Program {
   statements: Statement[];

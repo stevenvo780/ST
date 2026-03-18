@@ -144,6 +144,22 @@ export class Lexer {
           this.addToken(TokenType.DOT, '.');
           this.advance();
           break;
+        case '+':
+          this.addToken(TokenType.PLUS, '+');
+          this.advance();
+          break;
+        case '*':
+          this.addToken(TokenType.STAR, '*');
+          this.advance();
+          break;
+        case '/':
+          this.addToken(TokenType.SLASH, '/');
+          this.advance();
+          break;
+        case '%':
+          this.addToken(TokenType.PERCENT, '%');
+          this.advance();
+          break;
         case '&':
           this.addToken(TokenType.AND, '&');
           this.advance();
@@ -160,6 +176,14 @@ export class Lexer {
           this.addToken(TokenType.EQUALS, '=');
           this.advance();
           break;
+        case '\u2264': // ≤
+          this.addToken(TokenType.LTE, '\u2264');
+          this.advance();
+          break;
+        case '\u2265': // ≥
+          this.addToken(TokenType.GTE, '\u2265');
+          this.advance();
+          break;
         case ':':
           this.addToken(TokenType.COLON, ':');
           this.advance();
@@ -170,13 +194,7 @@ export class Lexer {
             this.advance();
             this.advance();
           } else {
-            this.diagnostics.push({
-              severity: 'error',
-              message: `Caracter inesperado: '${ch}'`,
-              file: this.file,
-              line: this.line,
-              column: this.column,
-            });
+            this.addToken(TokenType.MINUS, '-');
             this.advance();
           }
           break;
@@ -194,14 +212,22 @@ export class Lexer {
             this.addToken(TokenType.DIAMOND, '<>');
             this.advance();
             this.advance();
+          } else if (this.peek(1) === '=') {
+            this.addToken(TokenType.LTE, '<=');
+            this.advance();
+            this.advance();
           } else {
-            this.diagnostics.push({
-              severity: 'error',
-              message: `Caracter inesperado: '${ch}'`,
-              file: this.file,
-              line: this.line,
-              column: this.column,
-            });
+            this.addToken(TokenType.LT, '<');
+            this.advance();
+          }
+          break;
+        case '>':
+          if (this.peek(1) === '=') {
+            this.addToken(TokenType.GTE, '>=');
+            this.advance();
+            this.advance();
+          } else {
+            this.addToken(TokenType.GT, '>');
             this.advance();
           }
           break;

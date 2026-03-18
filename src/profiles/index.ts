@@ -22,6 +22,7 @@ import { AristotelianSyllogistic } from './aristotelian/syllogistic';
 import { IntuitionisticPropositional } from './intuitionistic/propositional';
 import { TemporalLTL } from './temporal/ltl';
 import { ProbabilisticBasic } from './probabilistic/basic';
+import { ArithmeticProfile } from './arithmetic';
 
 // Registro idempotente
 const builtins = [
@@ -35,6 +36,7 @@ const builtins = [
   IntuitionisticPropositional,
   TemporalLTL,
   ProbabilisticBasic,
+  ArithmeticProfile,
 ];
 
 for (const Profile of builtins) {
@@ -56,5 +58,6 @@ export {
   IntuitionisticPropositional,
   TemporalLTL,
   ProbabilisticBasic,
+  ArithmeticProfile,
 };
 export { registry, ProfileRegistry } from './interface';

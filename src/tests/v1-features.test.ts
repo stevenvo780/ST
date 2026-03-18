@@ -659,7 +659,7 @@ describe('theory blocks (OOP)', () => {
         axiom regla : H -> M
       }
     `);
-    const theoryStmt = prog.statements.find(s => s.kind === 'theory_decl');
+    const theoryStmt = prog.statements.find((s) => s.kind === 'theory_decl');
     expect(theoryStmt).toBeDefined();
     if (theoryStmt && theoryStmt.kind === 'theory_decl') {
       expect(theoryStmt.name).toBe('Mortalidad');
@@ -765,7 +765,7 @@ describe('theory blocks (OOP)', () => {
         privado sea x = P & Q
       }
     `);
-    const theories = prog.statements.filter(s => s.kind === 'theory_decl');
+    const theories = prog.statements.filter((s) => s.kind === 'theory_decl');
     expect(theories).toHaveLength(2);
     if (theories[1].kind === 'theory_decl') {
       expect(theories[1].parent).toBe('Padre');
@@ -795,5 +795,374 @@ describe('theory blocks (OOP)', () => {
     `);
     expect(out.exitCode).not.toBe(0);
     expect(out.stderr).toContain('no encontrada');
+  });
+});
+
+// ── 11. Control flow & funciones (v1.5.8) ────────────────────
+
+describe('print command', () => {
+  it('print string literal', () => {
+    const out = run(`
+      logic classical.propositional
+      print "Hola mundo"
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('Hola mundo');
+  });
+
+  it('print formula renders unicode', () => {
+    const out = run(`
+      logic classical.propositional
+      print P & Q
+    `);
+    expect(out.exitCode).toBe(0);
+    // Debe contener el símbolo ∧
+    expect(out.stdout).toContain('∧');
+  });
+
+  it('print formula resolves let bindings', () => {
+    const out = run(`
+      logic classical.propositional
+      let A = P -> Q
+      print A
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('→');
+  });
+});
+
+describe('set command', () => {
+  it('set reassigns a let binding', () => {
+    const out = run(`
+      logic classical.propositional
+      let X = P
+      set X = Q
+      print X
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('Q');
+  });
+
+  it('set new variable works', () => {
+    const out = run(`
+      logic classical.propositional
+      set Y = P & Q
+      print Y
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('∧');
+  });
+});
+
+describe('if statement', () => {
+  it('if valid executes body for tautology', () => {
+    const out = run(`
+      logic classical.propositional
+      if valid (P | !P) {
+        print "es tautologia"
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('es tautologia');
+  });
+
+  it('if valid does NOT execute body for contingent formula', () => {
+    const out = run(`
+      logic classical.propositional
+      if valid P {
+        print "no deberia aparecer"
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).not.toContain('no deberia aparecer');
+  });
+
+  it('if-else executes else branch', () => {
+    const out = run(`
+      logic classical.propositional
+      if valid P {
+        print "rama if"
+      } else {
+        print "rama else"
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('rama else');
+    expect(out.stdout).not.toContain('rama if');
+  });
+
+  it('if satisfiable works', () => {
+    const out = run(`
+      logic classical.propositional
+      if satisfiable P {
+        print "es satisfacible"
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('es satisfacible');
+  });
+
+  it('if unsatisfiable works for contradiction', () => {
+    const out = run(`
+      logic classical.propositional
+      if unsatisfiable (P & !P) {
+        print "contradiccion"
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('contradiccion');
+  });
+
+  it('if invalid works for non-tautology', () => {
+    const out = run(`
+      logic classical.propositional
+      if invalid P {
+        print "no es valida"
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('no es valida');
+  });
+
+  it('else if chains work', () => {
+    const out = run(`
+      logic classical.propositional
+      if valid P {
+        print "primera"
+      } else if satisfiable P {
+        print "segunda"
+      } else {
+        print "tercera"
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('segunda');
+    expect(out.stdout).not.toContain('primera');
+    expect(out.stdout).not.toContain('tercera');
+  });
+});
+
+describe('for statement', () => {
+  it('iterates over formula list', () => {
+    const out = run(`
+      logic classical.propositional
+      for F in { P, Q, R } {
+        print F
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('P');
+    expect(out.stdout).toContain('Q');
+    expect(out.stdout).toContain('R');
+  });
+
+  it('for with check valid inside', () => {
+    const out = run(`
+      logic classical.propositional
+      for F in { (P | !P), (Q & !Q), (R -> R) } {
+        check valid F
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    // P | !P y R -> R son válidas, Q & !Q no
+    expect(out.stdout).toContain('✓');
+    expect(out.stdout).toContain('✗');
+  });
+
+  it('restores variable binding after loop', () => {
+    const out = run(`
+      logic classical.propositional
+      let X = A
+      for X in { P, Q } {
+        print X
+      }
+      print X
+    `);
+    expect(out.exitCode).toBe(0);
+    const lines = out.stdout.split('\n');
+    // Después del for, X debe volver a ser A
+    const lastPrint = lines.filter((l) => !l.startsWith('Let') && !l.startsWith('Set'));
+    expect(lastPrint[lastPrint.length - 1]).toContain('A');
+  });
+});
+
+describe('while statement', () => {
+  it('while valid loops while tautology', () => {
+    // Este while se ejecuta 1 vez luego cambiamos la fórmula para salir
+    // Usamos un while satisfiable con set para mutar
+    const out = run(`
+      logic classical.propositional
+      set X = P
+      set N = P
+      while satisfiable X {
+        print "iter"
+        set X = P & !P
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    // Debe ejecutarse exactamente 1 vez
+    const iterCount = out.stdout.split('iter').length - 1;
+    expect(iterCount).toBe(1);
+  });
+});
+
+describe('fn declaration and call', () => {
+  it('declares and calls a function', () => {
+    const out = run(`
+      logic classical.propositional
+      fn verificar(X) {
+        check valid X
+      }
+      verificar((P | !P))
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('✓');
+  });
+
+  it('function with multiple params', () => {
+    const out = run(`
+      logic classical.propositional
+      fn mostrar(A, B) {
+        print A
+        print B
+      }
+      mostrar(P, Q)
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('P');
+    expect(out.stdout).toContain('Q');
+  });
+
+  it('function with return', () => {
+    const out = run(`
+      logic classical.propositional
+      fn crear() {
+        print "antes"
+        return P & Q
+        print "despues"
+      }
+      crear()
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('antes');
+    // "despues" no debe aparecer porque return cortó la ejecución
+    expect(out.stdout).not.toContain('despues');
+  });
+
+  it('wrong arg count throws error', () => {
+    const out = run(`
+      logic classical.propositional
+      fn foo(A) {
+        print A
+      }
+      foo(P, Q)
+    `);
+    expect(out.exitCode).not.toBe(0);
+    expect(out.stderr).toContain('argumento');
+  });
+
+  it('calling undeclared function throws error', () => {
+    const out = run(`
+      logic classical.propositional
+      noExiste(P)
+    `);
+    expect(out.exitCode).not.toBe(0);
+    expect(out.stderr).toContain('no declarada');
+  });
+
+  it('function restores bindings after call', () => {
+    const out = run(`
+      logic classical.propositional
+      let A = P
+      fn cambiar(A) {
+        print A
+      }
+      cambiar(Q)
+      print A
+    `);
+    expect(out.exitCode).toBe(0);
+    const lines = out.stdout
+      .split('\n')
+      .filter(
+        (l) =>
+          l.trim() &&
+          !l.startsWith('Let') &&
+          !l.startsWith('Función') &&
+          !l.startsWith('Perfil logico'),
+      );
+    // Dentro de la función A = Q, después A vuelve a ser P
+    expect(lines[0]).toContain('Q');
+    expect(lines[1]).toContain('P');
+  });
+});
+
+describe('spanish keyword aliases for control flow', () => {
+  it('imprimir works like print', () => {
+    const out = run(`
+      logic classical.propositional
+      imprimir "hola"
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('hola');
+  });
+
+  it('asignar works like set', () => {
+    const out = run(`
+      logic classical.propositional
+      asignar X = P
+      imprimir X
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('P');
+  });
+
+  it('si/sino keywords work', () => {
+    const out = run(`
+      logic classical.propositional
+      si valid (P | !P) {
+        imprimir "verdadero"
+      } sino {
+        imprimir "falso"
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('verdadero');
+  });
+
+  it('para/en keywords work', () => {
+    const out = run(`
+      logic classical.propositional
+      para F en { P, Q } {
+        imprimir F
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('P');
+    expect(out.stdout).toContain('Q');
+  });
+
+  it('mientras keyword works', () => {
+    const out = run(`
+      logic classical.propositional
+      asignar X = P
+      mientras satisfiable X {
+        imprimir "loop"
+        asignar X = P & !P
+      }
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('loop');
+  });
+
+  it('funcion/retornar keywords work', () => {
+    const out = run(`
+      logic classical.propositional
+      funcion saludar() {
+        imprimir "hola desde funcion"
+      }
+      saludar()
+    `);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('hola desde funcion');
   });
 });

@@ -39,6 +39,15 @@ export enum TokenType {
   THEORY = 'THEORY',   // theory block (OOP)
   EXTENDS = 'EXTENDS', // theory inheritance
   PRIVATE = 'PRIVATE', // private member (encapsulation)
+  PRINT = 'PRINT',     // print command
+  SET = 'SET',         // set (reassign variable)
+  IF = 'IF',           // if conditional
+  ELSE = 'ELSE',       // else branch
+  FOR = 'FOR',         // for loop
+  IN = 'IN',           // in (for x in {..})
+  WHILE = 'WHILE',     // while loop
+  FN = 'FN',           // function declaration
+  RETURN = 'RETURN',   // return from function
 
   // Operators
   ARROW = 'ARROW', // ->
@@ -48,6 +57,17 @@ export enum TokenType {
   BICONDITIONAL = 'BICONDITIONAL', // <->
   BACK_ARROW = 'BACK_ARROW', // <-
   EQUALS = 'EQUALS', // =
+
+  // Arithmetic operators
+  PLUS = 'PLUS',       // +
+  MINUS = 'MINUS',     // -
+  STAR = 'STAR',       // *
+  SLASH = 'SLASH',     // /
+  PERCENT = 'PERCENT', // %
+  LT = 'LT',           // <
+  GT = 'GT',           // >
+  LTE = 'LTE',         // <=
+  GTE = 'GTE',         // >=
 
   // Delimiters
   LPAREN = 'LPAREN', // (
@@ -114,6 +134,15 @@ export const KEYWORDS: Record<string, TokenType> = {
   exists: TokenType.EXISTS,
   analyze: TokenType.ANALYZE,
   explain: TokenType.EXPLAIN,
+  print: TokenType.PRINT,
+  set: TokenType.SET,
+  if: TokenType.IF,
+  else: TokenType.ELSE,
+  for: TokenType.FOR,
+  in: TokenType.IN,
+  while: TokenType.WHILE,
+  fn: TokenType.FN,
+  return: TokenType.RETURN,
 
   // ── Spanish aliases (aliases en español) ───────────────────
   logica: TokenType.LOGIC,
@@ -160,4 +189,13 @@ export const KEYWORDS: Record<string, TokenType> = {
   extiende: TokenType.EXTENDS,
   private: TokenType.PRIVATE,
   privado: TokenType.PRIVATE,
+  imprimir: TokenType.PRINT,
+  asignar: TokenType.SET,
+  si: TokenType.IF,
+  sino: TokenType.ELSE,
+  para: TokenType.FOR,
+  en: TokenType.IN,
+  mientras: TokenType.WHILE,
+  funcion: TokenType.FN,
+  retornar: TokenType.RETURN,
 };

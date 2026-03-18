@@ -74,6 +74,45 @@ export function formulaToUnicode(f: Formula): string {
       return f.args?.[0] && f.args?.[1]
         ? `(${formulaToUnicode(f.args[0])} U ${formulaToUnicode(f.args[1])})`
         : '? U ?';
+    // Arithmetic
+    case 'number':
+      return f.value !== undefined ? String(f.value) : '?';
+    case 'add':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToUnicode(f.args[0])} + ${formulaToUnicode(f.args[1])})`
+        : '? + ?';
+    case 'subtract':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToUnicode(f.args[0])} - ${formulaToUnicode(f.args[1])})`
+        : '? - ?';
+    case 'multiply':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToUnicode(f.args[0])} × ${formulaToUnicode(f.args[1])})`
+        : '? × ?';
+    case 'divide':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToUnicode(f.args[0])} ÷ ${formulaToUnicode(f.args[1])})`
+        : '? ÷ ?';
+    case 'modulo':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToUnicode(f.args[0])} % ${formulaToUnicode(f.args[1])})`
+        : '? % ?';
+    case 'less':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToUnicode(f.args[0])} < ${formulaToUnicode(f.args[1])})`
+        : '? < ?';
+    case 'greater':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToUnicode(f.args[0])} > ${formulaToUnicode(f.args[1])})`
+        : '? > ?';
+    case 'less_eq':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToUnicode(f.args[0])} ≤ ${formulaToUnicode(f.args[1])})`
+        : '? ≤ ?';
+    case 'greater_eq':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToUnicode(f.args[0])} ≥ ${formulaToUnicode(f.args[1])})`
+        : '? ≥ ?';
     default:
       return '?';
   }
@@ -129,8 +168,47 @@ export function formulaToLaTeX(f: Formula): string {
       return f.args?.[0] ? `\\mathsf{X}\\,(${formulaToLaTeX(f.args[0])})` : '\\mathsf{X}\\,?';
     case 'temporal_until':
       return f.args?.[0] && f.args?.[1]
-        ? `(${formulaToLaTeX(f.args[0])} \\mathbin{\\mathsf{U}} ${formulaToLaTeX(f.args[1])})`
-        : '? \\mathbin{\\mathsf{U}} ?';
+        ? `(${formulaToLaTeX(f.args[0])} \mathbin{\mathsf{U}} ${formulaToLaTeX(f.args[1])})`
+        : '? \mathbin{\mathsf{U}} ?';
+    // Arithmetic
+    case 'number':
+      return f.value !== undefined ? String(f.value) : '?';
+    case 'add':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToLaTeX(f.args[0])} + ${formulaToLaTeX(f.args[1])})`
+        : '? + ?';
+    case 'subtract':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToLaTeX(f.args[0])} - ${formulaToLaTeX(f.args[1])})`
+        : '? - ?';
+    case 'multiply':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToLaTeX(f.args[0])} \\times ${formulaToLaTeX(f.args[1])})`
+        : '? \\times ?';
+    case 'divide':
+      return f.args?.[0] && f.args?.[1]
+        ? `\\frac{${formulaToLaTeX(f.args[0])}}{${formulaToLaTeX(f.args[1])}}`
+        : '\\frac{?}{?}';
+    case 'modulo':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToLaTeX(f.args[0])} \\bmod ${formulaToLaTeX(f.args[1])})`
+        : '? \\bmod ?';
+    case 'less':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToLaTeX(f.args[0])} < ${formulaToLaTeX(f.args[1])})`
+        : '? < ?';
+    case 'greater':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToLaTeX(f.args[0])} > ${formulaToLaTeX(f.args[1])})`
+        : '? > ?';
+    case 'less_eq':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToLaTeX(f.args[0])} \\leq ${formulaToLaTeX(f.args[1])})`
+        : '? \\leq ?';
+    case 'greater_eq':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToLaTeX(f.args[0])} \\geq ${formulaToLaTeX(f.args[1])})`
+        : '? \\geq ?';
     default:
       return '?';
   }

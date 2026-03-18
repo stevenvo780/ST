@@ -48,7 +48,18 @@ export type FormulaKind =
   | 'modal_necessity'
   | 'modal_possibility'
   | 'temporal_next'
-  | 'temporal_until';
+  | 'temporal_until'
+  // Arithmetic
+  | 'number'
+  | 'add'
+  | 'subtract'
+  | 'multiply'
+  | 'divide'
+  | 'modulo'
+  | 'less'
+  | 'greater'
+  | 'less_eq'
+  | 'greater_eq';
 
 export interface Formula {
   kind: FormulaKind;
@@ -57,6 +68,7 @@ export interface Formula {
   variable?: string; // para cuantificadores
   terms?: string[]; // para predicados (alias de params)
   params?: string[]; // para predicados (usado en parser)
+  value?: number; // para literales numéricos (kind === 'number')
   source?: SourceLocation;
 }
 

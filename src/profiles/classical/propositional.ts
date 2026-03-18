@@ -149,6 +149,45 @@ export function formulaToString(f: Formula): string {
       return f.name
         ? `${f.name}(${(f.params || []).join(', ')})`
         : '?(...)';
+    // Arithmetic
+    case 'number':
+      return f.value !== undefined ? String(f.value) : '?';
+    case 'add':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToString(f.args[0])} + ${formulaToString(f.args[1])})`
+        : '? + ?';
+    case 'subtract':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToString(f.args[0])} - ${formulaToString(f.args[1])})`
+        : '? - ?';
+    case 'multiply':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToString(f.args[0])} * ${formulaToString(f.args[1])})`
+        : '? * ?';
+    case 'divide':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToString(f.args[0])} / ${formulaToString(f.args[1])})`
+        : '? / ?';
+    case 'modulo':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToString(f.args[0])} % ${formulaToString(f.args[1])})`
+        : '? % ?';
+    case 'less':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToString(f.args[0])} < ${formulaToString(f.args[1])})`
+        : '? < ?';
+    case 'greater':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToString(f.args[0])} > ${formulaToString(f.args[1])})`
+        : '? > ?';
+    case 'less_eq':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToString(f.args[0])} <= ${formulaToString(f.args[1])})`
+        : '? <= ?';
+    case 'greater_eq':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToString(f.args[0])} >= ${formulaToString(f.args[1])})`
+        : '? >= ?';
     default:
       return '?';
   }
