@@ -14,12 +14,14 @@ import { ProtocolHandler } from '../protocol/handler';
 import { registry } from '../profiles/interface';
 import { ProtocolRequest } from '../types';
 
+const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf-8'));
+
 const program = new Command();
 
 program
   .name('st')
   .description('ST — Lenguaje ejecutable con nucleo logico y capa textual')
-  .version('1.0.0');
+  .version(pkg.version);
 
 program
   .command('run')
