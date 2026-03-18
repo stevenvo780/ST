@@ -19,11 +19,15 @@
       "patterns": [
         {
           "name": "keyword.control.st",
-          "match": "\\b(logic|logica|axiom|axioma|theorem|teorema|claim|afirmacion|let|sea|derive|derivar|from|desde|check|verificar|prove|probar|countermodel|contramodel|contramodelo|refute|refutar|truth_table|tabla_verdad|explain|explicar|analyze|analizar|passage|pasaje|formalize|formalizar|as|como|support|soporte|confidence|confianza|context|contexto|import|importar|assume|asumir|show|demostrar|qed|render|mostrar|theory|teoria|extends|extiende|private|privado|print|imprimir|set|asignar|if|si|else|sino|for|para|in|en|while|mientras|fn|funcion|return|retornar)\\b"
+          "match": "\\b(logic|logica|axiom|axioma|theorem|teorema|claim|afirmacion|let|sea|derive|derivar|from|desde|check|verificar|prove|probar|countermodel|contramodel|contramodelo|refute|refutar|truth_table|tabla_verdad|explain|explicar|analyze|analizar|passage|pasaje|formalize|formalizar|as|como|support|soporte|confidence|confianza|context|contexto|import|importar|export|exportar|assume|asumir|show|demostrar|qed|render|mostrar|theory|teoria|extends|extiende|private|privado|print|imprimir|set|asignar|if|si|else|sino|for|para|in|en|while|mientras|fn|funcion|return|retornar|nand|nor|xor|siguiente|hasta)\\b"
         },
         {
           "name": "constant.language.st",
-          "match": "\\b(valid|valido|satisfiable|satisfacible|equivalent|equivalente)\\b"
+          "match": "\\b(valid|valido|invalid|invalido|satisfiable|satisfacible|unsatisfiable|insatisfacible|equivalent|equivalente|claims)\\b"
+        },
+        {
+          "name": "support.function.builtin.st",
+          "match": "\\b(typeof|is_valid|is_satisfiable|get_atoms|input)\\b"
         },
         {
           "name": "support.class.st",
@@ -33,7 +37,7 @@
     },
     "operators": {
       "patterns": [
-        { "name": "keyword.operator.logical.st", "match": "<=|>=|≤|≥|->|<->|&|\\||!|\\+|-|\\*|/|%|<|>|forall|paratodo|exists|existe|next|until" },
+        { "name": "keyword.operator.logical.st", "match": "!&|!\\||<=|>=|≤|≥|<->|->|<-|&|\\||!|\\+|-|\\*|/|%|<|>|=|\\^|⊕|↑|↓|~|forall|paratodo|exists|existe|next|siguiente|until|hasta" },
         { "name": "keyword.operator.modal.st", "match": "\\[\\]|<>|\\[\\]!" }
       ]
     },
