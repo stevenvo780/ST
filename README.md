@@ -7,7 +7,7 @@
 **ST** es un lenguaje ejecutable para lógica, argumentación y formalización documental.
 Combina verificación formal, scripting declarativo, control de flujo, funciones, perfiles lógicos múltiples y una **Text Layer** para conectar fórmulas con texto humano real.
 
-[![Version](https://img.shields.io/badge/version-1.5.8-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
 
@@ -30,8 +30,8 @@ Combina verificación formal, scripting declarativo, control de flujo, funciones
 
 | Distribución | Paquete | Comando |
 |--------------|---------|---------|
-| **Debian / Ubuntu** | [⬇️ `.deb`](https://github.com/stevenvo780/ST/releases/latest/download/st-lang_1.5.8_amd64.deb) | `sudo dpkg -i st-lang_*.deb` |
-| **Fedora / RHEL** | [⬇️ `.rpm`](https://github.com/stevenvo780/ST/releases/latest/download/st-lang-1.5.8-1.x86_64.rpm) | `sudo rpm -i st-lang-*.rpm` |
+| **Debian / Ubuntu** | [⬇️ `.deb`](https://github.com/stevenvo780/ST/releases/latest/download/st-lang_2.0.1_amd64.deb) | `sudo dpkg -i st-lang_*.deb` |
+| **Fedora / RHEL** | [⬇️ `.rpm`](https://github.com/stevenvo780/ST/releases/latest/download/st-lang-2.0.1-1.x86_64.rpm) | `sudo rpm -i st-lang-*.rpm` |
 | **Linux genérico** | [⬇️ binario](https://github.com/stevenvo780/ST/releases/latest/download/st) | `chmod +x st && sudo mv st /usr/local/bin/` |
 
 ### Con npm
