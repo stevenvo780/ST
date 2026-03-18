@@ -329,6 +329,38 @@ function formulasEqual(a: Formula, b: Formula): boolean {
 
 // --- Motor de derivación ---
 
+/** Límite duro de fórmulas derivadas para evitar explosión combinatoria */
+const MAX_KNOWN = 5000;
+
+/** Cuenta niveles de negación anidados en la raíz de una fórmula */
+function negationDepth(f: Formula): number {
+  let d = 0;
+  let cur = f;
+  while (cur.kind === 'not' && cur.args?.[0]) {
+    d++;
+    cur = cur.args[0];
+  }
+  return d;
+}
+
+/** Profundidad máxima de negación en cualquier sub-fórmula */
+function maxNegationDepth(f: Formula): number {
+  if (f.kind === 'not' && f.args?.[0]) {
+    return 1 + maxNegationDepth(f.args[0]);
+  }
+  if (f.args) {
+    let max = 0;
+    for (const a of f.args) {
+      if (a) {
+        const d = maxNegationDepth(a);
+        if (d > max) max = d;
+      }
+    }
+    return max;
+  }
+  return 0;
+}
+
 interface DerivationState {
   known: Map<string, Formula>; // fórmulas conocidas por nombre o hash
   steps: ProofStep[];
@@ -381,12 +413,11 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
   }
 
   // Intentar derivar con BFS aplicando reglas
-  // TODO: Mejorar con un algoritmo de búsqueda más robusto (Saturación)
   const maxIterations = 200;
   let changed = true;
   let iterations = 0;
 
-  while (changed && iterations < maxIterations) {
+  while (changed && iterations < maxIterations && state.known.size < MAX_KNOWN) {
     changed = false;
     iterations++;
     const currentFormulas = Array.from(state.known.values());
@@ -578,7 +609,15 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
       }
 
       // Contraposition: de A->B, derivar !B->!A
-      if (f1.kind === 'implies' && f1.args?.[0] && f1.args?.[1]) {
+      // Restringir a fórmulas con profundidad de negación baja para evitar
+      // cadenas infinitas de contrapositivas (!!A→!!B → !!!B→!!!A → ...)
+      if (
+        f1.kind === 'implies' &&
+        f1.args?.[0] &&
+        f1.args?.[1] &&
+        maxNegationDepth(f1) < 2 &&
+        state.known.size < MAX_KNOWN
+      ) {
         const contra: Formula = {
           kind: 'implies',
           args: [
