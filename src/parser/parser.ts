@@ -47,7 +47,7 @@ export class Parser {
   private pos: number = 0;
   private file: string;
   public diagnostics: Diagnostic[] = [];
-  private knownFunctionNames: Set<string> = new Set();
+  private knownFunctionNames: Set<string> = new Set(['typeof', 'is_valid', 'is_satisfiable', 'get_atoms', 'input']);
   private knownTheoryNames: Set<string> = new Set();
 
   constructor(file: string = '<stdin>') {

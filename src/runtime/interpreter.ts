@@ -117,6 +117,21 @@ export class Interpreter {
   constructor() {
     this.theory = this.createEmptyTheory();
     this.textLayer = createTextLayerState();
+    this.registerBuiltins();
+  }
+
+  /** Registra funciones nativas (Built-ins) para metaprogramación e interactividad */
+  private registerBuiltins(): void {
+    const builtins = ['typeof', 'is_valid', 'is_satisfiable', 'get_atoms', 'input'];
+    for (const name of builtins) {
+      this.functions.set(name, {
+        kind: 'fn_decl',
+        name,
+        params: ['arg'],
+        body: [],
+        source: { line: 0, column: 0 }
+      });
+    }
   }
 
   private createEmptyTheory(): Theory {
@@ -144,6 +159,7 @@ export class Interpreter {
     this.theories.clear();
     this.currentTheoryName = null;
     this.functions.clear();
+    this.registerBuiltins();
     this.returnSignal = false;
     this.returnValue = undefined;
     this.isImporting = false;
@@ -1036,7 +1052,12 @@ export class Interpreter {
   }
 
   private executeFnCall(stmt: { name: string; args: Formula[] }): Formula | undefined {
-    // 0. Si es un método (obj.metodo), resolver el objeto primero
+    // 0. Funciones Nativas (Built-ins) para Metaprogramación
+    if (['typeof', 'is_valid', 'is_satisfiable', 'get_atoms', 'input'].includes(stmt.name)) {
+      return this.executeBuiltin(stmt.name, stmt.args);
+    }
+
+    // 0.5 Si es un método (obj.metodo), resolver el objeto primero
     if (stmt.name.includes('.')) {
       const [prefix, methodName] = stmt.name.split('.', 2);
       let actualInstanceName = prefix;
@@ -1171,6 +1192,54 @@ export class Interpreter {
     this.currentTheoryName = savedTheoryName;
 
     return result;
+  }
+
+  private executeBuiltin(name: string, args: Formula[]): Formula | undefined {
+    if (args.length !== 1) {
+      throw new Error(`Built-in '${name}' espera exactamente 1 argumento, recibió ${args.length}`);
+    }
+
+    const arg = this.resolveFormula(args[0]);
+
+    if (name === 'typeof') {
+      let typeStr = 'Formula';
+      if (arg.kind === 'number') typeStr = 'Number';
+      if (arg.kind === 'atom' && arg.name?.startsWith('"')) typeStr = 'String';
+      return { kind: 'atom', name: `"${typeStr}"`, source: arg.source };
+    }
+
+    if (name === 'is_valid' || name === 'is_satisfiable') {
+      const profile = this.requireProfile();
+      try {
+        const result = name === 'is_valid' ? profile.checkValid(arg) : profile.checkSatisfiable(arg);
+        const isTrue = result.status === 'valid' || result.status === 'satisfiable';
+        return { kind: 'atom', name: `"${isTrue ? 'True' : 'False'}"`, source: arg.source };
+      } catch (e: unknown) {
+        return { kind: 'atom', name: '"Error"', source: arg.source };
+      }
+    }
+
+    if (name === 'get_atoms') {
+      const atoms = this.collectAtoms(arg);
+      return { kind: 'atom', name: `"{ ${atoms.join(', ')} }"`, source: arg.source };
+    }
+
+    if (name === 'input') {
+      const prompt = arg.kind === 'atom' && arg.name?.startsWith('"') ? arg.name.replace(/(^"|"$)/g, '') : formulaToString(arg);
+      let inputStr = '';
+      try {
+        process.stdout.write(prompt + ' ');
+        const fs = require('fs');
+        const buf = Buffer.alloc(256);
+        const bytesRead = fs.readSync(process.stdin.fd, buf, 0, 256, null);
+        inputStr = buf.toString('utf8', 0, bytesRead).trim();
+      } catch (e) {
+        inputStr = "interactive_not_supported";
+      }
+      return { kind: 'atom', name: `"${inputStr}"`, source: arg.source };
+    }
+
+    return undefined;
   }
 
   private execImportDecl(stmt: ImportDeclNode): void {
