@@ -32,8 +32,9 @@ export enum TokenType {
   REFUTE = 'REFUTE',
   NEXT = 'NEXT', // X (temporal next)
   UNTIL = 'UNTIL', // U (temporal until)
-  IMPORT = 'IMPORT', // import file
-  ASSUME = 'ASSUME', // assume (natural deduction)
+  IMPORT = 'IMPORT',   // import file
+  EXPORT = 'EXPORT',   // export keyword
+  ASSUME = 'ASSUME',   // assume (natural deduction)
   SHOW = 'SHOW', // show goal
   QED = 'QED', // end proof block
   THEORY = 'THEORY', // theory block (OOP)
@@ -184,6 +185,8 @@ export const KEYWORDS: Record<string, TokenType> = {
   hasta: TokenType.UNTIL,
   import: TokenType.IMPORT,
   importar: TokenType.IMPORT,
+  export: TokenType.EXPORT,
+  exportar: TokenType.EXPORT,
   assume: TokenType.ASSUME,
   asumir: TokenType.ASSUME,
   show: TokenType.SHOW,

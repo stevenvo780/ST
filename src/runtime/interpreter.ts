@@ -35,6 +35,7 @@ import {
   AnalyzeCmdNode,
   ExplainCmdNode,
   ImportDeclNode,
+  ExportDeclNode,
   ProofBlockNode,
   TheoryDeclNode,
   PrintCmdNode,
@@ -94,6 +95,14 @@ export class Interpreter {
   /** Señal de return activa (para salir de funciones) */
   private returnSignal: boolean = false;
   private returnValue: Formula | undefined = undefined;
+  /** Modo importación: solo registrar exports */
+  private isImporting: boolean = false;
+  /** Elementos exportados por el archivo actual */
+  private exportedBindings: Map<string, Formula> = new Map();
+  private exportedAxioms: Map<string, Formula> = new Map();
+  private exportedTheorems: Map<string, Formula> = new Map();
+  private exportedFunctions: Map<string, FnDeclNode> = new Map();
+  private exportedTheories: Map<string, TheoryScope> = new Map();
 
   constructor() {
     this.theory = this.createEmptyTheory();
@@ -127,6 +136,12 @@ export class Interpreter {
     this.functions.clear();
     this.returnSignal = false;
     this.returnValue = undefined;
+    this.isImporting = false;
+    this.exportedBindings.clear();
+    this.exportedAxioms.clear();
+    this.exportedTheorems.clear();
+    this.exportedFunctions.clear();
+    this.exportedTheories.clear();
   }
 
   execute(source: string, file: string = '<stdin>'): ExecutionOutput {
@@ -224,6 +239,25 @@ export class Interpreter {
 
   private executeStatement(stmt: Statement): void {
     if (this.returnSignal) return;
+
+    // Si estamos importando, ignoramos comandos que no sean declaraciones
+    const sideEffects = [
+      'derive_cmd',
+      'check_valid_cmd',
+      'check_satisfiable_cmd',
+      'check_equivalent_cmd',
+      'prove_cmd',
+      'countermodel_cmd',
+      'truth_table_cmd',
+      'print_cmd',
+      'analyze_cmd',
+      'explain_cmd',
+      'render_cmd',
+    ];
+    if (this.isImporting && (sideEffects.includes(stmt.kind) || stmt.kind === 'logic_decl')) {
+      return;
+    }
+
     switch (stmt.kind) {
       case 'logic_decl':
         return this.execLogicDecl(stmt);
@@ -282,7 +316,38 @@ export class Interpreter {
       case 'return_stmt':
         return this.execReturnStmt(stmt);
       case 'fn_call':
-        return this.execFnCall(stmt);
+        this.executeFnCall(stmt);
+        return;
+      case 'export_decl':
+        return this.execExportDecl(stmt);
+    }
+  }
+
+  private execExportDecl(stmt: ExportDeclNode): void {
+    // Ejecutar la declaración interna
+    this.executeStatement(stmt.statement);
+
+    // Registrarla como exportada
+    const s = stmt.statement;
+    switch (s.kind) {
+      case 'let_decl':
+        if (s.letType === 'formula') {
+          this.exportedBindings.set(s.name, this.letBindings.get(s.name)!);
+          this.exportedAxioms.set(s.name, this.theory.axioms.get(s.name)!);
+        }
+        break;
+      case 'axiom_decl':
+        this.exportedAxioms.set(s.name, this.theory.axioms.get(s.name)!);
+        break;
+      case 'theorem_decl':
+        this.exportedTheorems.set(s.name, this.theory.theorems.get(s.name)!);
+        break;
+      case 'fn_decl':
+        this.exportedFunctions.set(s.name, this.functions.get(s.name)!);
+        break;
+      case 'theory_decl':
+        this.exportedTheories.set(s.name, this.theories.get(s.name)!);
+        break;
     }
   }
 
@@ -357,6 +422,12 @@ export class Interpreter {
         visited.add(f.name);
         return this.resolveFormula(this.theory.theorems.get(f.name)!, new Set(visited));
       }
+    }
+
+    // Llamada a función como expresión
+    if (f.kind === 'fn_call' && f.name) {
+      const result = this.executeFnCall({ name: f.name, args: f.args || [] });
+      return result || { kind: 'atom', name: 'undefined', source: f.source };
     }
 
     // Recorrer hijos recursivamente
@@ -972,7 +1043,7 @@ export class Interpreter {
     this.returnSignal = true;
   }
 
-  private execFnCall(stmt: FnCallNode): void {
+  private executeFnCall(stmt: { name: string; args: Formula[] }): Formula | undefined {
     const fn = this.functions.get(stmt.name);
     if (!fn) {
       throw new Error(`Función '${stmt.name}' no declarada`);
@@ -1006,8 +1077,9 @@ export class Interpreter {
       this.executeStatement(bodyStmt);
     }
 
-    // Capturar valor de retorno (si lo hay) — queda en this.returnValue
-    // Por ahora no hacemos nada con él, pero está disponible para extensión futura
+    // Capturar valor de retorno
+    const result = this.returnValue;
+
     this.returnSignal = savedReturnSignal;
     this.returnValue = savedReturnValue;
 
@@ -1020,6 +1092,8 @@ export class Interpreter {
         this.letBindings.delete(param);
       }
     }
+
+    return result;
   }
 
   private execImportDecl(stmt: ImportDeclNode): void {
@@ -1057,11 +1131,72 @@ export class Interpreter {
       throw new Error(`Errores de parseo en '${filePath}'`);
     }
 
-    // Ejecutar statements del archivo importado en el contexto actual
+    // Guardar estado de exportación del importador
+    const prevIsImporting = this.isImporting;
+    const prevExportedBindings = new Map(this.exportedBindings);
+    const prevExportedAxioms = new Map(this.exportedAxioms);
+    const prevExportedTheorems = new Map(this.exportedTheorems);
+    const prevExportedFunctions = new Map(this.exportedFunctions);
+    const prevExportedTheories = new Map(this.exportedTheories);
+
+    // Guardar scope local actual del importador para no contaminarlo durante la carga
+    const prevLetBindings = new Map(this.letBindings);
+    const prevAxioms = new Map(this.theory.axioms);
+    const prevTheorems = new Map(this.theory.theorems);
+    const prevFunctions = new Map(this.functions);
+    const prevTheories = new Map(this.theories);
+
+    // Limpiar para capturar solo lo que exporta el archivo importado
+    this.isImporting = true;
+    this.exportedBindings.clear();
+    this.exportedAxioms.clear();
+    this.exportedTheorems.clear();
+    this.exportedFunctions.clear();
+    this.exportedTheories.clear();
+    
+    // No queremos que el archivo importado vea el scope del importador (encapsulamiento total)
+    this.letBindings.clear();
+    this.theory.axioms.clear();
+    this.theory.theorems.clear();
+    this.functions.clear();
+    this.theories.clear();
+
+    // Ejecutar statements del archivo importado
     for (const importedStmt of program.statements) {
       this.executeStatement(importedStmt);
     }
-    this.emit(`Import: ${filePath} cargado`);
+
+    // Capturar lo exportado
+    const newExports = {
+      bindings: new Map(this.exportedBindings),
+      axioms: new Map(this.exportedAxioms),
+      theorems: new Map(this.exportedTheorems),
+      functions: new Map(this.exportedFunctions),
+      theories: new Map(this.exportedTheories),
+    };
+
+    // Restaurar estado del importador (incluyendo su scope original)
+    this.isImporting = prevIsImporting;
+    this.exportedBindings = prevExportedBindings;
+    this.exportedAxioms = prevExportedAxioms;
+    this.exportedTheorems = prevExportedTheorems;
+    this.exportedFunctions = prevExportedFunctions;
+    this.exportedTheories = prevExportedTheories;
+
+    this.letBindings = prevLetBindings;
+    this.theory.axioms = prevAxioms;
+    this.theory.theorems = prevTheorems;
+    this.functions = prevFunctions;
+    this.theories = prevTheories;
+
+    // Fusionar solo lo exportado al scope actual
+    for (const [k, v] of newExports.bindings) this.letBindings.set(k, v);
+    for (const [k, v] of newExports.axioms) this.theory.axioms.set(k, v);
+    for (const [k, v] of newExports.theorems) this.theory.theorems.set(k, v);
+    for (const [k, v] of newExports.functions) this.functions.set(k, v);
+    for (const [k, v] of newExports.theories) this.theories.set(k, v);
+
+    this.emit(`Import: ${filePath} cargado (${newExports.bindings.size + newExports.axioms.size + newExports.theorems.size + newExports.functions.size + newExports.theories.size} elementos importados)`);
   }
 
   private execExplainCmd(stmt: ExplainCmdNode): void {

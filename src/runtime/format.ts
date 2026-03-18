@@ -123,8 +123,10 @@ export function formulaToUnicode(f: Formula): string {
         : '? ≤ ?';
     case 'greater_eq':
       return f.args?.[0] && f.args?.[1]
-        ? `(${formulaToUnicode(f.args[0])} ≥ ${formulaToUnicode(f.args[1])})`
-        : '? ≥ ?';
+        ? `(${formulaToUnicode(f.args[0])} \u2265 ${formulaToUnicode(f.args[1])})`
+        : '? \u2265 ?';
+    case 'fn_call':
+      return `${f.name ?? '?'}(${(f.args ?? []).map(formulaToUnicode).join(', ')})`;
     default:
       return '?';
   }

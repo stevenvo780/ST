@@ -27,6 +27,7 @@ import {
   AnalyzeCmdNode,
   ExplainCmdNode,
   ImportDeclNode,
+  ExportDeclNode,
   ProofBlockNode,
   TheoryDeclNode,
   TheoryMember,
@@ -151,6 +152,8 @@ export class Parser {
         return this.parseFnDecl();
       case TokenType.RETURN:
         return this.parseReturnStmt();
+      case TokenType.EXPORT:
+        return this.parseExportDecl();
       case TokenType.IDENTIFIER:
         throw new Error(`Statement inesperado: '${tok.value}' (${tok.type})`);
       case TokenType.NEWLINE:
@@ -686,6 +689,22 @@ export class Parser {
     return { kind: 'return_stmt', formula, source: src };
   }
 
+  // --- export STATEMENT ---
+  private parseExportDecl(): ExportDeclNode {
+    const src = this.loc();
+    this.expect(TokenType.EXPORT);
+    const stmt = this.parseStatement();
+    if (!stmt) {
+      throw new Error('Se esperaba un statement después de "export"');
+    }
+    // Solo permitimos exportar declaraciones
+    const exportable = ['let_decl', 'axiom_decl', 'theorem_decl', 'fn_decl', 'theory_decl'];
+    if (!exportable.includes(stmt.kind)) {
+      throw new Error(`No se puede exportar un statement de tipo: ${stmt.kind}`);
+    }
+    return { kind: 'export_decl', statement: stmt, source: src };
+  }
+
   // --- nombre(arg1, arg2) — llamada a función ---
   private parseFnCall(): FnCallNode {
     const src = this.loc();
@@ -935,6 +954,25 @@ export class Parser {
       }
 
       if (this.match(TokenType.LPAREN)) {
+        // Podría ser un predicado P(x, y) o una llamada a función fn(arg1, arg2)
+        // Por ahora, si el nombre está en knownFunctionNames, lo tratamos como llamada a función
+        if (this.knownFunctionNames.has(tok.value)) {
+          const args: Formula[] = [];
+          if (!this.checkType(TokenType.RPAREN)) {
+            args.push(this.parseFormula());
+            while (this.match(TokenType.COMMA)) {
+              args.push(this.parseFormula());
+            }
+          }
+          this.expect(TokenType.RPAREN);
+          return {
+            kind: 'fn_call',
+            name: tok.value,
+            args,
+            source: { line: tok.line, column: tok.column },
+          };
+        }
+
         // Predicado: P(x, y, ...)
         const args: string[] = [];
         if (!this.checkType(TokenType.RPAREN)) {

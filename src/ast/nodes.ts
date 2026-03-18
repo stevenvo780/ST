@@ -35,7 +35,8 @@ export type StatementKind =
   | 'while_stmt'
   | 'fn_decl'
   | 'return_stmt'
-  | 'fn_call';
+  | 'fn_call'
+  | 'export_decl';
 
 export interface ASTNode {
   kind: StatementKind;
@@ -201,6 +202,11 @@ export interface FnCallNode extends ASTNode {
   args: Formula[];
 }
 
+export interface ExportDeclNode extends ASTNode {
+  kind: 'export_decl';
+  statement: Statement;
+}
+
 // --- Text Layer ---
 
 export interface LetPassageNode extends ASTNode {
@@ -292,7 +298,8 @@ export type Statement =
   | WhileStmtNode
   | FnDeclNode
   | ReturnStmtNode
-  | FnCallNode;
+  | FnCallNode
+  | ExportDeclNode;
 
 export interface Program {
   statements: Statement[];

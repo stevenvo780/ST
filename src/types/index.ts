@@ -62,7 +62,8 @@ export type FormulaKind =
   | 'less'
   | 'greater'
   | 'less_eq'
-  | 'greater_eq';
+  | 'greater_eq'
+  | 'fn_call';
 
 export interface Formula {
   kind: FormulaKind;
