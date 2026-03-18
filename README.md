@@ -105,13 +105,27 @@ ST is built with a modular compiler architecture specialized for symbolic logic:
 2. **Interpreter**: Manages the **Theory** (axioms, theorems, claims) and executes statements.
 3. **Logic Profiles**: Pluggable engines that implement the `LogicProfile` interface. Each profile provides its own solvers (Tableau, Truth Tables, etc.).
 4. **Text Layer State**: Tracks references to external documents and maps them to logical formulas.
+---
 
-## 📚 Documentation
+## 📖 Usage & Documentation
 
-Detailed documentation is available in the following files:
-- [Language Syntax & Logic Profiles](./DOCS.md)
-- [Text Layer Philosophy](./src/tests/philosophy.test.ts)
-- [Logic Solver Limitations](./LOGIC_LIMITATIONS.md)
+### How to use ST
+The ST interpreter can be used in three ways:
+
+1. **Script Mode**: Run a `.st` file directly.
+   ```bash
+   st theory.st
+   ```
+2. **Interactive REPL**: Just type `st` to enter the interactive shell.
+   ```bash
+   st
+   ```
+3. **API Mode**: Integrate into your Node.js/TypeScript projects via `@stevenvo780/st-lang`.
+
+### Complete Documentation
+For detailed syntax guides, logic profile references, and advanced Text Layer features, please visit our official documentation at:
+
+👉 [**agora.humanizar.cloud/docs#st-lang**](https://agora.humanizar.cloud/docs#st-lang)
 
 ---
 
