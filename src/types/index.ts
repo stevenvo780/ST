@@ -279,6 +279,7 @@ export interface CompletionItem {
   label: string;
   kind: string;
   detail?: string;
+  documentation?: string;
   insertText: string;
 }
 

@@ -187,6 +187,14 @@ export class ProtocolHandler {
               result: { content: `**Teorema** \`${word}\` = \`${theoremDef.formula}\``, range: { line, column } } as HoverInfo,
             };
           }
+
+          const staticHover = this.getStaticHoverInfo(word);
+          if (staticHover) {
+            return {
+              id: request.id,
+              result: { content: staticHover, range: { line, column } } as HoverInfo,
+            };
+          }
         }
       }
     }
@@ -218,6 +226,88 @@ export class ProtocolHandler {
     // Limpiar puntos al inicio/final
     const cleaned = word.replace(/^\.+|\.+$/g, '');
     return cleaned.length > 0 ? cleaned : null;
+  }
+
+  private getStaticHoverInfo(word: string): string | null {
+    const lower = word.toLowerCase();
+    const keywordInfo: Record<string, string> = {
+      logic: '**logic**\n\nActiva el perfil lógico del script actual.\n\nEjemplo: `logic arithmetic`',
+      axiom: '**axiom**\n\nDeclara una premisa o ley base disponible para derivaciones.\n\nEjemplo: `axiom regla : P -> Q`',
+      theorem: '**theorem**\n\nDeclara un teorema nombrado dentro de una teoría o script.\n\nEjemplo: `theorem identidad : P -> P`',
+      let: '**let**\n\nCrea un alias reutilizable para fórmulas, descripciones o pasajes.',
+      derive: '**derive**\n\nIntenta derivar una conclusión a partir de premisas nombradas.\n\nEjemplo: `derive Q from {regla, hecho}`',
+      check: '**check**\n\nEvalúa propiedades como validez, satisfacibilidad o equivalencia.',
+      prove: '**prove**\n\nSolicita una demostración formal del objetivo.',
+      countermodel: '**countermodel**\n\nBusca un modelo que haga falsa la fórmula dada.',
+      truth_table: '**truth_table**\n\nGenera la tabla de verdad de una fórmula proposicional.',
+      explain: '**explain**\n\nDevuelve una explicación del perfil o del juicio ejecutado.',
+      analyze: '**analyze**\n\nAnaliza premisas y conclusión para detectar estructura inferencial o falacias.',
+      import: '**import**\n\nImporta otro archivo `.st` dentro del script actual.',
+      theory: '**theory**\n\nDefine un bloque reutilizable con miembros públicos y privados.\n\nEjemplo:\n```st\ntheory Algebra {\n  axiom neutral : x + 0 = x\n}\n```',
+      extends: '**extends**\n\nPermite que una teoría herede miembros públicos de otra teoría.',
+      private: '**private**\n\nMarca un miembro de teoría como interno y no accesible externamente.',
+      print: '**print**\n\nImprime texto o fórmulas durante la ejecución.',
+      set: '**set**\n\nReasigna el valor de una variable o alias en tiempo de ejecución.',
+      if: '**if**\n\nEjecuta un bloque cuando una condición (`valid`, `satisfiable`, etc.) se cumple.',
+      else: '**else**\n\nDefine la rama alternativa de un bloque condicional.',
+      for: '**for**\n\nItera sobre una colección de fórmulas o valores.',
+      in: '**in**\n\nIntroduce la colección usada por un bucle `for`.',
+      while: '**while**\n\nRepite un bloque mientras una condición siga siendo verdadera.',
+      fn: '**fn**\n\nDeclara una función con parámetros y posible retorno.',
+      return: '**return**\n\nDevuelve un valor desde una función.',
+      arithmetic: '**arithmetic**\n\nPerfil numérico para expresiones aritméticas, comparaciones y scripting ST.',
+      '+': '**+**\n\nSuma dos expresiones numéricas.',
+      '-': '**-**\n\nResta dos expresiones numéricas o expresa signo negativo.',
+      '*': '**\\***\n\nMultiplica dos expresiones numéricas.',
+      '/': '**/**\n\nDivide una expresión numérica por otra.',
+      '%': '**%**\n\nCalcula el residuo de una división entera.',
+      '<': '**<**\n\nCompara si el operando izquierdo es menor.',
+      '>': '**>**\n\nCompara si el operando izquierdo es mayor.',
+      '<=': '**<=**\n\nCompara si el operando izquierdo es menor o igual.',
+      '>=': '**>=**\n\nCompara si el operando izquierdo es mayor o igual.',
+      '≤': '**≤**\n\nVersión Unicode de `<=`.',
+      '≥': '**≥**\n\nVersión Unicode de `>=`.'
+    };
+
+    const aliases: Record<string, string> = {
+      logica: keywordInfo.logic,
+      axioma: keywordInfo.axiom,
+      teorema: keywordInfo.theorem,
+      derivar: keywordInfo.derive,
+      contramodelo: keywordInfo.countermodel,
+      tabla_verdad: keywordInfo.truth_table,
+      explicar: keywordInfo.explain,
+      analizar: keywordInfo.analyze,
+      importar: keywordInfo.import,
+      teoria: keywordInfo.theory,
+      extiende: keywordInfo.extends,
+      privado: keywordInfo.private,
+      imprimir: keywordInfo.print,
+      asignar: keywordInfo.set,
+      si: keywordInfo.if,
+      sino: keywordInfo.else,
+      para: keywordInfo.for,
+      en: keywordInfo.in,
+      mientras: keywordInfo.while,
+      funcion: keywordInfo.fn,
+      retornar: keywordInfo.return
+    };
+
+    const profileInfo: Record<string, string> = {
+      'classical.propositional': '**classical.propositional**\n\nLógica proposicional clásica con tablas de verdad y tableaux.',
+      'classical.first_order': '**classical.first_order**\n\nLógica de primer orden con cuantificadores, predicados e igualdad.',
+      'modal.k': '**modal.k**\n\nLógica modal mínima con necesidad (`[]`) y posibilidad (`<>`).',
+      'paraconsistent.belnap': '**paraconsistent.belnap**\n\nLógica paraconsistente de cuatro valores.',
+      'deontic.standard': '**deontic.standard**\n\nLógica deóntica para obligación, permisión y prohibición.',
+      'epistemic.s5': '**epistemic.s5**\n\nLógica epistémica del conocimiento en marcos S5.',
+      'intuitionistic.propositional': '**intuitionistic.propositional**\n\nLógica constructiva sin tercero excluido general.',
+      'temporal.ltl': '**temporal.ltl**\n\nLógica temporal lineal con `next` y `until`.',
+      'aristotelian.syllogistic': '**aristotelian.syllogistic**\n\nSilogística categórica clásica.',
+      'probabilistic.basic': '**probabilistic.basic**\n\nRazonamiento probabilístico básico.',
+      arithmetic: keywordInfo.arithmetic,
+    };
+
+    return keywordInfo[word] ?? keywordInfo[lower] ?? aliases[lower] ?? profileInfo[word] ?? profileInfo[lower] ?? null;
   }
 
   private handleSymbols(request: ProtocolRequest): ProtocolResponse {
@@ -380,6 +470,13 @@ export class ProtocolHandler {
         kind: 'value',
         detail: 'Lógica probabilística — razonamiento con probabilidades [0,1]',
         insertText: 'logic probabilistic.basic',
+      },
+      {
+        label: 'logic arithmetic',
+        kind: 'value',
+        detail: 'Perfil aritmético para cálculos numéricos, comparaciones y scripting',
+        documentation: 'Activa el perfil `arithmetic` para usar `+`, `-`, `*`, `/`, `%`, `<`, `>`, `<=` y `>=` con evaluación numérica.',
+        insertText: 'logic arithmetic',
       },
 
       // ── Declaraciones ───────────────────────────────────────────
@@ -792,6 +889,151 @@ export class ProtocolHandler {
         kind: 'keyword',
         detail: 'Miembro privado de teoría (español)',
         insertText: 'privado ${1:statement}',
+      },
+
+      // ── Programación y control de flujo ───────────────────────
+      {
+        label: 'print',
+        kind: 'keyword',
+        detail: 'Imprimir texto o fórmulas durante la ejecución',
+        documentation: 'Úsalo para inspeccionar valores intermedios, resultados o mensajes del script.',
+        insertText: 'print ${1:value}',
+      },
+      {
+        label: 'imprimir',
+        kind: 'keyword',
+        detail: 'Imprimir texto o fórmulas (español)',
+        insertText: 'imprimir ${1:valor}',
+      },
+      {
+        label: 'set',
+        kind: 'keyword',
+        detail: 'Reasignar una variable o alias',
+        documentation: 'Actualiza un valor en tiempo de ejecución, útil dentro de loops y funciones.',
+        insertText: 'set ${1:name} = ${2:value}',
+      },
+      {
+        label: 'asignar',
+        kind: 'keyword',
+        detail: 'Reasignar una variable o alias (español)',
+        insertText: 'asignar ${1:nombre} = ${2:valor}',
+      },
+      {
+        label: 'if',
+        kind: 'keyword',
+        detail: 'Condicional ST con rama else',
+        documentation: 'Evalúa condiciones como `valid`, `invalid`, `satisfiable` o `unsatisfiable` y ejecuta bloques según el resultado.',
+        insertText: 'if ${1:valid} ${2:formula} {\n  ${3}\n} else {\n  ${4}\n}',
+      },
+      {
+        label: 'si',
+        kind: 'keyword',
+        detail: 'Condicional ST con rama sino (español)',
+        insertText: 'si ${1:valido} ${2:formula} {\n  ${3}\n} sino {\n  ${4}\n}',
+      },
+      {
+        label: 'for',
+        kind: 'keyword',
+        detail: 'Bucle sobre colección de valores o fórmulas',
+        insertText: 'for ${1:item} in {${2:items}} {\n  ${3}\n}',
+      },
+      {
+        label: 'para',
+        kind: 'keyword',
+        detail: 'Bucle sobre colección (español)',
+        insertText: 'para ${1:item} en {${2:items}} {\n  ${3}\n}',
+      },
+      {
+        label: 'while',
+        kind: 'keyword',
+        detail: 'Bucle condicionado',
+        insertText: 'while ${1:valid} ${2:formula} {\n  ${3}\n}',
+      },
+      {
+        label: 'mientras',
+        kind: 'keyword',
+        detail: 'Bucle condicionado (español)',
+        insertText: 'mientras ${1:valido} ${2:formula} {\n  ${3}\n}',
+      },
+      {
+        label: 'fn',
+        kind: 'keyword',
+        detail: 'Declarar función con parámetros y retorno',
+        insertText: 'fn ${1:name}(${2:params}) {\n  ${3}\n  return ${4:result}\n}',
+      },
+      {
+        label: 'funcion',
+        kind: 'keyword',
+        detail: 'Declarar función con parámetros y retorno (español)',
+        insertText: 'funcion ${1:nombre}(${2:parametros}) {\n  ${3}\n  retornar ${4:resultado}\n}',
+      },
+      {
+        label: 'return',
+        kind: 'keyword',
+        detail: 'Retornar un valor desde una función',
+        insertText: 'return ${1:value}',
+      },
+      {
+        label: 'retornar',
+        kind: 'keyword',
+        detail: 'Retornar un valor desde una función (español)',
+        insertText: 'retornar ${1:valor}',
+      },
+
+      // ── Aritmética ────────────────────────────────────────────
+      {
+        label: '+',
+        kind: 'operator',
+        detail: 'Suma dos expresiones numéricas',
+        insertText: '${1:a} + ${2:b}',
+      },
+      {
+        label: '-',
+        kind: 'operator',
+        detail: 'Resta dos expresiones numéricas',
+        insertText: '${1:a} - ${2:b}',
+      },
+      {
+        label: '*',
+        kind: 'operator',
+        detail: 'Multiplicación numérica',
+        insertText: '${1:a} * ${2:b}',
+      },
+      {
+        label: '/',
+        kind: 'operator',
+        detail: 'División numérica',
+        insertText: '${1:a} / ${2:b}',
+      },
+      {
+        label: '%',
+        kind: 'operator',
+        detail: 'Residuo de división entera',
+        insertText: '${1:a} % ${2:b}',
+      },
+      {
+        label: '<',
+        kind: 'operator',
+        detail: 'Comparación menor que',
+        insertText: '${1:a} < ${2:b}',
+      },
+      {
+        label: '>',
+        kind: 'operator',
+        detail: 'Comparación mayor que',
+        insertText: '${1:a} > ${2:b}',
+      },
+      {
+        label: '<=',
+        kind: 'operator',
+        detail: 'Comparación menor o igual que',
+        insertText: '${1:a} <= ${2:b}',
+      },
+      {
+        label: '>=',
+        kind: 'operator',
+        detail: 'Comparación mayor o igual que',
+        insertText: '${1:a} >= ${2:b}',
       },
     ];
 

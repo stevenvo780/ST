@@ -19,7 +19,7 @@
       "patterns": [
         {
           "name": "keyword.control.st",
-          "match": "\\b(logic|axiom|axioma|theorem|teorema|claim|let|derive|derivar|check|verificar|prove|probar|countermodel|contramodel|refute|refutar|truth_table|tabla_verdad|explain|explicar|analyze|analizar|passage|formalize|support|confidence|context|import|importar|assume|asumir|show|demostrar|qed|render)\\b"
+          "match": "\\b(logic|logica|axiom|axioma|theorem|teorema|claim|afirmacion|let|sea|derive|derivar|from|desde|check|verificar|prove|probar|countermodel|contramodel|contramodelo|refute|refutar|truth_table|tabla_verdad|explain|explicar|analyze|analizar|passage|pasaje|formalize|formalizar|as|como|support|soporte|confidence|confianza|context|contexto|import|importar|assume|asumir|show|demostrar|qed|render|mostrar|theory|teoria|extends|extiende|private|privado|print|imprimir|set|asignar|if|si|else|sino|for|para|in|en|while|mientras|fn|funcion|return|retornar)\\b"
         },
         {
           "name": "constant.language.st",
@@ -27,13 +27,13 @@
         },
         {
           "name": "support.class.st",
-          "match": "\\b(classical\\.propositional|classical\\.first_order|modal\\.k|paraconsistent\\.belnap|deontic\\.standard|epistemic\\.s5|intuitionistic\\.propositional|temporal\\.ltl|aristotelian\\.syllogistic|probabilistic\\.basic)\\b"
+          "match": "\\b(classical\\.propositional|classical\\.first_order|modal\\.k|paraconsistent\\.belnap|deontic\\.standard|epistemic\\.s5|intuitionistic\\.propositional|temporal\\.ltl|aristotelian\\.syllogistic|probabilistic\\.basic|arithmetic)\\b"
         }
       ]
     },
     "operators": {
       "patterns": [
-        { "name": "keyword.operator.logical.st", "match": "->|<->|&|\\||!|forall|paratodo|exists|existe|next|until" },
+        { "name": "keyword.operator.logical.st", "match": "<=|>=|≤|≥|->|<->|&|\\||!|\\+|-|\\*|/|%|<|>|forall|paratodo|exists|existe|next|until" },
         { "name": "keyword.operator.modal.st", "match": "\\[\\]|<>|\\[\\]!" }
       ]
     },

@@ -3,6 +3,9 @@ import {
   TextDocuments,
   Diagnostic,
   DiagnosticSeverity,
+  CompletionItemKind,
+  InsertTextFormat,
+  MarkupKind,
   ProposedFeatures,
   InitializeParams,
   CompletionItem,
@@ -26,7 +29,10 @@ connection.onInitialize((params: InitializeParams) => {
   const result: InitializeResult = {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
-      completionProvider: { resolveProvider: true },
+      completionProvider: {
+        resolveProvider: true,
+        triggerCharacters: ['.', '[', '<', '>', '!', '+', '-', '*', '/', '%']
+      },
       hoverProvider: true,
       documentSymbolProvider: true,
     },
@@ -151,15 +157,40 @@ connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] =
   const items = (resp.result as any[]) || [];
   return items.map((it) => ({
     label: it.label,
-    kind: it.kind === 'keyword' ? 14 : 12,
+    kind: mapCompletionKind(it.kind),
     detail: it.detail,
     insertText: it.insertText,
+    insertTextFormat: typeof it.insertText === 'string' && /\$\{\d+[:}]?/.test(it.insertText)
+      ? InsertTextFormat.Snippet
+      : InsertTextFormat.PlainText,
+    documentation: {
+      kind: MarkupKind.Markdown,
+      value: it.documentation || it.detail || it.label,
+    },
   }));
 });
 
 connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
   return item;
 });
+
+function mapCompletionKind(kind: string): CompletionItemKind {
+  switch (kind) {
+    case 'keyword':
+      return CompletionItemKind.Keyword;
+    case 'operator':
+      return CompletionItemKind.Operator;
+    case 'snippet':
+      return CompletionItemKind.Snippet;
+    case 'type':
+    case 'value':
+      return CompletionItemKind.Class;
+    case 'function':
+      return CompletionItemKind.Function;
+    default:
+      return CompletionItemKind.Variable;
+  }
+}
 
 documents.listen(connection);
 connection.listen();
