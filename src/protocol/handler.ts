@@ -99,15 +99,83 @@ export class ProtocolHandler {
   private handleHover(request: ProtocolRequest): ProtocolResponse {
     const source = request.params.source as string;
     const line = request.params.line as number;
+    const column = request.params.column as number;
     const file = (request.params.file as string) || '<stdin>';
 
     const parser = new Parser(file);
     const program = parser.parse(source);
 
-    // Buscar statement en la posición
+    // Recopilar todas las definiciones let del programa
+    const letDefs: Map<string, { formula?: string; description?: string; line: number }> = new Map();
+    const axiomDefs: Map<string, { formula: string; line: number }> = new Map();
+    const theoremDefs: Map<string, { formula: string; line: number }> = new Map();
+
+    for (const stmt of program.statements) {
+      switch (stmt.kind) {
+        case 'let_decl':
+          if (stmt.letType === 'description') {
+            letDefs.set(stmt.name, { description: stmt.description, line: stmt.source.line });
+          } else if (stmt.letType === 'formula') {
+            const desc = 'description' in stmt ? (stmt as { description?: string }).description : undefined;
+            letDefs.set(stmt.name, { formula: formulaToString(stmt.formula), description: desc, line: stmt.source.line });
+          } else if (stmt.letType === 'passage') {
+            letDefs.set(stmt.name, { description: `passage([[${stmt.anchorPath}]])`, line: stmt.source.line });
+          }
+          break;
+        case 'axiom_decl':
+          axiomDefs.set(stmt.name, { formula: formulaToString(stmt.formula), line: stmt.source.line });
+          break;
+        case 'theorem_decl':
+          theoremDefs.set(stmt.name, { formula: formulaToString(stmt.formula), line: stmt.source.line });
+          break;
+      }
+    }
+
+    // Intentar encontrar la palabra en la posición del cursor
+    if (column !== undefined) {
+      const lines = source.split('\n');
+      if (line >= 1 && line <= lines.length) {
+        const lineText = lines[line - 1];
+        const word = this.getWordAtColumn(lineText, column);
+        if (word) {
+          // Buscar en let definitions
+          const letDef = letDefs.get(word);
+          if (letDef) {
+            let content = `**Let** \`${word}\``;
+            if (letDef.description) content += `\n\n📝 *"${letDef.description}"*`;
+            if (letDef.formula) content += `\n\n🔢 \`${letDef.formula}\``;
+            return {
+              id: request.id,
+              result: { content, range: { line, column } } as HoverInfo,
+            };
+          }
+          // Buscar en axiomas
+          const axiomDef = axiomDefs.get(word);
+          if (axiomDef) {
+            const desc = letDefs.get(word)?.description;
+            let content = `**Axioma** \`${word}\` = \`${axiomDef.formula}\``;
+            if (desc) content += `\n\n📝 *"${desc}"*`;
+            return {
+              id: request.id,
+              result: { content, range: { line, column } } as HoverInfo,
+            };
+          }
+          // Buscar en teoremas
+          const theoremDef = theoremDefs.get(word);
+          if (theoremDef) {
+            return {
+              id: request.id,
+              result: { content: `**Teorema** \`${word}\` = \`${theoremDef.formula}\``, range: { line, column } } as HoverInfo,
+            };
+          }
+        }
+      }
+    }
+
+    // Fallback: hover a nivel de statement (línea)
     for (const stmt of program.statements) {
       if (stmt.source.line === line) {
-        const info = this.getStatementHoverInfo(stmt);
+        const info = this.getStatementHoverInfo(stmt, letDefs);
         if (info) {
           return { id: request.id, result: info };
         }
@@ -115,6 +183,20 @@ export class ProtocolHandler {
     }
 
     return { id: request.id, result: null };
+  }
+
+  /** Extrae la palabra (identificador) en la posición de columna dada */
+  private getWordAtColumn(lineText: string, column: number): string | null {
+    const col = column - 1; // 0-based
+    if (col < 0 || col >= lineText.length) return null;
+    // Encontrar inicio de la palabra
+    let start = col;
+    while (start > 0 && /[a-zA-Z0-9_]/.test(lineText[start - 1])) start--;
+    // Encontrar fin de la palabra
+    let end = col;
+    while (end < lineText.length && /[a-zA-Z0-9_]/.test(lineText[end])) end++;
+    const word = lineText.substring(start, end);
+    return word.length > 0 ? word : null;
   }
 
   private handleSymbols(request: ProtocolRequest): ProtocolResponse {
@@ -131,6 +213,7 @@ export class ProtocolHandler {
           symbols.push({
             name: stmt.name,
             kind: 'axiom',
+            detail: formulaToString(stmt.formula),
             location: stmt.source,
           });
           break;
@@ -138,6 +221,7 @@ export class ProtocolHandler {
           symbols.push({
             name: stmt.name,
             kind: 'theorem',
+            detail: formulaToString(stmt.formula),
             location: stmt.source,
           });
           break;
@@ -151,7 +235,9 @@ export class ProtocolHandler {
         case 'let_decl':
           symbols.push({
             name: stmt.name,
-            kind: stmt.letType === 'passage' ? 'passage' : 'formula',
+            kind: stmt.letType === 'passage' ? 'passage' : stmt.letType === 'description' ? 'variable' : 'formula',
+            description: stmt.letType === 'description' ? stmt.description : ('description' in stmt ? (stmt as { description?: string }).description : undefined),
+            detail: stmt.letType === 'formula' ? formulaToString(stmt.formula) : stmt.letType === 'description' ? `"${stmt.description}"` : undefined,
             location: stmt.source,
           });
           break;
@@ -635,7 +721,7 @@ export class ProtocolHandler {
     };
   }
 
-  private getStatementHoverInfo(stmt: Statement): HoverInfo | null {
+  private getStatementHoverInfo(stmt: Statement, letDefs?: Map<string, { formula?: string; description?: string; line: number }>): HoverInfo | null {
     switch (stmt.kind) {
       case 'axiom_decl':
         return {
@@ -649,6 +735,19 @@ export class ProtocolHandler {
         };
       case 'claim_decl':
         return { content: `**Claim** \`${stmt.name}\``, range: stmt.source };
+      case 'let_decl': {
+        let content = `**Let** \`${stmt.name}\``;
+        if (stmt.letType === 'description') {
+          content += `\n\n📝 *"${stmt.description}"*`;
+        } else if (stmt.letType === 'formula') {
+          content += ` = \`${formulaToString(stmt.formula)}\``;
+          const desc = 'description' in stmt ? (stmt as { description?: string }).description : undefined;
+          if (desc) content += `\n\n📝 *"${desc}"*`;
+        } else if (stmt.letType === 'passage') {
+          content += ` = passage([[${stmt.anchorPath}]])`;
+        }
+        return { content, range: stmt.source };
+      }
       default:
         return null;
     }

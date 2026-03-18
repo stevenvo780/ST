@@ -143,9 +143,17 @@ export interface LetFormulaNode extends ASTNode {
   name: string;
   letType: 'formula';
   formula: Formula;
+  description?: string; // descripción textual opcional
 }
 
-export type LetDeclNode = LetPassageNode | LetFormalizeNode | LetFormulaNode;
+export interface LetDescriptionNode extends ASTNode {
+  kind: 'let_decl';
+  name: string;
+  letType: 'description';
+  description: string; // texto semántico: let P = "Socrates es un hombre"
+}
+
+export type LetDeclNode = LetPassageNode | LetFormalizeNode | LetFormulaNode | LetDescriptionNode;
 
 export interface ClaimDeclNode extends ASTNode {
   kind: 'claim_decl';

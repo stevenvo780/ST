@@ -258,6 +258,18 @@ export class Parser {
       return { kind: 'let_decl', name, letType: 'formalize', passageName, formula, source: src };
     }
 
+    // let name = "texto descriptivo" [: FORMULA]
+    if (this.checkType(TokenType.STRING)) {
+      const description = this.current().value;
+      this.advance();
+      // Opcionalmente: let name = "desc" : FORMULA
+      if (this.match(TokenType.COLON)) {
+        const formula = this.parseFormula();
+        return { kind: 'let_decl', name, letType: 'formula', formula, description, source: src };
+      }
+      return { kind: 'let_decl', name, letType: 'description', description, source: src };
+    }
+
     // let name = FORMULA (alias de fórmula)
     const formula = this.parseFormula();
     return { kind: 'let_decl', name, letType: 'formula', formula, source: src };

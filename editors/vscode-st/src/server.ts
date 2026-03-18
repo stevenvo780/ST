@@ -116,8 +116,9 @@ connection.onDocumentSymbol((params: DocumentSymbolParams) => {
   if (resp.result) {
     const symbols = resp.result as any[];
     return symbols.map((s) => ({
-      name: s.name,
+      name: s.description ? `${s.name} — "${s.description}"` : s.name,
       kind: mapSymbolKind(s.kind),
+      detail: s.detail || undefined,
       location: {
         uri: params.textDocument.uri,
         range: {

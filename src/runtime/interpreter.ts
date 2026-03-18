@@ -62,6 +62,7 @@ export class Interpreter {
   private results: RunResult[] = [];
   private stdoutLines: string[] = [];
   private letBindings: Map<string, Formula> = new Map();
+  private letDescriptions: Map<string, string> = new Map();
 
   constructor() {
     this.theory = this.createEmptyTheory();
@@ -89,6 +90,7 @@ export class Interpreter {
     this.profile = null;
     this.importedFiles.clear();
     this.letBindings.clear();
+    this.letDescriptions.clear();
   }
 
   execute(source: string, file: string = '<stdin>'): ExecutionOutput {
@@ -138,6 +140,7 @@ export class Interpreter {
       exitCode: hasErrors ? 3 : 0,
       diagnostics: this.diagnostics,
       results: this.results,
+      letDescriptions: Object.fromEntries(this.letDescriptions),
     };
   }
 
@@ -377,6 +380,10 @@ export class Interpreter {
       const diags = registerFormalization(this.textLayer, stmt.name, stmt.passageName, formula);
       this.diagnostics.push(...diags);
       this.emit(`Formalizacion ${stmt.name}: ${stmt.passageName} -> ${formulaToString(formula)}`);
+    } else if (stmt.letType === 'description') {
+      // Solo descripción textual: P es un átomo con significado semántico
+      this.letDescriptions.set(stmt.name, stmt.description);
+      this.emit(`Let ${stmt.name} = "${stmt.description}"`);
     } else if (stmt.letType === 'formula' && stmt.formula) {
       // Resolver posibles variables anidadas en la propia definición
       const resolved = this.resolveFormula(stmt.formula);
@@ -384,7 +391,13 @@ export class Interpreter {
       this.letBindings.set(stmt.name, resolved);
       // También como axioma implícito para derivaciones
       this.theory.axioms.set(stmt.name, resolved);
-      this.emit(`Let ${stmt.name} = ${formulaToUnicode(resolved)}`);
+      // Si tiene descripción textual (let X = "desc" : formula), guardarla
+      if ('description' in stmt && stmt.description) {
+        this.letDescriptions.set(stmt.name, stmt.description);
+        this.emit(`Let ${stmt.name} = "${stmt.description}" : ${formulaToUnicode(resolved)}`);
+      } else {
+        this.emit(`Let ${stmt.name} = ${formulaToUnicode(resolved)}`);
+      }
     }
   }
 
@@ -530,9 +543,10 @@ export class Interpreter {
   private execProofBlock(stmt: ProofBlockNode): void {
     const profile = this.requireProfile();
 
-    // Guardar axiomas y letBindings antes del bloque
+    // Guardar axiomas, letBindings y descriptions antes del bloque
     const savedAxioms = new Map(this.theory.axioms);
     const savedLetBindings = new Map(this.letBindings);
+    const savedLetDescriptions = new Map(this.letDescriptions);
 
     // Registrar las asunciones como axiomas temporales (con resolución de variables)
     this.emit('── Proof Block ──');
@@ -582,9 +596,10 @@ export class Interpreter {
       this.emit(`  ✗ QED fallido — no se pudo demostrar ${formulaToUnicode(resolvedGoal)}`);
     }
 
-    // Restaurar axiomas y letBindings (quitar las asunciones temporales)
+    // Restaurar axiomas, letBindings y descriptions (quitar las asunciones temporales)
     this.theory.axioms = savedAxioms;
     this.letBindings = savedLetBindings;
+    this.letDescriptions = savedLetDescriptions;
     this.emit('── End Proof Block ──');
   }
 
@@ -663,9 +678,39 @@ export class Interpreter {
     if (model && model.valuation) {
       this.emit('  Modelo:');
       for (const [k, v] of Object.entries(model.valuation)) {
-        this.emit(`    ${k} = ${String(v)}`);
+        const desc = this.letDescriptions.get(k);
+        const descStr = desc ? ` ("${desc}")` : '';
+        this.emit(`    ${k}${descStr} = ${String(v)}`);
       }
     }
+
+    // Mostrar leyenda de variables con descripción si hay alguna relevante
+    if (this.letDescriptions.size > 0 && result.formula) {
+      const atoms = this.collectAtoms(result.formula);
+      const relevantDescs = atoms.filter(a => this.letDescriptions.has(a));
+      if (relevantDescs.length > 0) {
+        this.emit('  Donde:');
+        for (const a of relevantDescs) {
+          this.emit(`    ${a} = "${this.letDescriptions.get(a)}"`);
+        }
+      }
+    }
+  }
+
+  /** Recolecta nombres de átomos únicos de una fórmula */
+  private collectAtoms(f: Formula, seen: Set<string> = new Set()): string[] {
+    if (!f) return [];
+    if (f.kind === 'atom' && f.name && !seen.has(f.name)) {
+      seen.add(f.name);
+      return [f.name];
+    }
+    const result: string[] = [];
+    if (f.args) {
+      for (const arg of f.args) {
+        result.push(...this.collectAtoms(arg, seen));
+      }
+    }
+    return result;
   }
 
   private statusIcon(status: string): string {
@@ -724,5 +769,11 @@ export class Interpreter {
   }
   getTextLayer(): TextLayerState {
     return this.textLayer;
+  }
+  getLetDescriptions(): Map<string, string> {
+    return this.letDescriptions;
+  }
+  getLetBindings(): Map<string, Formula> {
+    return this.letBindings;
   }
 }

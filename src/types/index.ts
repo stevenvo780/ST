@@ -253,6 +253,8 @@ export interface ProtocolResponse {
 export interface SymbolInfo {
   name: string;
   kind: 'axiom' | 'theorem' | 'claim' | 'passage' | 'variable' | 'formula';
+  description?: string;
+  detail?: string;
   location: SourceLocation;
 }
 
@@ -276,4 +278,5 @@ export interface ExecutionOutput {
   exitCode: number;
   diagnostics: Diagnostic[];
   results: RunResult[];
+  letDescriptions?: Record<string, string>;
 }
