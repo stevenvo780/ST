@@ -48,6 +48,7 @@
     "dev": "tsc --watch",
     "start": "node dist/cli/index.js",
     "test": "vitest run",
+    "examples:run": "bash ./scripts/run-all-examples.sh",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src --ext .ts",
