@@ -1,6 +1,6 @@
 {
   "name": "@stevenvo780/st-lang",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "ST — Lenguaje ejecutable con nucleo logico y capa textual. Motor de lógica proposicional, derivaciones, tablas de verdad, contramodelos y capa textual para formalización de documentos.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -48,6 +48,7 @@
     "dev": "tsc --watch",
     "start": "node dist/cli/index.js",
     "test": "vitest run",
+    "test:all": "bash ./scripts/run-exhaustive-validation.sh",
     "examples:run": "bash ./scripts/run-all-examples.sh",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

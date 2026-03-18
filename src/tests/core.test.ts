@@ -146,6 +146,37 @@ describe('ClassicalPropositional.derive', () => {
     expect(result.status).toBe('provable');
   });
 
+  it('Silogismo hipotetico: P->Q, Q->R |- P->R', () => {
+    const theory = makeTheory({
+      a1: implies(atom('P'), atom('Q')),
+      a2: implies(atom('Q'), atom('R')),
+    });
+    const result = cp.derive(implies(atom('P'), atom('R')), ['a1', 'a2'], theory);
+    expect(result.status).toBe('provable');
+  });
+
+  it('Silogismo disyuntivo: P|Q, !P |- Q', () => {
+    const theory = makeTheory({
+      a1: or(atom('P'), atom('Q')),
+      a2: not(atom('P')),
+    });
+    const result = cp.derive(atom('Q'), ['a1', 'a2'], theory);
+    expect(result.status).toBe('provable');
+  });
+
+  it('Introduccion de bicondicional: P->Q, Q->P |- P<->Q', () => {
+    const theory = makeTheory({
+      a1: implies(atom('P'), atom('Q')),
+      a2: implies(atom('Q'), atom('P')),
+    });
+    const result = cp.derive(
+      { kind: 'biconditional', args: [atom('P'), atom('Q')] },
+      ['a1', 'a2'],
+      theory,
+    );
+    expect(result.status).toBe('provable');
+  });
+
   it('No se puede derivar Q solo de P', () => {
     const theory = makeTheory({
       a1: atom('P'),

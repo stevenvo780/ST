@@ -339,6 +339,25 @@ function formulaHash(f: Formula): string {
   return formulaToString(f);
 }
 
+function addDerivedFormula(
+  state: DerivationState,
+  formula: Formula,
+  justification: string,
+  premises: number[],
+): boolean {
+  const hash = formulaHash(formula);
+  if (state.known.has(hash)) return false;
+  state.stepCount++;
+  state.steps.push({
+    stepNumber: state.stepCount,
+    formula,
+    justification,
+    premises,
+  });
+  state.known.set(hash, formula);
+  return true;
+}
+
 function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof | null {
   const state: DerivationState = {
     known: new Map(),
@@ -387,20 +406,10 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           formulasEqual(f2.args[0], f1)
         ) {
           const conclusion = f2.args[1];
-          const hash = formulaHash(conclusion);
-          if (!state.known.has(hash)) {
-            state.stepCount++;
-            const s1 = findStep(state.steps, f1);
-            const s2 = findStep(state.steps, f2);
-            state.steps.push({
-              stepNumber: state.stepCount,
-              formula: conclusion,
-              justification: 'Modus Ponens',
-              premises: [s1, s2],
-            });
-            state.known.set(hash, conclusion);
-            changed = true;
-          }
+          const s1 = findStep(state.steps, f1);
+          const s2 = findStep(state.steps, f2);
+          changed =
+            addDerivedFormula(state, conclusion, 'Modus Ponens', [s1, s2]) || changed;
         }
 
         // Modus Ponens inverso: de (A -> B) y A, derivar B
@@ -411,20 +420,10 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           formulasEqual(f1.args[0], f2)
         ) {
           const conclusion = f1.args[1];
-          const hash = formulaHash(conclusion);
-          if (!state.known.has(hash)) {
-            state.stepCount++;
-            const s1 = findStep(state.steps, f1);
-            const s2 = findStep(state.steps, f2);
-            state.steps.push({
-              stepNumber: state.stepCount,
-              formula: conclusion,
-              justification: 'Modus Ponens',
-              premises: [s1, s2],
-            });
-            state.known.set(hash, conclusion);
-            changed = true;
-          }
+          const s1 = findStep(state.steps, f1);
+          const s2 = findStep(state.steps, f2);
+          changed =
+            addDerivedFormula(state, conclusion, 'Modus Ponens', [s1, s2]) || changed;
         }
 
         // Modus Tollens: de !B y (A -> B), derivar !A
@@ -437,89 +436,145 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           formulasEqual(f1.args[0], f2.args[1])
         ) {
           const conclusion: Formula = { kind: 'not', args: [f2.args[0]] };
-          const hash = formulaHash(conclusion);
-          if (!state.known.has(hash)) {
-            state.stepCount++;
-            state.steps.push({
-              stepNumber: state.stepCount,
-              formula: conclusion,
-              justification: 'Modus Tollens',
-              premises: [findStep(state.steps, f1), findStep(state.steps, f2)],
-            });
-            state.known.set(hash, conclusion);
-            changed = true;
-          }
+          changed =
+            addDerivedFormula(state, conclusion, 'Modus Tollens', [
+              findStep(state.steps, f1),
+              findStep(state.steps, f2),
+            ]) || changed;
         }
 
         // Conjunction Introduction: de A y B, derivar A & B
         if (f1 !== f2) {
           const conj: Formula = { kind: 'and', args: [f1, f2] };
-          const hash = formulaHash(conj);
-          if (!state.known.has(hash) && formulasEqual(conj, goal)) {
-            state.stepCount++;
-            state.steps.push({
-              stepNumber: state.stepCount,
-              formula: conj,
-              justification: 'Introduccion de conjuncion',
-              premises: [findStep(state.steps, f1), findStep(state.steps, f2)],
-            });
-            state.known.set(hash, conj);
-            changed = true;
+          if (formulasEqual(conj, goal)) {
+            changed =
+              addDerivedFormula(state, conj, 'Introduccion de conjuncion', [
+                findStep(state.steps, f1),
+                findStep(state.steps, f2),
+              ]) || changed;
           }
+        }
+
+        // Silogismo hipotético: de (A -> B) y (B -> C), derivar (A -> C)
+        if (
+          f1.kind === 'implies' &&
+          f2.kind === 'implies' &&
+          f1.args?.[0] &&
+          f1.args?.[1] &&
+          f2.args?.[0] &&
+          f2.args?.[1] &&
+          formulasEqual(f1.args[1], f2.args[0])
+        ) {
+          const chained: Formula = { kind: 'implies', args: [f1.args[0], f2.args[1]] };
+          changed =
+            addDerivedFormula(state, chained, 'Silogismo hipotetico', [
+              findStep(state.steps, f1),
+              findStep(state.steps, f2),
+            ]) || changed;
+        }
+
+        // Silogismo disyuntivo: de (A | B) y !A, derivar B / de !B, derivar A
+        if (f1.kind === 'or' && f1.args?.[0] && f1.args?.[1] && f2.kind === 'not' && f2.args?.[0]) {
+          if (formulasEqual(f1.args[0], f2.args[0])) {
+            changed =
+              addDerivedFormula(state, f1.args[1], 'Silogismo disyuntivo', [
+                findStep(state.steps, f1),
+                findStep(state.steps, f2),
+              ]) || changed;
+          }
+          if (formulasEqual(f1.args[1], f2.args[0])) {
+            changed =
+              addDerivedFormula(state, f1.args[0], 'Silogismo disyuntivo', [
+                findStep(state.steps, f1),
+                findStep(state.steps, f2),
+              ]) || changed;
+          }
+        }
+
+        // Introducción de bicondicional: de (A -> B) y (B -> A), derivar (A <-> B)
+        if (
+          f1.kind === 'implies' &&
+          f2.kind === 'implies' &&
+          f1.args?.[0] &&
+          f1.args?.[1] &&
+          f2.args?.[0] &&
+          f2.args?.[1] &&
+          formulasEqual(f1.args[0], f2.args[1]) &&
+          formulasEqual(f1.args[1], f2.args[0])
+        ) {
+          const biconditional: Formula = {
+            kind: 'biconditional',
+            args: [f1.args[0], f1.args[1]],
+          };
+          changed =
+            addDerivedFormula(state, biconditional, 'Introduccion de bicondicional', [
+              findStep(state.steps, f1),
+              findStep(state.steps, f2),
+            ]) || changed;
+        }
+
+        // Explosión: de A y !A, derivar la meta solicitada
+        if (
+          goal &&
+          ((f1.kind === 'not' && f1.args?.[0] && formulasEqual(f1.args[0], f2)) ||
+            (f2.kind === 'not' && f2.args?.[0] && formulasEqual(f2.args[0], f1)))
+        ) {
+          changed =
+            addDerivedFormula(state, goal, 'Explosion', [
+              findStep(state.steps, f1),
+              findStep(state.steps, f2),
+            ]) || changed;
         }
       }
 
       // Conjunction Elimination: de A & B, derivar A y B
       if (f1.kind === 'and' && f1.args) {
         for (const sub of f1.args) {
-          const hash = formulaHash(sub);
-          if (!state.known.has(hash)) {
-            state.stepCount++;
-            state.steps.push({
-              stepNumber: state.stepCount,
-              formula: sub,
-              justification: 'Eliminacion de conjuncion',
-              premises: [findStep(state.steps, f1)],
-            });
-            state.known.set(hash, sub);
-            changed = true;
-          }
+          changed =
+            addDerivedFormula(state, sub, 'Eliminacion de conjuncion', [
+              findStep(state.steps, f1),
+            ]) || changed;
         }
       }
 
       // Disjunction Introduction: de A, derivar A | B (si A|B es la meta)
       if (goal.kind === 'or' && goal.args?.[0] && goal.args?.[1]) {
         if (formulasEqual(f1, goal.args[0]) || formulasEqual(f1, goal.args[1])) {
-          const hash = formulaHash(goal);
-          if (!state.known.has(hash)) {
-            state.stepCount++;
-            state.steps.push({
-              stepNumber: state.stepCount,
-              formula: goal,
-              justification: 'Introduccion de disyuncion',
-              premises: [findStep(state.steps, f1)],
-            });
-            state.known.set(hash, goal);
-            changed = true;
-          }
+          changed =
+            addDerivedFormula(state, goal, 'Introduccion de disyuncion', [
+              findStep(state.steps, f1),
+            ]) || changed;
         }
       }
 
       // Double Negation Elimination: de !!A, derivar A
       if (f1.kind === 'not' && f1.args?.[0]?.kind === 'not' && f1.args[0].args?.[0]) {
         const inner = f1.args[0].args[0];
-        const hash = formulaHash(inner);
-        if (!state.known.has(hash)) {
-          state.stepCount++;
-          state.steps.push({
-            stepNumber: state.stepCount,
-            formula: inner,
-            justification: 'Doble negacion',
-            premises: [findStep(state.steps, f1)],
-          });
-          state.known.set(hash, inner);
-          changed = true;
-        }
+        changed =
+          addDerivedFormula(state, inner, 'Doble negacion', [findStep(state.steps, f1)]) ||
+          changed;
+      }
+
+      // Double Negation Introduction: de A, derivar !!A solo si es la meta
+      const doubleNegation: Formula = { kind: 'not', args: [{ kind: 'not', args: [f1] }] };
+      if (formulasEqual(doubleNegation, goal)) {
+        changed =
+          addDerivedFormula(state, doubleNegation, 'Introduccion de doble negacion', [
+            findStep(state.steps, f1),
+          ]) || changed;
+      }
+
+      // Introducción de implicación simple: si la meta es A -> B y ya conocemos B, se permite cerrar
+      if (
+        goal.kind === 'implies' &&
+        goal.args?.[0] &&
+        goal.args?.[1] &&
+        formulasEqual(goal.args[1], f1)
+      ) {
+        changed =
+          addDerivedFormula(state, goal, 'Introduccion de implicacion', [
+            findStep(state.steps, f1),
+          ]) || changed;
       }
 
       // Contraposition: de A->B, derivar !B->!A
@@ -531,18 +586,9 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
             { kind: 'not', args: [f1.args[0]] },
           ],
         };
-        const hash = formulaHash(contra);
-        if (!state.known.has(hash)) {
-          state.stepCount++;
-          state.steps.push({
-            stepNumber: state.stepCount,
-            formula: contra,
-            justification: 'Contraposicion',
-            premises: [findStep(state.steps, f1)],
-          });
-          state.known.set(hash, contra);
-          changed = true;
-        }
+        changed =
+          addDerivedFormula(state, contra, 'Contraposicion', [findStep(state.steps, f1)]) ||
+          changed;
       }
 
       // Biconditional Elimination: de A<->B, derivar A->B y B->A
@@ -550,18 +596,10 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
         const ab: Formula = { kind: 'implies', args: [f1.args[0], f1.args[1]] };
         const ba: Formula = { kind: 'implies', args: [f1.args[1], f1.args[0]] };
         for (const impl of [ab, ba]) {
-          const hash = formulaHash(impl);
-          if (!state.known.has(hash)) {
-            state.stepCount++;
-            state.steps.push({
-              stepNumber: state.stepCount,
-              formula: impl,
-              justification: 'Eliminacion de bicondicional',
-              premises: [findStep(state.steps, f1)],
-            });
-            state.known.set(hash, impl);
-            changed = true;
-          }
+          changed =
+            addDerivedFormula(state, impl, 'Eliminacion de bicondicional', [
+              findStep(state.steps, f1),
+            ]) || changed;
         }
       }
     }
