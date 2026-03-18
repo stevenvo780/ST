@@ -128,6 +128,24 @@ export class ProtocolHandler {
         case 'theorem_decl':
           theoremDefs.set(stmt.name, { formula: formulaToString(stmt.formula), line: stmt.source.line });
           break;
+        case 'export_decl':
+          // Tratar la declaración interna como si estuviera en el scope global
+          const inner = stmt.statement;
+          if (inner.kind === 'let_decl') {
+            if (inner.letType === 'description') {
+              letDefs.set(inner.name, { description: inner.description, line: inner.source.line });
+            } else if (inner.letType === 'formula') {
+              const desc = 'description' in inner ? (inner as { description?: string }).description : undefined;
+              letDefs.set(inner.name, { formula: formulaToString(inner.formula), description: desc, line: inner.source.line });
+            }
+          } else if (inner.kind === 'axiom_decl') {
+            axiomDefs.set(inner.name, { formula: formulaToString(inner.formula), line: inner.source.line });
+          } else if (inner.kind === 'theorem_decl') {
+            theoremDefs.set(inner.name, { formula: formulaToString(inner.formula), line: inner.source.line });
+          } else if (inner.kind === 'fn_decl') {
+             // Registrar función si fuera posible (habría que añadir functionDefs)
+          }
+          break;
         case 'theory_decl':
           // Registrar miembros de la teoría como defs prefijados
           for (const member of stmt.members) {
@@ -243,7 +261,8 @@ export class ProtocolHandler {
       explain: '**explain**\n\nDevuelve una explicación del perfil o del juicio ejecutado.',
       analyze: '**analyze**\n\nAnaliza premisas y conclusión para detectar estructura inferencial o falacias.',
       import: '**import**\n\nImporta otro archivo `.st` dentro del script actual.',
-      theory: '**theory**\n\nDefine un bloque reutilizable con miembros públicos y privados.\n\nEjemplo:\n```st\ntheory Algebra {\n  axiom neutral : x + 0 = x\n}\n```',
+      export: '**export**\n\nMarca una declaración para que sea visible desde otros scripts que importen este archivo.',
+      theory: '**theory**\n\nDefine un bloque reutilizable (Clase o Singleton) con miembros públicos y privados.\n\nEjemplo:\n```st\ntheory Agente(nombre) {\n  let id = nombre\n}\n```',
       extends: '**extends**\n\nPermite que una teoría herede miembros públicos de otra teoría.',
       private: '**private**\n\nMarca un miembro de teoría como interno y no accesible externamente.',
       print: '**print**\n\nImprime texto o fórmulas durante la ejecución.',
@@ -266,7 +285,16 @@ export class ProtocolHandler {
       '<=': '**<=**\n\nCompara si el operando izquierdo es menor o igual.',
       '>=': '**>=**\n\nCompara si el operando izquierdo es mayor o igual.',
       '≤': '**≤**\n\nVersión Unicode de `<=`.',
-      '≥': '**≥**\n\nVersión Unicode de `>=`.'
+      '≥': '**≥**\n\nVersión Unicode de `>=`.',
+      '^': '**^** (XOR)\n\nDisyunción exclusiva. Verdadera si solo uno de los operandos es verdadero.',
+      '⊕': '**⊕** (XOR)\n\nVersión Unicode de `^`.',
+      'xor': '**xor**\n\nVersión textual de `^`.',
+      '!&': '**!&** (NAND)\n\nNegación alternativa (Sheffer stroke). Falsa solo si ambos operandos son verdaderos.',
+      '↑': '**↑** (NAND)\n\nVersión Unicode de `!&`.',
+      'nand': '**nand**\n\nVersión textual de `!&`.',
+      '!|': '**!|** (NOR)\n\nNegación conjunta (Peirce arrow). Verdadera solo si ambos operandos son falsos.',
+      '↓': '**↓** (NOR)\n\nVersión Unicode de `!|`.',
+      'nor': '**nor**\n\nVersión textual de `!|`.'
     };
 
     const aliases: Record<string, string> = {
@@ -279,6 +307,7 @@ export class ProtocolHandler {
       explicar: keywordInfo.explain,
       analizar: keywordInfo.analyze,
       importar: keywordInfo.import,
+      exportar: keywordInfo.export,
       teoria: keywordInfo.theory,
       extiende: keywordInfo.extends,
       privado: keywordInfo.private,
@@ -738,6 +767,42 @@ export class ProtocolHandler {
         detail: 'Negación (¬)',
         insertText: '!${1:A}',
       },
+      {
+        label: '^',
+        kind: 'operator',
+        detail: 'XOR (⊕) — disyunción exclusiva',
+        insertText: '${1:A} ^ ${2:B}',
+      },
+      {
+        label: '!&',
+        kind: 'operator',
+        detail: 'NAND (↑) — negación alternativa',
+        insertText: '${1:A} !& ${2:B}',
+      },
+      {
+        label: '!|',
+        kind: 'operator',
+        detail: 'NOR (↓) — negación conjunta',
+        insertText: '${1:A} !| ${2:B}',
+      },
+      {
+        label: 'xor',
+        kind: 'operator',
+        detail: 'XOR (texto)',
+        insertText: '${1:A} xor ${2:B}',
+      },
+      {
+        label: 'nand',
+        kind: 'operator',
+        detail: 'NAND (texto)',
+        insertText: '${1:A} nand ${2:B}',
+      },
+      {
+        label: 'nor',
+        kind: 'operator',
+        detail: 'NOR (texto)',
+        insertText: '${1:A} nor ${2:B}',
+      },
 
       // ── Renderizado ─────────────────────────────────────────────
       {
@@ -820,6 +885,18 @@ export class ProtocolHandler {
         detail: 'Importar archivo .st (español)',
         insertText: 'importar "${1:ruta.st}"',
       },
+      {
+        label: 'export',
+        kind: 'keyword',
+        detail: 'Exportar declaración',
+        insertText: 'export ',
+      },
+      {
+        label: 'exportar',
+        kind: 'keyword',
+        detail: 'Exportar declaración (español)',
+        insertText: 'exportar ',
+      },
 
       // ── Proof blocks ────────────────────────────────────────────
       {
@@ -858,13 +935,13 @@ export class ProtocolHandler {
         label: 'theory',
         kind: 'keyword',
         detail: 'Declarar bloque de teoría (encapsula axiomas, let, teoremas)',
-        insertText: 'theory ${1:Name} {\n  ${2}\n}',
+        insertText: 'theory ${1:Name}(${2:params}) {\n  ${3}\n}',
       },
       {
         label: 'teoria',
         kind: 'keyword',
         detail: 'Declarar bloque de teoría (español)',
-        insertText: 'teoria ${1:Nombre} {\n  ${2}\n}',
+        insertText: 'teoria ${1:Nombre}(${2:parametros}) {\n  ${3}\n}',
       },
       {
         label: 'theory extends',

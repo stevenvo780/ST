@@ -455,9 +455,9 @@ Semántica actual de funciones:
 
 1. los argumentos se resuelven antes de entrar
 2. el cuerpo puede ejecutar cualquier statement soportado
-3. `return` detiene inmediatamente el cuerpo
+3. `return` detiene inmediatamente el cuerpo y devuelve un valor
 4. el runtime restaura los bindings previos al salir
-5. por ahora las funciones se invocan como statement; no se incrustan dentro de fórmulas como si fueran expresiones
+5. **Expresiones**: Las funciones pueden invocarse dentro de fórmulas (ej: `let A = f(B) | C`).
 
 Errores controlados:
 
@@ -490,53 +490,103 @@ Es ideal para materiales docentes y demostraciones explicadas.
 
 ---
 
-## 8. Teorías, encapsulación y herencia
+## 8. Teorías, encapsulación y herencia (POO)
 
-Las `theory` agrupan conocimiento lógico con aislamiento de scope.
+ST soporta Programación Orientada a Objetos Lógicos mediante bloques `theory`.
+
+### 8.1 Teorías con parámetros (Constructores)
+
+Las teorías pueden definirse como plantillas parametrizadas que se instancian dinámicamente.
+
+```st
+theory Agente(nombre, creencia) {
+  let id = nombre
+  let p = creencia
+  axiom base = p -> Sabe(id)
+  
+  fn saludar() {
+    print "Hola, soy "
+    print id
+  }
+}
+
+// Instanciación
+let a1 = Agente("Socrates", P)
+let a2 = Agente("Platon", Q)
+
+// Acceso a miembros y métodos
+a1.saludar()
+check valid a1.base
+```
+
+### 8.2 Herencia
+
+Las teorías pueden extender otras para reutilizar axiomas y definiciones.
 
 ```st
 theory Base {
-  let alias = P -> Q
-  private let secreto = R & S
-  axiom regla : P -> Q
+  axiom ley = P -> P
 }
 
 theory Extendida extends Base {
-  theorem cierre : P -> Q
+  axiom otra = Q -> Q
 }
-
-print Base.alias
-print Extendida.regla
 ```
 
-### Capacidades
+### 8.3 Encapsulación y Privacidad
 
-- **encapsulación**: miembros internos no contaminan el scope global
-- **privacidad**: `private` bloquea acceso externo por notación con punto
-- **herencia**: `extends` copia miembros públicos del padre
-- **acceso calificado**: `Teoria.miembro`
+- **public (default)**: Accesible desde fuera usando notación con punto (`obj.miembro`).
+- **private**: Solo accesible dentro del cuerpo de la propia teoría.
+
+```st
+theory Sistema {
+  private let kernel = P
+  let interfaz = Q
+}
+
+let s = Sistema()
+print s.interfaz // Funciona
+// print s.kernel  // Error: privado
+```
 
 ### Notas importantes
 
-- los miembros privados siguen siendo accesibles dentro de su propia teoría
-- si una teoría hija extiende una inexistente, el runtime falla
+- Los miembros privados siguen siendo accesibles dentro de su propia teoría.
+- Las instancias son objetos que encapsulan su propio estado de `let` y `axiomas`.
+- Las teorías sin parámetros actúan como **Singletons** (se instancian automáticamente al ser declaradas).
 
 ---
 
-## 9. Importación de archivos
+## 9. Módulos y Encapsulamiento (`import`, `export`)
+
+ST permite dividir la lógica en varios archivos y controlar qué miembros son visibles.
+
+### 9.1 `export`
+
+Marca una declaración para que pueda ser cargada por otros scripts. Solo los elementos exportados son importados.
 
 ```st
-import "utils.st"
-import biblioteca
+// lib.st
+export let Ley = P -> P
+let Secreto = !P  // No se exportará
+export fn doble_negacion(phi) { return !!phi }
+```
+
+### 9.2 `import`
+
+Carga los elementos **exportados** de otro archivo `.st`.
+
+```st
+import "lib.st"
+check valid Ley
+// check valid Secreto  -- Error: no existe en el scope actual
 ```
 
 Comportamiento:
-
-- si no hay extensión, ST agrega `.st`
-- la ruta relativa se resuelve respecto al archivo actual
-- hay protección contra imports circulares ya cargados
-
-Esto permite separar librerías, bloques pedagógicos o módulos temáticos.
+- Si no hay extensión, ST agrega `.st`.
+- La ruta relativa se resuelve respecto al archivo actual.
+- Los efectos secundarios (`print`, `check`, etc.) del archivo importado se ejecutan solo si no estamos en modo importación recursiva (encapsulamiento de ejecución).
+- Solo declaraciones (`let`, `axiom`, `theorem`, `fn`, `theory`) pueden ser exportadas.
 
 ---
 
@@ -743,18 +793,27 @@ El perfil aritmético también se beneficia de `if`, `for`, `while`, `fn`, `let`
 
 Precedencia de menor a mayor:
 
-1. `<->`
-2. `->`
-3. `|`
-4. `&`
-5. `!` y átomos
+1. `<->` (Bicondicional)
+2. `->` (Implicación)
+3. `|`, `^` (⊕), `!|` (↓) (Disyunción, XOR, NOR)
+4. `&`, `!&` (↑) (Conjunción, NAND)
+5. `!` y átomos (Negación)
+
+**Símbolos soportados:**
+
+| Operación | Teclado | Unicode | Texto |
+| :--- | :--- | :--- | :--- |
+| **XOR** | `^` | `⊕` | `xor` |
+| **NAND** | `!&` | `↑` | `nand` |
+| **NOR** | `!|` | `↓` | `nor` |
 
 Ejemplos:
 
 ```st
-P -> Q -> R
-P & Q | R
-!(P & Q)
+logic classical.propositional
+check valid (A ^ B) <-> ((A & !B) | (!A & B))
+check valid (A ↑ B) <-> !(A & B)
+check valid (A ↓ B) <-> !(A | B)
 ```
 
 ### 12.2 Aritmética
