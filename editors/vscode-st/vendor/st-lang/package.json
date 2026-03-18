@@ -1,6 +1,6 @@
 {
   "name": "@stevenvo780/st-lang",
-  "version": "1.5.8",
+  "version": "2.0.0",
   "description": "ST — Lenguaje ejecutable con nucleo logico y capa textual. Motor de lógica proposicional, derivaciones, tablas de verdad, contramodelos y capa textual para formalización de documentos.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
