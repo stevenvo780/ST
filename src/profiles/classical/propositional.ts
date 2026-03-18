@@ -55,6 +55,18 @@ function evaluate(f: Formula, v: Valuation): boolean {
       return f.args && f.args[0] && f.args[1]
         ? evaluate(f.args[0], v) === evaluate(f.args[1], v)
         : false;
+    case 'nand':
+      return f.args && f.args[0] && f.args[1]
+        ? !(evaluate(f.args[0], v) && evaluate(f.args[1], v))
+        : false;
+    case 'nor':
+      return f.args && f.args[0] && f.args[1]
+        ? !(evaluate(f.args[0], v) || evaluate(f.args[1], v))
+        : false;
+    case 'xor':
+      return f.args && f.args[0] && f.args[1]
+        ? evaluate(f.args[0], v) !== evaluate(f.args[1], v)
+        : false;
     default:
       return false;
   }
@@ -87,7 +99,7 @@ function generateValuations(atoms: string[]): Valuation[] {
  * Aplana recursivamente nodos binarios del mismo kind asociativo.
  * Ej: or(or(P,Q), R) → [P, Q, R]
  */
-function collectAssociativeArgs(f: Formula, kind: 'and' | 'or'): Formula[] {
+function collectAssociativeArgs(f: Formula, kind: 'and' | 'or' | 'xor'): Formula[] {
   if (f.kind !== kind || !f.args?.length) return [f];
   const items: Formula[] = [];
   for (const arg of f.args) {
@@ -123,6 +135,18 @@ export function formulaToString(f: Formula): string {
       return f.args && f.args[0] && f.args[1]
         ? `(${formulaToString(f.args[0])} <-> ${formulaToString(f.args[1])})`
         : '? <-> ?';
+    case 'nand':
+      return f.args && f.args[0] && f.args[1]
+        ? `(${formulaToString(f.args[0])} ↑ ${formulaToString(f.args[1])})`
+        : '? ↑ ?';
+    case 'nor':
+      return f.args && f.args[0] && f.args[1]
+        ? `(${formulaToString(f.args[0])} ↓ ${formulaToString(f.args[1])})`
+        : '? ↓ ?';
+    case 'xor':
+      return f.args && f.args[0] && f.args[1]
+        ? `(${collectAssociativeArgs(f, 'xor').map(formulaToString).join(' ⊕ ')})`
+        : '? ⊕ ?';
     case 'equals':
       return f.args && f.args[0] && f.args[1]
         ? `(${formulaToString(f.args[0])} = ${formulaToString(f.args[1])})`
@@ -215,6 +239,21 @@ export function toNNF(f: Formula): Formula {
         case 'forall':
         case 'exists':
           return { ...node, args: args.map((a) => simplify(a, false)) };
+        case 'nand':
+          return simplify({ kind: 'or', args: [{ kind: 'not', args: [args[0]] }, { kind: 'not', args: [args[1]] }] }, false);
+        case 'nor':
+          return simplify({ kind: 'and', args: [{ kind: 'not', args: [args[0]] }, { kind: 'not', args: [args[1]] }] }, false);
+        case 'xor':
+          return simplify(
+            {
+              kind: 'or',
+              args: [
+                { kind: 'and', args: [args[0], { kind: 'not', args: [args[1]] }] },
+                { kind: 'and', args: [{ kind: 'not', args: [args[0]] }, args[1]] },
+              ],
+            },
+            false,
+          );
       }
     } else {
       switch (k) {
@@ -242,6 +281,15 @@ export function toNNF(f: Formula): Formula {
             },
             false,
           );
+        case 'nand':
+          // !(A nand B) => A & B
+          return simplify({ kind: 'and', args: [args[0], args[1]] }, false);
+        case 'nor':
+          // !(A nor B) => A | B
+          return simplify({ kind: 'or', args: [args[0], args[1]] }, false);
+        case 'xor':
+          // !(A xor B) => A <-> B
+          return simplify({ kind: 'biconditional', args: [args[0], args[1]] }, false);
         case 'modal_necessity':
           return { kind: 'modal_possibility', args: [simplify(args[0], true)] };
         case 'modal_possibility':

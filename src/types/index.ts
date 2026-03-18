@@ -49,6 +49,9 @@ export type FormulaKind =
   | 'modal_possibility'
   | 'temporal_next'
   | 'temporal_until'
+  | 'nand'
+  | 'nor'
+  | 'xor'
   // Arithmetic
   | 'number'
   | 'add'

@@ -65,6 +65,18 @@ function boolEval(f: Formula, bools: Record<string, boolean>): boolean {
       const args = f.args || [];
       return boolEval(args[0], bools) === boolEval(args[1], bools);
     }
+    case 'nand': {
+      const args = f.args || [];
+      return !(boolEval(args[0], bools) && boolEval(args[1], bools));
+    }
+    case 'nor': {
+      const args = f.args || [];
+      return !(boolEval(args[0], bools) || boolEval(args[1], bools));
+    }
+    case 'xor': {
+      const args = f.args || [];
+      return boolEval(args[0], bools) !== boolEval(args[1], bools);
+    }
     default:
       return false;
   }

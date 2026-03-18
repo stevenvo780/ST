@@ -85,6 +85,33 @@ function forces(model: KripkeModel, w: number, f: Formula): boolean {
       return forces(model, w, impl1) && forces(model, w, impl2);
     }
 
+    case 'nand': {
+      const args = f.args || [];
+      if (args.length < 2) return true;
+      const andF: Formula = { kind: 'and', args: [args[0], args[1]] };
+      return forces(model, w, { kind: 'not', args: [andF] });
+    }
+
+    case 'nor': {
+      const args = f.args || [];
+      if (args.length < 2) return true;
+      const orF: Formula = { kind: 'or', args: [args[0], args[1]] };
+      return forces(model, w, { kind: 'not', args: [orF] });
+    }
+
+    case 'xor': {
+      const args = f.args || [];
+      if (args.length < 2) return false;
+      // (A & !B) | (!A & B)
+      const a = args[0];
+      const b = args[1];
+      const notA: Formula = { kind: 'not', args: [a] };
+      const notB: Formula = { kind: 'not', args: [b] };
+      const f1: Formula = { kind: 'and', args: [a, notB] };
+      const f2: Formula = { kind: 'and', args: [notA, b] };
+      return forces(model, w, { kind: 'or', args: [f1, f2] });
+    }
+
     // Modal: interpretar □ como universal en accesibles, ◇ como existencial
     case 'modal_necessity': {
       const inner = (f.args || [])[0];

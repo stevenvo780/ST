@@ -763,9 +763,11 @@ export class Parser {
 
   private parseDisjunction(): Formula {
     let left = this.parseUntil();
-    while (this.match(TokenType.OR)) {
+    while (this.match(TokenType.OR) || this.match(TokenType.XOR) || this.match(TokenType.NOR)) {
+      const type = this.previous().type;
       const right = this.parseUntil();
-      left = { kind: 'or', args: [left, right], source: this.loc() };
+      const kind = type === TokenType.OR ? 'or' : (type === TokenType.XOR ? 'xor' : 'nor');
+      left = { kind, args: [left, right], source: this.loc() };
     }
     return left;
   }
@@ -781,9 +783,11 @@ export class Parser {
 
   private parseConjunction(): Formula {
     let left = this.parseComparison();
-    while (this.match(TokenType.AND)) {
+    while (this.match(TokenType.AND) || this.match(TokenType.NAND)) {
+      const type = this.previous().type;
       const right = this.parseComparison();
-      left = { kind: 'and', args: [left, right], source: this.loc() };
+      const kind = type === TokenType.AND ? 'and' : 'nand';
+      left = { kind, args: [left, right], source: this.loc() };
     }
     return left;
   }
@@ -1007,7 +1011,7 @@ export class Parser {
     return ids;
   }
 
-  private collectAssociativeArgs(f: Formula, kind: 'and' | 'or'): Formula[] {
+  private collectAssociativeArgs(f: Formula, kind: 'and' | 'or' | 'xor'): Formula[] {
     if (f.kind !== kind || !f.args?.length) return [f];
     const items: Formula[] = [];
     for (const arg of f.args) {
@@ -1050,6 +1054,18 @@ export class Parser {
         return arg0 && arg1
           ? `(${this.collectAssociativeArgs(f, 'or').map(a => this.formulaToString(a)).join(' | ')})`
           : '(? | ?)';
+      case 'nand':
+        return arg0 && arg1
+          ? `(${this.formulaToString(arg0)} ↑ ${this.formulaToString(arg1)})`
+          : '(? ↑ ?)';
+      case 'nor':
+        return arg0 && arg1
+          ? `(${this.formulaToString(arg0)} ↓ ${this.formulaToString(arg1)})`
+          : '(? ↓ ?)';
+      case 'xor':
+        return arg0 && arg1
+          ? `(${this.collectAssociativeArgs(f, 'xor').map(a => this.formulaToString(a)).join(' ⊕ ')})`
+          : '(? ⊕ ?)';
       case 'implies':
         return arg0 && arg1
           ? `(${this.formulaToString(arg0)} -> ${this.formulaToString(arg1)})`
@@ -1078,6 +1094,11 @@ export class Parser {
       return { type: TokenType.EOF, value: '', line: 0, column: 0 };
     }
     return this.tokens[this.pos];
+  }
+
+  private previous(): Token {
+    if (this.pos === 0) return this.tokens[0];
+    return this.tokens[this.pos - 1];
   }
 
   private peek(offset: number): TokenType {

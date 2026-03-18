@@ -12,7 +12,7 @@ import { Formula } from '../types';
  * para representarlos como operación n-aria plana.
  * Ej: or(or(P,Q), R) → [P, Q, R]
  */
-function collectAssociativeArgs(f: Formula, kind: 'and' | 'or'): Formula[] {
+function collectAssociativeArgs(f: Formula, kind: 'and' | 'or' | 'xor'): Formula[] {
   if (f.kind !== kind || !f.args?.length) return [f];
   const items: Formula[] = [];
   for (const arg of f.args) {
@@ -50,6 +50,18 @@ export function formulaToUnicode(f: Formula): string {
       return f.args?.[0] && f.args?.[1]
         ? `(${formulaToUnicode(f.args[0])} ↔ ${formulaToUnicode(f.args[1])})`
         : '? ↔ ?';
+    case 'nand':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToUnicode(f.args[0])} ↑ ${formulaToUnicode(f.args[1])})`
+        : '? ↑ ?';
+    case 'nor':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${formulaToUnicode(f.args[0])} ↓ ${formulaToUnicode(f.args[1])})`
+        : '? ↓ ?';
+    case 'xor':
+      return f.args?.[0] && f.args?.[1]
+        ? `(${collectAssociativeArgs(f, 'xor').map(formulaToUnicode).join(' ⊕ ')})`
+        : '? ⊕ ?';
     case 'modal_necessity':
       return f.args?.[0] ? `□(${formulaToUnicode(f.args[0])})` : '□?';
     case 'modal_possibility':

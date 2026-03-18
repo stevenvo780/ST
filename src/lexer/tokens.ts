@@ -30,24 +30,24 @@ export enum TokenType {
   ANALYZE = 'ANALYZE',
   EXPLAIN = 'EXPLAIN',
   REFUTE = 'REFUTE',
-  NEXT = 'NEXT',       // X (temporal next)
-  UNTIL = 'UNTIL',     // U (temporal until)
-  IMPORT = 'IMPORT',   // import file
-  ASSUME = 'ASSUME',   // assume (natural deduction)
-  SHOW = 'SHOW',       // show goal
-  QED = 'QED',         // end proof block
-  THEORY = 'THEORY',   // theory block (OOP)
+  NEXT = 'NEXT', // X (temporal next)
+  UNTIL = 'UNTIL', // U (temporal until)
+  IMPORT = 'IMPORT', // import file
+  ASSUME = 'ASSUME', // assume (natural deduction)
+  SHOW = 'SHOW', // show goal
+  QED = 'QED', // end proof block
+  THEORY = 'THEORY', // theory block (OOP)
   EXTENDS = 'EXTENDS', // theory inheritance
   PRIVATE = 'PRIVATE', // private member (encapsulation)
-  PRINT = 'PRINT',     // print command
-  SET = 'SET',         // set (reassign variable)
-  IF = 'IF',           // if conditional
-  ELSE = 'ELSE',       // else branch
-  FOR = 'FOR',         // for loop
-  IN = 'IN',           // in (for x in {..})
-  WHILE = 'WHILE',     // while loop
-  FN = 'FN',           // function declaration
-  RETURN = 'RETURN',   // return from function
+  PRINT = 'PRINT', // print command
+  SET = 'SET', // set (reassign variable)
+  IF = 'IF', // if conditional
+  ELSE = 'ELSE', // else branch
+  FOR = 'FOR', // for loop
+  IN = 'IN', // in (for x in {..})
+  WHILE = 'WHILE', // while loop
+  FN = 'FN', // function declaration
+  RETURN = 'RETURN', // return from function
 
   // Operators
   ARROW = 'ARROW', // ->
@@ -57,17 +57,20 @@ export enum TokenType {
   BICONDITIONAL = 'BICONDITIONAL', // <->
   BACK_ARROW = 'BACK_ARROW', // <-
   EQUALS = 'EQUALS', // =
+  NAND = 'NAND', // ↑ (NAND)
+  NOR = 'NOR', // ↓ (NOR)
+  XOR = 'XOR', // ⊕ (XOR)
 
   // Arithmetic operators
-  PLUS = 'PLUS',       // +
-  MINUS = 'MINUS',     // -
-  STAR = 'STAR',       // *
-  SLASH = 'SLASH',     // /
+  PLUS = 'PLUS', // +
+  MINUS = 'MINUS', // -
+  STAR = 'STAR', // *
+  SLASH = 'SLASH', // /
   PERCENT = 'PERCENT', // %
-  LT = 'LT',           // <
-  GT = 'GT',           // >
-  LTE = 'LTE',         // <=
-  GTE = 'GTE',         // >=
+  LT = 'LT', // <
+  GT = 'GT', // >
+  LTE = 'LTE', // <=
+  GTE = 'GTE', // >=
 
   // Delimiters
   LPAREN = 'LPAREN', // (
@@ -143,6 +146,9 @@ export const KEYWORDS: Record<string, TokenType> = {
   while: TokenType.WHILE,
   fn: TokenType.FN,
   return: TokenType.RETURN,
+  nand: TokenType.NAND,
+  nor: TokenType.NOR,
+  xor: TokenType.XOR,
 
   // ── Spanish aliases (aliases en español) ───────────────────
   logica: TokenType.LOGIC,

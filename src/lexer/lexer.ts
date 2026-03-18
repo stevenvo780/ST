@@ -168,9 +168,35 @@ export class Lexer {
           this.addToken(TokenType.OR, '|');
           this.advance();
           break;
-        case '!':
-          this.addToken(TokenType.NOT, '!');
+        case '^':
+          this.addToken(TokenType.XOR, '^');
           this.advance();
+          break;
+        case '\u2295': // ⊕
+          this.addToken(TokenType.XOR, '\u2295');
+          this.advance();
+          break;
+        case '\u2191': // ↑
+          this.addToken(TokenType.NAND, '\u2191');
+          this.advance();
+          break;
+        case '\u2193': // ↓
+          this.addToken(TokenType.NOR, '\u2193');
+          this.advance();
+          break;
+        case '!':
+          if (this.peek(1) === '&') {
+            this.addToken(TokenType.NAND, '!&');
+            this.advance();
+            this.advance();
+          } else if (this.peek(1) === '|') {
+            this.addToken(TokenType.NOR, '!|');
+            this.advance();
+            this.advance();
+          } else {
+            this.addToken(TokenType.NOT, '!');
+            this.advance();
+          }
           break;
         case '=':
           this.addToken(TokenType.EQUALS, '=');
