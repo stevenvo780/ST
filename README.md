@@ -122,6 +122,16 @@ The ST interpreter can be used in three ways:
    ```
 3. **API Mode**: Integrate into your Node.js/TypeScript projects via `@stevenvo780/st-lang`.
 
+### 🔌 Editor Integration (VS Code)
+We provide an official VS Code extension for a rich development experience:
+- **Syntax Highlighting**: Full support for all logic profiles and operators.
+- **Diagnostics**: Real-time linting and syntax error reporting.
+- **Hover Support**: View axiom definitions and logical formulas on hover.
+- **Symbols**: Easily navigate your theory using the document symbol tree.
+- **Autocompletion**: Intelligent snippets for logical commands and profiles.
+
+*To use it, open the `editors/vscode-st` folder and install the extension.*
+
 ### Complete Documentation
 For detailed syntax guides, logic profile references, and advanced Text Layer features, please visit our official documentation at:
 

@@ -1,0 +1,75 @@
+{
+  "name": "vscode-st",
+  "displayName": "ST Symbolic Theory Language",
+  "description": "Language support for ST (Symbolic Theory Language) — Logic, proofs, and text formalization.",
+  "version": "0.1.0",
+  "publisher": "humanizar",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stevenvo780/ST.git"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Education"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "st",
+        "aliases": [
+          "ST",
+          "st"
+        ],
+        "extensions": [
+          ".st"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "st",
+        "scopeName": "source.st",
+        "path": "./syntaxes/st.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "clean": "rm -rf dist vendor/st-lang *.vsix",
+    "sync:st": "mkdir -p vendor/st-lang && rm -rf vendor/st-lang/dist && cp -R ../../dist vendor/st-lang/dist && cp ../../package.json vendor/st-lang/package.json",
+    "vscode:prepublish": "npm run compile",
+    "compile": "npm run sync:st && tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "language-configuration.json",
+    "vendor/st-lang/dist/**",
+    "vendor/st-lang/package.json",
+    "syntaxes/**",
+    "package.json"
+  ],
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.11"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.75.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@typescript-eslint/parser": "^8.57.1",
+    "eslint": "^10.0.3",
+    "typescript": "^5.4.0"
+  }
+}

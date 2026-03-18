@@ -1,0 +1,107 @@
+{
+  "name": "@stevenvo780/st-lang",
+  "version": "1.5.2",
+  "description": "ST — Lenguaje ejecutable con nucleo logico y capa textual. Motor de lógica proposicional, derivaciones, tablas de verdad, contramodelos y capa textual para formalización de documentos.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./api": {
+      "types": "./dist/api.d.ts",
+      "require": "./dist/api.js",
+      "default": "./dist/api.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/types/index.js",
+      "default": "./dist/types/index.js"
+    },
+    "./protocol": {
+      "types": "./dist/protocol/handler.d.ts",
+      "require": "./dist/protocol/handler.js",
+      "default": "./dist/protocol/handler.js"
+    }
+  },
+  "bin": {
+    "st": "./bin/st"
+  },
+  "pkg": {
+    "scripts": [
+      "dist/**/*.js"
+    ],
+    "assets": [
+      "dist/**/*.js"
+    ]
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "clean": "rm -rf dist",
+    "package": "./scripts/package.sh",
+    "prepublishOnly": "npm run clean && npm run build && npm run test",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "logic",
+    "formal",
+    "propositional",
+    "language",
+    "cli",
+    "repl",
+    "truth-table",
+    "derivation",
+    "countermodel",
+    "proof",
+    "text-layer",
+    "education"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stevenvo780/ST.git"
+  },
+  "homepage": "https://github.com/stevenvo780/ST#readme",
+  "bugs": {
+    "url": "https://github.com/stevenvo780/ST/issues"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@typescript-eslint/parser": "^8.57.1",
+    "@vitest/coverage-v8": "^4.1.0",
+    "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "prettier": "^3.8.1",
+    "typescript": "^5.4.0",
+    "typescript-eslint": "^8.57.1",
+    "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "sideEffects": false,
+  "dependencies": {
+    "@replit/codemirror-minimap": "^0.5.2",
+    "@stevenvo780/st-lang": "^1.5.2",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.3"
+  }
+}
