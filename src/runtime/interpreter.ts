@@ -312,6 +312,18 @@ export class Interpreter {
         visited.add(f.name);
         return this.resolveFormula(this.letBindings.get(f.name)!, new Set(visited));
       }
+
+      // También resolver axiomas/teoremas del theory actual por nombre
+      if (this.theory.axioms.has(f.name)) {
+        if (visited.has(f.name)) return f;
+        visited.add(f.name);
+        return this.resolveFormula(this.theory.axioms.get(f.name)!, new Set(visited));
+      }
+      if (this.theory.theorems.has(f.name)) {
+        if (visited.has(f.name)) return f;
+        visited.add(f.name);
+        return this.resolveFormula(this.theory.theorems.get(f.name)!, new Set(visited));
+      }
     }
 
     // Recorrer hijos recursivamente
