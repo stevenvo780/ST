@@ -834,13 +834,14 @@ export class Interpreter {
     // El padre puede ser otra plantilla o un singleton ya instanciado
     if (node.parent) {
       const parentScope = this.theories.get(node.parent);
-      if (parentScope) {
-        // Copiar todo del padre (no los miembros privados del padre al hijo)
-        for (const [k, v] of parentScope.letBindings) if (!parentScope.privateMembers.has(k)) scope.letBindings.set(k, v);
-        for (const [k, v] of parentScope.letDescriptions) if (!parentScope.privateMembers.has(k)) scope.letDescriptions.set(k, v);
-        for (const [k, v] of parentScope.axioms) if (!parentScope.privateMembers.has(k)) scope.axioms.set(k, v);
-        for (const [k, v] of parentScope.theorems) if (!parentScope.privateMembers.has(k)) scope.theorems.set(k, v);
+      if (!parentScope) {
+        throw new Error(`Teoría padre '${node.parent}' no encontrada. Debe declararse antes de '${theoryName}'.`);
       }
+      // Copiar todo del padre (no los miembros privados del padre al hijo)
+      for (const [k, v] of parentScope.letBindings) if (!parentScope.privateMembers.has(k)) scope.letBindings.set(k, v);
+      for (const [k, v] of parentScope.letDescriptions) if (!parentScope.privateMembers.has(k)) scope.letDescriptions.set(k, v);
+      for (const [k, v] of parentScope.axioms) if (!parentScope.privateMembers.has(k)) scope.axioms.set(k, v);
+      for (const [k, v] of parentScope.theorems) if (!parentScope.privateMembers.has(k)) scope.theorems.set(k, v);
     }
 
     // Guardar estado global antes de entrar al scope de la teoría
