@@ -108,8 +108,7 @@ check valid (<>(P) -> [](P))
 // Distribución de G (VÁLIDO)
 check valid ([](P -> Q) -> ([](P) -> [](Q)))
 
-// G(P) → X(P) — siempre implica siguiente
-// BUG CONOCIDO: el tableau no conecta G con X todavía
+// G(P) → X(P) — siempre implica siguiente (VÁLIDO)
 check valid ([](P) -> next P)
 
 // Satisfacibilidad

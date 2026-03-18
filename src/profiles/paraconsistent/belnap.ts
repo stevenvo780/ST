@@ -235,24 +235,32 @@ export class ParaconsistentBelnap implements LogicProfile {
   }
 
   checkEquivalent(a: Formula, b: Formula): RunResult {
-    const biconditional: Formula = { kind: 'biconditional', args: [a, b] };
-    const tt = this.generateBelnapTable(biconditional);
-    const designated = new Set(['T', 'B']);
-    const isEquiv = tt.rows.every((r) => designated.has(String(r.result)));
+    // En Belnap, equivalencia = mismo valor de verdad para toda valuación 4-valorada.
+    // No usamos biconditional material porque A↔A puede dar N cuando A=N.
+    const allFormulas = [a, b];
+    const atoms = new Set<string>();
+    for (const f of allFormulas) {
+      for (const at of this.collectAtoms(f)) atoms.add(at);
+    }
+    const atomsArr = Array.from(atoms).sort();
+    const valuations = this.generateBelnapValuations(atomsArr);
 
-    if (isEquiv) {
-      return {
-        status: 'valid',
-        output: `${formulaToString(a)} y ${formulaToString(b)} son EQUIVALENTES en Belnap`,
-        truthTable: tt,
-        diagnostics: [],
-      };
+    for (const v of valuations) {
+      const bv = v as unknown as Record<string, BelnapValue>;
+      const valA = this.evaluateBelnap(a, bv);
+      const valB = this.evaluateBelnap(b, bv);
+      if (valA !== valB) {
+        return {
+          status: 'invalid',
+          output: `${formulaToString(a)} y ${formulaToString(b)} NO son equivalentes en Belnap (difieren en alguna valuación)`,
+          diagnostics: [],
+        };
+      }
     }
 
     return {
-      status: 'invalid',
-      output: `${formulaToString(a)} y ${formulaToString(b)} NO son equivalentes en Belnap`,
-      truthTable: tt,
+      status: 'valid',
+      output: `${formulaToString(a)} y ${formulaToString(b)} son EQUIVALENTES en Belnap (mismo valor 4-valorado en toda valuación)`,
       diagnostics: [],
     };
   }
@@ -283,6 +291,15 @@ export class ParaconsistentBelnap implements LogicProfile {
         return args[0] && args[1]
           ? BELNAP_OR[BELNAP_NOT[this.evaluateBelnap(args[0], v)]][this.evaluateBelnap(args[1], v)]
           : 'N';
+      case 'biconditional': {
+        // A <-> B en Belnap = (A -> B) & (B -> A) = (!A | B) & (!B | A)
+        if (!args[0] || !args[1]) return 'N';
+        const aVal = this.evaluateBelnap(args[0], v);
+        const bVal = this.evaluateBelnap(args[1], v);
+        const aToB = BELNAP_OR[BELNAP_NOT[aVal]][bVal];
+        const bToA = BELNAP_OR[BELNAP_NOT[bVal]][aVal];
+        return BELNAP_AND[aToB][bToA];
+      }
       default:
         return 'N';
     }

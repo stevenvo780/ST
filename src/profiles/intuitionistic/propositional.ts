@@ -399,6 +399,20 @@ export class IntuitionisticPropositional implements LogicProfile {
       formula,
     };
   }
+
+  checkEquivalent(a: Formula, b: Formula): RunResult {
+    const biconditional: Formula = { kind: 'biconditional', args: [a, b] };
+    const valid = isIPCValid(biconditional);
+    const fA = formulaToString(a);
+    const fB = formulaToString(b);
+    return {
+      status: valid ? 'valid' : 'invalid',
+      output: valid
+        ? `${fA} y ${fB} son EQUIVALENTES intuicionistamente`
+        : `${fA} y ${fB} NO son equivalentes intuicionistamente`,
+      diagnostics: [],
+    };
+  }
 }
 
 // ── Utilidades ──────────────────────────────────────────────
