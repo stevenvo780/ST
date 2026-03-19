@@ -281,7 +281,35 @@ export class ProbabilisticBasic implements LogicProfile {
     const probUniform = evalProb(formula, uniform);
 
     explanation += `Cálculo paso a paso bajo distribución uniforme P(X)=0.5:\n`;
-    explanation += `  P(${fStr}) = ${probUniform.toFixed(4)}\n\n`;
+
+    // Named step-by-step based on formula structure (#20)
+    const describeCalc = (f: Formula, assigns: ProbAssignment, indent: string): string => {
+      if (f.kind === 'atom' && f.name) {
+        return `${indent}P(${f.name}) = ${(assigns[f.name] ?? 0.5).toFixed(4)}  [Asignación directa]\n`;
+      }
+      if (f.kind === 'not' && f.args?.[0]) {
+        const inner = evalProb(f.args[0], assigns);
+        return `${indent}P(¬${formulaToString(f.args[0])}) = 1 - P(${formulaToString(f.args[0])}) = 1 - ${inner.toFixed(4)} = ${(1 - inner).toFixed(4)}  [Regla de negación]\n`;
+      }
+      if (f.kind === 'and' && f.args?.length === 2) {
+        const pA = evalProb(f.args[0], assigns);
+        const pB = evalProb(f.args[1], assigns);
+        return `${indent}P(${formulaToString(f.args[0])} ∧ ${formulaToString(f.args[1])}) = P(${formulaToString(f.args[0])}) × P(${formulaToString(f.args[1])}) = ${pA.toFixed(4)} × ${pB.toFixed(4)} = ${(pA * pB).toFixed(4)}  [Independencia]\n`;
+      }
+      if (f.kind === 'or' && f.args?.length === 2) {
+        const pA = evalProb(f.args[0], assigns);
+        const pB = evalProb(f.args[1], assigns);
+        const pAB = pA * pB;
+        return `${indent}P(${formulaToString(f.args[0])} ∨ ${formulaToString(f.args[1])}) = P(A) + P(B) - P(A∧B) = ${pA.toFixed(4)} + ${pB.toFixed(4)} - ${pAB.toFixed(4)} = ${(pA + pB - pAB).toFixed(4)}  [Inclusión-exclusión]\n`;
+      }
+      if (f.kind === 'implies' && f.args?.length === 2) {
+        return `${indent}P(${formulaToString(f)}) = P(¬${formulaToString(f.args[0])} ∨ ${formulaToString(f.args[1])}) = ${evalProb(f, assigns).toFixed(4)}  [Definición material del condicional]\n`;
+      }
+      return `${indent}P(${formulaToString(f)}) = ${evalProb(f, assigns).toFixed(4)}\n`;
+    };
+
+    explanation += describeCalc(formula, uniform, '  ');
+    explanation += `  Resultado: P(${fStr}) = ${probUniform.toFixed(4)}\n\n`;
 
     explanation += `Axiomas de Kolmogorov:\n`;
     explanation += `  ✓ K1: P(φ) ≥ 0 para toda φ\n`;

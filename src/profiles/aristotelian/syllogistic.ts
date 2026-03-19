@@ -314,6 +314,60 @@ export class AristotelianSyllogistic implements LogicProfile {
 
   derive(goal: Formula, premises: string[], theory: Theory): RunResult {
     const conclusion = extractCategorical(goal);
+
+    // Entimema detection: only 1 premise (#9)
+    if (conclusion && premises.length === 1) {
+      const premName = premises[0];
+      const premF = theory.axioms.get(premName) || theory.theorems.get(premName);
+      const prem = premF ? extractCategorical(premF) : null;
+      if (prem) {
+        let out = `⚠ Solo se proporcionó 1 premisa — posible entimema\n`;
+        out += `  Premisa dada: ${categoricalToString(prem)}\n`;
+        out += `  Conclusión buscada: ${categoricalToString(conclusion)}\n`;
+        out += `  Premisa faltante para completar silogismo:\n`;
+
+        // Try to find valid completions
+        const completions: string[] = [];
+        const types: CategoricalType[] = ['A', 'E', 'I', 'O'];
+        // Get potential middle term
+        const allTerms = new Set([
+          prem.subject,
+          prem.predicate,
+          conclusion.subject,
+          conclusion.predicate,
+        ]);
+        for (const middle of allTerms) {
+          for (const t2 of allTerms) {
+            if (t2 === middle) continue;
+            for (const type of types) {
+              const candidate: CategoricalProp = { type, subject: t2, predicate: middle };
+              // Try both orderings
+              const syl1 = checkSyllogism(prem, candidate, conclusion);
+              const syl2 = checkSyllogism(candidate, prem, conclusion);
+              if (syl1)
+                completions.push(
+                  `"${categoricalToString(candidate)}" → ${syl1.name} (${syl1.premises.join('')}-${syl1.figure})`,
+                );
+              if (syl2)
+                completions.push(
+                  `"${categoricalToString(candidate)}" → ${syl2.name} (${syl2.premises.join('')}-${syl2.figure})`,
+                );
+            }
+          }
+        }
+
+        if (completions.length > 0) {
+          for (const c of completions.slice(0, 3)) {
+            out += `    Opción: ${c}\n`;
+          }
+        } else {
+          out += `    No se encontró premisa que complete un silogismo válido.\n`;
+        }
+
+        return { status: 'unknown', output: out, diagnostics: [], formula: goal };
+      }
+    }
+
     if (!conclusion || premises.length < 2) {
       return {
         status: 'unknown',
@@ -431,10 +485,33 @@ export class AristotelianSyllogistic implements LogicProfile {
 
       explanation += `Distribución de términos:\n`;
       if (cat.type === 'A')
-        explanation += `  Sujeto distribuido (abarca toda la clase), Predicado no distribuido\n\n`;
-      if (cat.type === 'E') explanation += `  Sujeto distribuido, Predicado distribuido\n\n`;
-      if (cat.type === 'I') explanation += `  Sujeto no distribuido, Predicado no distribuido\n\n`;
-      if (cat.type === 'O') explanation += `  Sujeto no distribuido, Predicado distribuido\n\n`;
+        explanation += `  Sujeto (${cat.subject}): distribuido (+), Predicado (${cat.predicate}): no distribuido (-)\n\n`;
+      if (cat.type === 'E')
+        explanation += `  Sujeto (${cat.subject}): distribuido (+), Predicado (${cat.predicate}): distribuido (+)\n\n`;
+      if (cat.type === 'I')
+        explanation += `  Sujeto (${cat.subject}): no distribuido (-), Predicado (${cat.predicate}): no distribuido (-)\n\n`;
+      if (cat.type === 'O')
+        explanation += `  Sujeto (${cat.subject}): no distribuido (-), Predicado (${cat.predicate}): distribuido (+)\n\n`;
+
+      // Immediate inferences (#8)
+      explanation += `Inferencias inmediatas:\n`;
+      if (cat.type === 'A') {
+        explanation += `  Conversión (por limitación): "Algún ${cat.predicate} es ${cat.subject}" (I)\n`;
+        explanation += `  Obversión: "Ningún ${cat.subject} es no-${cat.predicate}" (E)\n`;
+        explanation += `  Contraposición: "Todo no-${cat.predicate} es no-${cat.subject}" (A)\n\n`;
+      } else if (cat.type === 'E') {
+        explanation += `  Conversión (simple): "Ningún ${cat.predicate} es ${cat.subject}" (E)\n`;
+        explanation += `  Obversión: "Todo ${cat.subject} es no-${cat.predicate}" (A)\n`;
+        explanation += `  Contraposición: "Algún no-${cat.predicate} no es no-${cat.subject}" (O)\n\n`;
+      } else if (cat.type === 'I') {
+        explanation += `  Conversión (simple): "Algún ${cat.predicate} es ${cat.subject}" (I)\n`;
+        explanation += `  Obversión: "Algún ${cat.subject} no es no-${cat.predicate}" (O)\n`;
+        explanation += `  Contraposición: No válida para I\n\n`;
+      } else if (cat.type === 'O') {
+        explanation += `  Conversión: No válida para O\n`;
+        explanation += `  Obversión: "Algún ${cat.subject} es no-${cat.predicate}" (I)\n`;
+        explanation += `  Contraposición: "Algún no-${cat.predicate} no es no-${cat.subject}" (O)\n\n`;
+      }
     } else {
       explanation += `Fórmula: ${formulaToString(formula)}\n\n`;
     }

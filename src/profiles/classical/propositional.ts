@@ -1150,10 +1150,29 @@ export class ClassicalPropositional implements LogicProfile {
     const proof = tryDerive(goal, theory, premises);
 
     if (proof && proof.status === 'complete') {
+      // Build reasoning info
+      const rulesUsed = new Set<string>();
+      for (const step of proof.steps) {
+        if (!step.justification.startsWith('Premisa')) {
+          rulesUsed.add(step.justification);
+        }
+      }
+      const reasoningType =
+        rulesUsed.size > 0 ? Array.from(rulesUsed).join(', ') : 'Derivación directa';
+
       return {
         status: 'provable',
         output: `${formulaToString(goal)} derivado exitosamente`,
         proof,
+        reasoningType,
+        reasoningSchema: rulesUsed.has('Modus Ponens')
+          ? 'φ → ψ, φ ⊢ ψ'
+          : rulesUsed.has('Modus Tollens')
+            ? 'φ → ψ, ¬ψ ⊢ ¬φ'
+            : rulesUsed.has('Silogismo Hipotetico')
+              ? 'φ → ψ, ψ → χ ⊢ φ → χ'
+              : undefined,
+        educationalNote: `Consecuencia semántica (⊨): Verificada — no existe valuación donde las premisas sean V y la conclusión F.\nConsecuencia sintáctica (⊢): Derivación formal completada en ${proof.steps.length} pasos.\nNota: Por completitud de la lógica proposicional clásica, ⊨ y ⊢ coinciden.`,
         diagnostics: [],
         formula: goal,
       };

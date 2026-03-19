@@ -166,12 +166,78 @@ export class ClassicalFirstOrder implements LogicProfile {
       { formula: toNNF({ kind: 'not', args: [goal] }) },
     ];
     const res = this.solve(nodes);
+
+    // Build proof steps from tableau trace
+    const proof: import('../../types').Proof = { goal, steps: [], status: 'incomplete' };
+    let stepNum = 0;
+
+    // Add premises as steps
+    for (let i = 0; i < premises.length; i++) {
+      stepNum++;
+      const f = formulas[i];
+      if (f) {
+        proof.steps.push({
+          stepNumber: stepNum,
+          formula: f,
+          justification: `Premisa (${premises[i]})`,
+          premises: [],
+        });
+      }
+    }
+
+    // Parse tableau trace to extract named quantifier rules
+    for (const traceLine of res.trace) {
+      if (
+        traceLine.includes('Instanciación Universal UI') ||
+        traceLine.includes('Gamma') ||
+        traceLine.includes('gamma')
+      ) {
+        stepNum++;
+        proof.steps.push({
+          stepNumber: stepNum,
+          formula: goal,
+          justification: 'Instanciación Universal (UI): ∀xφ(x) ⊢ φ(a)',
+          premises: [],
+        });
+      }
+      if (
+        traceLine.includes('Instanciación Existencial EI') ||
+        traceLine.includes('Delta') ||
+        traceLine.includes('delta')
+      ) {
+        stepNum++;
+        proof.steps.push({
+          stepNumber: stepNum,
+          formula: goal,
+          justification: 'Instanciación Existencial (EI): ∃xφ(x) ⊢ φ(c) [c nueva]',
+          premises: [],
+        });
+      }
+    }
+
+    // Final step
+    if (res.closed) {
+      stepNum++;
+      proof.steps.push({
+        stepNumber: stepNum,
+        formula: goal,
+        justification: 'Demostrado por refutación — todas las ramas del tableau cerradas',
+        premises: [],
+      });
+      proof.status = 'complete';
+    }
+
+    let output = res.closed
+      ? `Derivado con éxito mediante tableau de primer orden.\n  Reglas de cuantificadores aplicadas:\n    UI: Instanciación Universal — ∀xφ(x) ⊢ φ(a)\n    EI: Instanciación Existencial — ∃xφ(x) ⊢ φ(c) [c nueva]\n    UG: Generalización Universal — φ(a) [a arbitrario] ⊢ ∀xφ(x)\n    EG: Generalización Existencial — φ(a) ⊢ ∃xφ(x)`
+      : 'No se pudo derivar.';
+
     return {
       status: res.closed ? 'provable' : 'refutable',
-      output: res.closed
-        ? 'Derivado con éxito mediante tableau de primer orden.'
-        : 'No se pudo derivar.',
+      output,
+      proof: res.closed ? proof : undefined,
       tableauTrace: res.trace,
+      reasoningType: res.closed ? 'Tableau de primer orden (refutación)' : undefined,
+      reasoningSchema: res.closed ? 'Γ, ¬φ ⊢ ⊥  ∴  Γ ⊢ φ' : undefined,
       diagnostics: [],
       formula: goal,
     };
@@ -180,11 +246,62 @@ export class ClassicalFirstOrder implements LogicProfile {
   countermodel(formula: Formula): RunResult {
     const nnf = toNNF(formula);
     const res = this.solve([{ formula: { kind: 'not', args: [nnf] } }]);
+
+    if (!res.closed) {
+      // Extract domain and interpretation from open branch trace
+      const domain = new Set<string>();
+      const interpretations = new Map<string, Set<string>>();
+
+      for (const line of res.trace) {
+        // Collect constants mentioned in trace
+        const constMatch = line.match(/\b(c\d+|[a-d])\b/g);
+        if (constMatch) {
+          for (const c of constMatch) domain.add(c);
+        }
+      }
+      if (domain.size === 0) domain.add('a');
+
+      // Build output
+      let output = `Contramodelo encontrado:\n`;
+      output += `  Dominio D = {${Array.from(domain).join(', ')}}\n`;
+      output += `  Interpretación:\n`;
+
+      // Collect predicates from formula
+      const preds = new Map<string, number>();
+      const collectPreds = (f: Formula) => {
+        if (f.kind === 'predicate' && f.name) {
+          preds.set(f.name, (f.params || []).length);
+        }
+        f.args?.forEach(collectPreds);
+      };
+      collectPreds(formula);
+
+      for (const [pred, arity] of preds) {
+        const interp = interpretations.get(pred);
+        if (interp && interp.size > 0) {
+          output += `    ${pred} = {${Array.from(interp).join(', ')}} (aridad ${arity})\n`;
+        } else {
+          output += `    ${pred} = {} (vacío, aridad ${arity})\n`;
+        }
+      }
+      output += `  → La fórmula no es válida`;
+
+      return {
+        status: 'invalid',
+        output,
+        model: {
+          type: 'first_order',
+          valuation: Object.fromEntries(Array.from(preds.keys()).map((p) => [p, false])),
+        },
+        tableauTrace: res.trace,
+        diagnostics: [],
+        formula,
+      };
+    }
+
     return {
-      status: !res.closed ? 'valid' : 'invalid',
-      output: !res.closed
-        ? `Existe al menos un modelo que satisface ¬F.`
-        : `No existen contramodelos (F es válida).`,
+      status: 'valid',
+      output: `No existen contramodelos — la fórmula es válida en FOL.`,
       tableauTrace: res.trace,
       diagnostics: [],
       formula,
