@@ -1059,14 +1059,24 @@ export class Parser {
           const inner = this.parseFormula();
           this.expect(TokenType.RPAREN);
           if (aliasType === 'box') {
-            return { kind: 'modal_necessity', args: [inner], source: { line: tok.line, column: tok.column } };
+            return {
+              kind: 'modal_necessity',
+              args: [inner],
+              source: { line: tok.line, column: tok.column },
+            };
           } else if (aliasType === 'diamond') {
-            return { kind: 'modal_possibility', args: [inner], source: { line: tok.line, column: tok.column } };
+            return {
+              kind: 'modal_possibility',
+              args: [inner],
+              source: { line: tok.line, column: tok.column },
+            };
           } else {
             // box_not: e.g. deontic F(φ) = □(¬φ)
             return {
               kind: 'modal_necessity',
-              args: [{ kind: 'not', args: [inner], source: { line: tok.line, column: tok.column } }],
+              args: [
+                { kind: 'not', args: [inner], source: { line: tok.line, column: tok.column } },
+              ],
               source: { line: tok.line, column: tok.column },
             };
           }

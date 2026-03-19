@@ -1615,8 +1615,10 @@ export class Interpreter {
     const lines: string[] = [];
 
     // Detect Belnap (4-valued) table: results are strings like 'T','F','B','N'
-    const isBelnap = tt.rows.length > 0 && typeof tt.rows[0].result === 'string'
-      && ['T', 'F', 'B', 'N'].includes(String(tt.rows[0].result));
+    const isBelnap =
+      tt.rows.length > 0 &&
+      typeof tt.rows[0].result === 'string' &&
+      ['T', 'F', 'B', 'N'].includes(String(tt.rows[0].result));
 
     if (isBelnap) {
       lines.push(`Tabla de verdad Belnap (4 valores) para: ${formulaToString(formula)}`);
