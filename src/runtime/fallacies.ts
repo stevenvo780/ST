@@ -221,6 +221,131 @@ function checkFalseDisjunction(premises: Formula[], conclusion: Formula): Fallac
   return null;
 }
 
+/**
+ * Petición de principio: La conclusión ya está asumida en una de las premisas.
+ */
+function checkBeggingQuestion(premises: Formula[], conclusion: Formula): FallacyInfo | null {
+  if (premises.some(p => formulaEquals(p, conclusion))) {
+    return {
+      name: 'Petición de principio (Petitio Principii)',
+      description: 'La conclusión que se intenta probar ya se asume como verdadera en las premisas. Argumento circular.',
+      pattern: `φ ∈ {premisas} ⊢ φ`
+    };
+  }
+  return null;
+}
+
+/**
+ * Conversión ilícita: Todo S es P ⊬ Todo P es S.
+ */
+function checkIllicitConversion(premises: Formula[], conclusion: Formula): FallacyInfo | null {
+  if (conclusion.kind === 'forall' && conclusion.args?.length === 1) {
+    const cImp = conclusion.args[0];
+    if (isImplies(cImp) && cImp.args?.[0] && cImp.args?.[1]) {
+       const cs = cImp.args[0];
+       const cp = cImp.args[1];
+       
+       for (const p of premises) {
+          if (p.kind === 'forall' && p.args?.length === 1 && p.variable === conclusion.variable) {
+              const pImp = p.args[0];
+              if (isImplies(pImp) && pImp.args?.[0] && pImp.args?.[1]) {
+                 if (formulaEquals(pImp.args[0], cp) && formulaEquals(pImp.args[1], cs)) {
+                     return {
+                       name: 'Conversión ilícita',
+                       description: 'Del hecho de que "Todo S es P" no se sigue lógicamente que "Todo P es S". (Ej. "Todo humano es mortal" no implica "Todo mortal es humano").',
+                       pattern: `∀x(A(x) → B(x)) ⊬ ∀x(B(x) → A(x))`
+                     };
+                 }
+              }
+          }
+       }
+    }
+  }
+  return null;
+}
+
+/**
+ * Generalización apresurada: Algún S es P ⊬ Todo S es P.
+ */
+function checkHastyGeneralization(premises: Formula[], conclusion: Formula): FallacyInfo | null {
+  if (conclusion.kind === 'forall' && conclusion.args?.length === 1) {
+     const cImp = conclusion.args[0];
+     if (isImplies(cImp) && cImp.args?.[0] && cImp.args?.[1]) {
+       for (const p of premises) {
+           if (p.kind === 'exists' && p.args?.length === 1 && p.variable === conclusion.variable) {
+               const pAnd = p.args[0];
+               if (isAnd(pAnd) && pAnd.args?.[0] && pAnd.args?.[1]) {
+                 if (formulaEquals(pAnd.args[0], cImp.args[0]) && formulaEquals(pAnd.args[1], cImp.args[1])) {
+                     return {
+                       name: 'Generalización apresurada',
+                       description: 'Inferir una regla universal ("Todo S es P") a partir de casos particulares ("Algún S es P") o ejemplos aislados no es válido lógicamente.',
+                       pattern: `∃x(S(x) ∧ P(x)) ⊬ ∀x(S(x) → P(x))`
+                     };
+                 }
+               }
+           }
+       }
+     }
+  }
+  return null;
+}
+
+/**
+ * Cuaternio terminorum: 4 términos distintos en un silogismo.
+ */
+function checkFourTerms(premises: Formula[], conclusion: Formula): FallacyInfo | null {
+  if (premises.length !== 2) return null;
+  // Solo aplicamos a sentencias con predicados
+  const predicates = new Set<string>();
+  function collectPreds(f: Formula) {
+      if (f.kind === 'predicate' && f.name) predicates.add(f.name);
+      if (f.args) f.args.forEach(collectPreds);
+  }
+  premises.forEach(collectPreds);
+  collectPreds(conclusion);
+
+  // Un silogismo categórico válido tiene exactamente 3 términos categóricos.
+  // Solo aplicamos la falacia si la estructura básica sugiere silogismo.
+  const allAreQuantified = [conclusion, ...premises].every(f => f.kind === 'forall' || f.kind === 'exists');
+  if (allAreQuantified && predicates.size > 3) {
+      return {
+          name: 'Falacia de cuatro términos (Quaternio terminorum)',
+          description: 'Un silogismo categórico requiere exactamente tres términos (mayor, menor, medio). Encontrar ' + predicates.size + ' términos (ej. por ambigüedad o equivocación) destruye el enlace silogístico.',
+          pattern: `Predicados usados: {${[...predicates].join(', ')}} (esperados 3)`
+      };
+  }
+  return null;
+}
+
+/**
+ * División: Todo tiene P ⊬ Parte tiene P.
+ * (Formalmente: si ∀x(P(x) → Q(x)) y R es un subconjunto de P, no podemos inferir que un elemento individual particular hereda propiedades que solo aplican al grupo como conjunto.
+ * Lo detectaremos estáticamente como conclusión sobre partes cuando premisa es sobre el todo.)
+ * Simplificación para ST: Si deduce (A -> B) desde (A ∧ C -> B).
+ */
+function checkDivisionFallacy(premises: Formula[], conclusion: Formula): FallacyInfo | null {
+  if (isImplies(conclusion) && conclusion.args?.[0] && conclusion.args?.[1]) {
+      const part = conclusion.args[0];
+      const cons = conclusion.args[1];
+      const wholeFound = premises.find(p => {
+          if (!isImplies(p) || !p.args?.[0] || !p.args?.[1]) return false;
+          if (!formulaEquals(p.args[1], cons)) return false;
+          const ant = p.args[0];
+          // si el antecedente de la premisa es un 'and' que contiene a 'part'
+          return isAnd(ant) && ant.args?.some(a => formulaEquals(a, part));
+      });
+      
+      if (wholeFound) {
+          return {
+             name: 'Falacia de división',
+             description: 'Que un todo o conjunto (A ∧ B) tenga una propiedad (C) no implica que sus partes individuales aseguren lógicamente esa misma propiedad (A → C).',
+             pattern: `((A ∧ B) → C) ⊬ (A → C)`
+          };
+      }
+  }
+  return null;
+}
+
 // ── API pública ───────────────────────────────────────────────
 
 type FallacyChecker = (p: Formula[], c: Formula, prof: LogicProfile) => FallacyInfo | null;
@@ -232,6 +357,11 @@ const FALLACY_CHECKERS: FallacyChecker[] = [
   (p, c, _prof) => checkUndistributedMiddle(p, c),
   (p, c, _prof) => checkCompositionFallacy(p, c),
   (p, c, _prof) => checkFalseDisjunction(p, c),
+  (p, c, _prof) => checkBeggingQuestion(p, c),
+  (p, c, _prof) => checkIllicitConversion(p, c),
+  (p, c, _prof) => checkHastyGeneralization(p, c),
+  (p, c, _prof) => checkFourTerms(p, c),
+  (p, c, _prof) => checkDivisionFallacy(p, c),
 ];
 
 /**

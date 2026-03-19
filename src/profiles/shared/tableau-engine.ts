@@ -28,6 +28,7 @@ export interface Branch {
   gammaWatchers: GammaWatcher[];
   processed: Set<string>;
   worldCounter: number;
+  trace: string[];
 }
 
 /**
@@ -359,6 +360,7 @@ function cloneBranch(b: Branch): Branch {
     gammaWatchers: [...b.gammaWatchers],
     processed: new Set(b.processed),
     worldCounter: b.worldCounter,
+    trace: [...b.trace],
   };
 }
 
@@ -368,8 +370,17 @@ const MAX_DEPTH = 200;
 
 // ── Expansión principal (parametrizada) ─────────────────────
 
-function expand(branch: Branch, depth: number, rules: FrameRules): boolean {
-  if (depth > MAX_DEPTH) return false;
+export interface ExpandResult {
+  closed: boolean;
+  openBranch?: Branch;
+  trace: string[];
+}
+
+function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult {
+  if (depth > MAX_DEPTH) {
+    branch.trace.push(`[${depth}] ⚠ MAX_DEPTH reached. Aborting.`);
+    return { closed: false, openBranch: branch, trace: branch.trace };
+  }
 
   // 1. Procesar literales del pending
   while (branch.pending.length > 0) {
@@ -379,16 +390,22 @@ function expand(branch: Branch, depth: number, rules: FrameRules): boolean {
     const key = `${next.world}:${formulaHash(next.formula)}`;
     if (branch.processed.has(key)) continue;
     branch.processed.add(key);
-    if (closes(branch, next)) return true;
+    branch.trace.push(`[${depth}] Analizando literal: ${formulaHash(next.formula)} en ${next.world}`);
+    if (closes(branch, next)) {
+      branch.trace.push(`[${depth}] ✕ Rama cerrada por contradicción con ${formulaHash(next.formula)} en ${next.world}`);
+      return { closed: true, trace: branch.trace };
+    }
     branch.literals.push(next);
   }
 
   if (branch.pending.length === 0) {
-    // Hook: enforceFrameConditions (serialidad, reflexividad, etc.)
+    // Hook: enforceFrameConditions
     if (rules.enforceFrameConditions?.(branch)) {
+      branch.trace.push(`[${depth}] Aplicando enforceFrameConditions (serialidad/etc)`);
       return expand(branch, depth + 1, rules);
     }
-    return false; // Rama abierta
+    branch.trace.push(`[${depth}] ✓ Rama saturada y ABIERTA.`);
+    return { closed: false, openBranch: branch, trace: branch.trace };
   }
 
   // 2. Prioridad: alpha > delta > gamma > beta
@@ -405,20 +422,13 @@ function expand(branch: Branch, depth: number, rules: FrameRules): boolean {
       case 'alpha': {
         if (branch.processed.has(key)) return expand(branch, depth + 1, rules);
         branch.processed.add(key);
+        branch.trace.push(`[${depth}] Regla Alpha (Conjunción) en ${node.world}: ${formulaHash(node.formula)}`);
         const f = node.formula;
         let children: Formula[];
-        if (f.kind === 'and') {
-          children = f.args || [];
-        } else if (f.kind === 'not' && f.args?.[0]?.kind === 'or') {
-          children = (f.args[0].args || []).map((a) => fullNNF({ kind: 'not', args: [a] }));
-        } else if (f.kind === 'not' && f.args?.[0]?.kind === 'implies') {
-          // ¬(A→B) ≡ A ∧ ¬B
-          const inner = f.args[0];
-          const args = inner.args || [];
-          children = [args[0], fullNNF({ kind: 'not', args: [args[1]] })];
-        } else {
-          return expand(branch, depth + 1, rules);
-        }
+        if (f.kind === 'and') children = f.args || [];
+        else if (f.kind === 'not' && f.args?.[0]?.kind === 'or') children = (f.args[0].args || []).map((a) => fullNNF({ kind: 'not', args: [a] }));
+        else if (f.kind === 'not' && f.args?.[0]?.kind === 'implies') children = [(f.args[0].args || [])[0], fullNNF({ kind: 'not', args: [(f.args[0].args || [])[1]] })];
+        else return expand(branch, depth + 1, rules);
         for (const c of children) branch.pending.push({ formula: c, world: node.world });
         return expand(branch, depth + 1, rules);
       }
@@ -429,22 +439,19 @@ function expand(branch: Branch, depth: number, rules: FrameRules): boolean {
         const rawDeltaInner = (node.formula.args || [])[0];
         if (!rawDeltaInner) return expand(branch, depth + 1, rules);
         const inner = fullNNF(rawDeltaInner);
-
+        
         const newWorld = `w${branch.worldCounter++}`;
+        branch.trace.push(`[${depth}] Regla Delta (Posibilidad/Existe) en ${node.world}: ${formulaHash(node.formula)} ─> nuevo mundo ${newWorld}`);
         if (!branch.accessibility.has(node.world)) branch.accessibility.set(node.world, new Set());
-        const acc = branch.accessibility.get(node.world);
-        if (acc) acc.add(newWorld);
+        branch.accessibility.get(node.world)!.add(newWorld);
         branch.worlds.add(newWorld);
 
         branch.pending.push({ formula: inner, world: newWorld });
 
-        // ★ Instanciar gamma-watchers según frame rules
         const watchers = rules.deltaGammaWatchers(node.world, newWorld, branch);
         for (const gw of watchers) {
           const instKey = `${newWorld}:${formulaHash(gw.innerFormula)}`;
-          if (!branch.processed.has(instKey)) {
-            branch.pending.push({ formula: gw.innerFormula, world: newWorld });
-          }
+          if (!branch.processed.has(instKey)) branch.pending.push({ formula: gw.innerFormula, world: newWorld });
         }
         return expand(branch, depth + 1, rules);
       }
@@ -456,21 +463,14 @@ function expand(branch: Branch, depth: number, rules: FrameRules): boolean {
         if (!rawInner) return expand(branch, depth + 1, rules);
         const inner = fullNNF(rawInner);
 
-        // Registrar gamma-watcher permanente
-        const exists = branch.gammaWatchers.some(
-          (gw) => gw.sourceWorld === node.world && formulaEqual(gw.innerFormula, inner),
-        );
-        if (!exists) {
-          branch.gammaWatchers.push({ innerFormula: inner, sourceWorld: node.world });
-        }
+        branch.trace.push(`[${depth}] Regla Gamma (Necesidad/ParaTodo) en ${node.world}: ${formulaHash(node.formula)}`);
+        const exists = branch.gammaWatchers.some((gw) => gw.sourceWorld === node.world && formulaEqual(gw.innerFormula, inner));
+        if (!exists) branch.gammaWatchers.push({ innerFormula: inner, sourceWorld: node.world });
 
-        // ★ Instanciar según frame rules
         const targets = rules.gammaTargets(node.world, branch);
         for (const target of targets) {
           const instKey = `${target}:${formulaHash(inner)}`;
-          if (!branch.processed.has(instKey)) {
-            branch.pending.push({ formula: inner, world: target });
-          }
+          if (!branch.processed.has(instKey)) branch.pending.push({ formula: inner, world: target });
         }
         return expand(branch, depth + 1, rules);
       }
@@ -478,48 +478,36 @@ function expand(branch: Branch, depth: number, rules: FrameRules): boolean {
       case 'beta': {
         if (branch.processed.has(key)) return expand(branch, depth + 1, rules);
         branch.processed.add(key);
+        branch.trace.push(`[${depth}] Regla Beta (Disyunción/Impl) en ${node.world}: ${formulaHash(node.formula)}. Bifurcando...`);
         const f = node.formula;
         let disjuncts: Formula[];
-        if (f.kind === 'or') {
-          disjuncts = f.args || [];
-        } else if (f.kind === 'implies') {
-          // A → B ≡ ¬A ∨ B
-          const args = f.args || [];
-          disjuncts = [fullNNF({ kind: 'not', args: [args[0]] }), args[1]];
-        } else if (f.kind === 'biconditional') {
-          // A ↔ B ≡ (A∧B) ∨ (¬A∧¬B)
-          const args = f.args || [];
-          disjuncts = [
-            { kind: 'and', args: [args[0], args[1]] },
-            {
-              kind: 'and',
-              args: [
-                fullNNF({ kind: 'not', args: [args[0]] }),
-                fullNNF({ kind: 'not', args: [args[1]] }),
-              ],
-            },
-          ];
-        } else if (f.kind === 'not' && f.args?.[0]?.kind === 'and') {
-          disjuncts = (f.args[0].args || []).map((a) => fullNNF({ kind: 'not', args: [a] }));
-        } else if (f.kind === 'not' && f.args?.[0]?.kind === 'implies') {
-          // ¬(A→B) ≡ A ∧ ¬B — alpha, pero handle it
-          const args = f.args[0].args || [];
-          disjuncts = [args[0], fullNNF({ kind: 'not', args: [args[1]] })];
-          // This is actually alpha, add all to same branch
+        if (f.kind === 'or') disjuncts = f.args || [];
+        else if (f.kind === 'implies') disjuncts = [fullNNF({ kind: 'not', args: [(f.args || [])[0]] }), (f.args || [])[1]];
+        else if (f.kind === 'biconditional') disjuncts = [{ kind: 'and', args: [(f.args || [])[0], (f.args || [])[1]] }, { kind: 'and', args: [fullNNF({ kind: 'not', args: [(f.args || [])[0]] }), fullNNF({ kind: 'not', args: [(f.args || [])[1]] })] }];
+        else if (f.kind === 'not' && f.args?.[0]?.kind === 'and') disjuncts = (f.args[0].args || []).map((a) => fullNNF({ kind: 'not', args: [a] }));
+        else if (f.kind === 'not' && f.args?.[0]?.kind === 'implies') {
+          disjuncts = [(f.args[0].args || [])[0], fullNNF({ kind: 'not', args: [(f.args[0].args || [])[1]] })];
           for (const d of disjuncts) branch.pending.push({ formula: d, world: node.world });
           return expand(branch, depth + 1, rules);
-        } else {
-          return expand(branch, depth + 1, rules);
-        }
-        return disjuncts.every((d) => {
+        } else return expand(branch, depth + 1, rules);
+
+        let mergedTrace = [...branch.trace];
+        for (let i = 0; i < disjuncts.length; i++) {
+          const d = disjuncts[i];
           const child = cloneBranch(branch);
+          child.trace.push(`[${depth}]   -> Rama Beta ${i+1}: ${formulaHash(d)}`);
           child.pending.push({ formula: d, world: node.world });
-          return expand(child, depth + 1, rules);
-        });
+          const res = expand(child, depth + 1, rules);
+          if (!res.closed) {
+             return res; // Open branch found!
+          }
+          mergedTrace = res.trace; // Keep the trace of the closed branch
+        }
+        return { closed: true, trace: mergedTrace };
       }
     }
   }
-  return false;
+  return { closed: false, openBranch: branch, trace: branch.trace };
 }
 
 // ── API pública ─────────────────────────────────────────────
@@ -533,24 +521,29 @@ export function makeBranch(nodes: LabeledNode[]): Branch {
     gammaWatchers: [],
     processed: new Set(),
     worldCounter: 1,
+    trace: [],
   };
 }
 
-/**
- * ¿Es `formula` válida bajo las frame rules dadas?
- * (Niega la fórmula y verifica si el tableau cierra)
- */
-export function isValid(formula: Formula, rules: FrameRules): boolean {
-  const negated = fullNNF({ kind: 'not', args: [formula] });
-  const branch = makeBranch([{ formula: negated, world: 'w0' }]);
-  return expand(branch, 0, rules);
+export function checkTableau(formula: Formula, rules: FrameRules, isValidityCheck: boolean): ExpandResult {
+  if (isValidityCheck) {
+    const negated = fullNNF({ kind: 'not', args: [formula] });
+    const branch = makeBranch([{ formula: negated, world: 'w0' }]);
+    branch.trace.push(`Iniciando prueba de validez por refutación para: ${formulaHash(formula)}`);
+    return expand(branch, 0, rules);
+  } else {
+    const nnf = fullNNF(formula);
+    const branch = makeBranch([{ formula: nnf, world: 'w0' }]);
+    branch.trace.push(`Iniciando prueba de satisfacibilidad para: ${formulaHash(formula)}`);
+    return expand(branch, 0, rules);
+  }
 }
 
-/**
- * ¿Es `formula` satisfacible bajo las frame rules dadas?
- */
+// Retro-compatibilidad opcional (aunque se cambiará en base-profile)
+export function isValid(formula: Formula, rules: FrameRules): boolean {
+  return checkTableau(formula, rules, true).closed;
+}
+
 export function isSatisfiable(formula: Formula, rules: FrameRules): boolean {
-  const nnf = fullNNF(formula);
-  const branch = makeBranch([{ formula: nnf, world: 'w0' }]);
-  return !expand(branch, 0, rules);
+  return !checkTableau(formula, rules, false).closed;
 }

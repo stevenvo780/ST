@@ -107,7 +107,7 @@ describe('explain command', () => {
   it('explains a propositional formula', () => {
     const out = run('logic classical.propositional\nexplain (P & !P)');
     expect(out.exitCode).toBe(0);
-    expect(out.stdout).toContain('Formula');
+    expect(out.stdout).toContain('Fórmula:');
   });
 
   it('explains a modal formula', () => {
@@ -199,7 +199,7 @@ describe('analyze command', () => {
   it('analyze with single premise', () => {
     const out = run('logic classical.propositional\nanalyze {P -> P} -> (P -> P)');
     expect(out.exitCode).toBe(0);
-    expect(out.stdout).toContain('VÁLIDA');
+    expect(out.stdout).toContain('Petición de principio');
   });
 });
 

@@ -280,7 +280,39 @@ export class ProbabilisticBasic implements LogicProfile {
     for (const a of atoms) uniform[a] = 0.5;
     const probUniform = evalProb(formula, uniform);
 
-    explanation += `P(φ) con distribución uniforme (0.5): ${probUniform.toFixed(4)}\n\n`;
+    explanation += `Cálculo paso a paso bajo distribución uniforme P(X)=0.5:\n`;
+    explanation += `  P(${fStr}) = ${probUniform.toFixed(4)}\n\n`;
+
+    explanation += `Axiomas de Kolmogorov:\n`;
+    explanation += `  ✓ K1: P(φ) ≥ 0 para toda φ\n`;
+    explanation += `  ✓ K2: P(⊤) = 1\n`;
+    explanation += `  ✓ K3: Si φ∧ψ es insatisfacible → P(φ∨ψ) = P(φ) + P(ψ)\n\n`;
+
+    if (atoms.length === 2) {
+      const pA = 0.5;
+      const pB = 0.5;
+      const pAandB = 0.25; // bajo independencia
+      const cond = pAandB / pA;
+      const bayes = (cond * pA) / pB;
+      explanation += `Probabilidad condicional (asumiendo independencia y uniformidad):\n`;
+      explanation += `  P(${atoms[1]} | ${atoms[0]}) = P(${atoms[0]} ∧ ${atoms[1]}) / P(${atoms[0]}) = ${pAandB} / ${pA} = ${cond}\n\n`;
+      
+      explanation += `Teorema de Bayes:\n`;
+      explanation += `  P(${atoms[0]} | ${atoms[1]}) = P(${atoms[1]} | ${atoms[0]}) × P(${atoms[0]}) / P(${atoms[1]})\n`;
+      explanation += `             = ${cond} × ${pA} / ${pB}\n`;
+      explanation += `             = ${bayes}\n\n`;
+    }
+
+    if (atoms.length > 0) {
+      const a = atoms[0];
+      explanation += `Análisis de sensibilidad de P(${fStr}) a cambios en P(${a}):\n`;
+      for (const p of [0.0, 0.3, 0.5, 0.7, 1.0]) {
+        const sensAssign = { ...uniform };
+        sensAssign[a] = p;
+        explanation += `  P(${a})=${p.toFixed(1)} → P(φ)=${evalProb(formula, sensAssign).toFixed(3)}\n`;
+      }
+      explanation += '\n';
+    }
 
     explanation += [
       'Sistema: Probabilístico Básico',
@@ -313,12 +345,30 @@ export class ProbabilisticBasic implements LogicProfile {
     const total = 1 << n;
     const rows: TruthTableRow[] = [];
 
+    const subFormulas: { formula: Formula; label: string }[] = [];
+    const args = formula.args || [];
+    for (const arg of args) {
+       if (arg.kind !== 'atom') {
+           subFormulas.push({ formula: arg, label: formulaToString(arg) });
+       }
+    }
+    
+    const subFormulaValues: Record<string, string | boolean>[] = [];
+
     for (let i = 0; i < total; i++) {
       const v: ProbAssignment = {};
       for (let j = 0; j < n; j++) {
         v[atoms[j]] = (i >> (n - 1 - j)) & 1;
       }
       const prob = evalProb(formula, v);
+      
+      const subVals: Record<string, string> = {};
+      for (const sf of subFormulas) {
+         const subProb = evalProb(sf.formula, v);
+         subVals[sf.label] = subProb.toFixed(4);
+      }
+      subFormulaValues.push(subVals);
+
       rows.push({
         valuation: Object.fromEntries(Object.entries(v).map(([k, val]) => [k, val === 1])),
         result: prob.toFixed(4),
@@ -336,6 +386,8 @@ export class ProbabilisticBasic implements LogicProfile {
       isTautology: allOne,
       isContradiction: allZero,
       isSatisfiable: somePositive,
+      subFormulas,
+      subFormulaValues,
     };
   }
 

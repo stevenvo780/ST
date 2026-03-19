@@ -29,7 +29,7 @@ let witness = P(a)
 print witness
 check valid (P(a) -> exists x P(x))
 `,
-    markers: ['P(a)', 'VALIDA en FOL'],
+    markers: ['P(a)', 'VÁLIDA en FOL'],
   },
   'modal.k': {
     source: `
@@ -114,7 +114,7 @@ fn sumar(A, B) {
 }
 sumar(4, 5)
 `,
-    markers: ['(2 + 3)', 'verdadera', '4', '5'],
+    markers: ['(2 + 3)', 'verdadero', '4', '5'],
   },
 };
 

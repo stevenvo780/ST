@@ -377,8 +377,48 @@ export class AristotelianSyllogistic implements LogicProfile {
   explain(formula: Formula): RunResult {
     const cat = extractCategorical(formula);
     let explanation = '';
+    
     if (cat) {
       explanation += `Proposición categórica: ${categoricalToString(cat)} (tipo ${cat.type})\n\n`;
+      
+      const aProp = categoricalToString({ type: 'A', subject: cat.subject, predicate: cat.predicate });
+      const eProp = categoricalToString({ type: 'E', subject: cat.subject, predicate: cat.predicate });
+      const iProp = categoricalToString({ type: 'I', subject: cat.subject, predicate: cat.predicate });
+      const oProp = categoricalToString({ type: 'O', subject: cat.subject, predicate: cat.predicate });
+
+      explanation += `Cuadro de Oposición:\n`;
+      explanation += `    A: Todo S es P ──── contrariedad ──── E: Ningún S es P\n`;
+      explanation += `        │                                      │\n`;
+      explanation += `   subalternación                         subalternación\n`;
+      explanation += `        │                                      │\n`;
+      explanation += `    I: Algún S es P ── subcontrariedad ── O: Algún S no es P\n\n`;
+      
+      explanation += `Relaciones para esta proposición (${cat.type}):\n`;
+      if (cat.type === 'A') {
+          explanation += `  - Contradictoria (O): ${oProp} (no pueden compartir valor de verdad)\n`;
+          explanation += `  - Contraria (E): ${eProp} (no pueden ser ambas verdaderas)\n`;
+          explanation += `  - Subalterna (I): ${iProp} (es verdadera si A es verdadera)\n`;
+      } else if (cat.type === 'E') {
+          explanation += `  - Contradictoria (I): ${iProp} (no pueden compartir valor de verdad)\n`;
+          explanation += `  - Contraria (A): ${aProp} (no pueden ser ambas verdaderas)\n`;
+          explanation += `  - Subalterna (O): ${oProp} (es verdadera si E es verdadera)\n`;
+      } else if (cat.type === 'I') {
+          explanation += `  - Contradictoria (E): ${eProp} (no pueden compartir valor de verdad)\n`;
+          explanation += `  - Subcontraria (O): ${oProp} (no pueden ser ambas falsas)\n`;
+          explanation += `  - Subalternante (A): ${aProp} (es falsa si I es falsa)\n`;
+      } else if (cat.type === 'O') {
+          explanation += `  - Contradictoria (A): ${aProp} (no pueden compartir valor de verdad)\n`;
+          explanation += `  - Subcontraria (I): ${iProp} (no pueden ser ambas falsas)\n`;
+          explanation += `  - Subalternante (E): ${eProp} (es falsa si O es falsa)\n`;
+      }
+      explanation += `\n`;
+      
+      explanation += `Distribución de términos:\n`;
+      if (cat.type === 'A') explanation += `  Sujeto distribuido (abarca toda la clase), Predicado no distribuido\n\n`;
+      if (cat.type === 'E') explanation += `  Sujeto distribuido, Predicado distribuido\n\n`;
+      if (cat.type === 'I') explanation += `  Sujeto no distribuido, Predicado no distribuido\n\n`;
+      if (cat.type === 'O') explanation += `  Sujeto no distribuido, Predicado distribuido\n\n`;
+
     } else {
       explanation += `Fórmula: ${formulaToString(formula)}\n\n`;
     }

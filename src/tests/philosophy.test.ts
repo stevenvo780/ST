@@ -221,6 +221,7 @@ logic modal.k
 // es necesario Q". Distribución de [] sobre ->.
 check valid ([](P -> Q) -> ([]P -> []Q))
 `);
+    if (!r.ok) console.log(JSON.stringify(r.diagnostics, null, 2));
     expect(r.ok).toBe(true);
     expect(r.results[0].status).toBe('valid');
   });

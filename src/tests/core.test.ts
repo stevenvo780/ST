@@ -261,8 +261,8 @@ describe('ClassicalPropositional.explain', () => {
     const f = implies(atom('P'), atom('Q'));
     const result = cp.explain(f);
     expect(result.output).toBeDefined();
-    expect(result.output).toContain('Variables');
-    expect(result.output).toContain('Tautologia: no');
+    expect(result.output).toContain('Átomos');
+    expect(result.output).toContain('satisfacible');
   });
 });
 

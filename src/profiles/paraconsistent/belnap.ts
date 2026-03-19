@@ -110,8 +110,9 @@ export class ParaconsistentBelnap implements LogicProfile {
       status: isSatisfiable ? 'satisfiable' : 'unsatisfiable',
       output: isSatisfiable
         ? `${formulaToString(formula)} es satisfacible en Belnap`
-        : `${formulaToString(formula)} es una contradiccion en Belnap (nunca designada)`,
+        : `${formulaToString(formula)} es una contradicion en Belnap (nunca designada)`,
       truthTable: tt,
+      educationalNote: 'En la lógica de Belnap, P ∧ ¬P es satisfacible porque P puede tomar el valor designado B (Both).',
       diagnostics: [],
       formula,
     };
@@ -226,9 +227,34 @@ export class ParaconsistentBelnap implements LogicProfile {
   }
 
   explain(formula: Formula): RunResult {
+    const tt = this.generateBelnapTable(formula);
+    const designated = new Set(['T', 'B']);
+    const isTautology = tt.rows.every((r) => designated.has(String(r.result)));
+    const isSatisfiable = tt.rows.some((r) => designated.has(String(r.result)));
+
+    let out = `Lógica Paraconsistente de Belnap (4-Valores)\n`;
+    out += `Fórmula: ${formulaToString(formula)}\n\n`;
+
+    out += `Retículo de Verdad (A4):\n`;
+    out += `  T: Verdadero (Solo verdad) [Designado]\n`;
+    out += `  B: Ambos (Verdadero y Falso - Inconsistente) [Designado]\n`;
+    out += `  N: Ninguno (Ni Verdadero ni Falso - Indeterminado)\n`;
+    out += `  F: Falso (Solo falsedad)\n\n`;
+
+    out += `Leyes Clásicas que FALLAN en Belnap:\n`;
+    out += `  - Tercero Excluido (P ∨ ¬P): Falla cuando P=N (da N no designado)\n`;
+    out += `  - No Contradicción ¬(P ∧ ¬P): Falla cuando P=B (da B designado)\n`;
+    out += `  - Silogismo Disyuntivo (P ∨ Q) ∧ ¬P → Q: Falla porque permite verdades inconsistentes.\n\n`;
+
+    out += `Estatus: ${isTautology ? 'TAUTOLOGÍA' : (isSatisfiable ? 'SATISFACIBLE' : 'INSATISFACIBLE (Nunca designada)')}\n`;
+
+    const educationalNote = `En la lógica de Belnap, una contradicción (como P ∧ ¬P) puede tomar el valor designado 'B', lo que significa que de una contradicción no se sigue cualquier cosa (no hay "explosión"). La lógica de Belnap está estrechamente relacionada con la lógica de la relevancia y el razonamiento con bases de datos inconsistentes o incompletas.`;
+
     return {
-      status: 'unknown',
-      output: `Logica de Belnap (4-valores): ${formulaToString(formula)}`,
+      status: isTautology ? 'valid' : 'invalid',
+      output: out,
+      truthTable: tt,
+      educationalNote,
       diagnostics: [],
       formula,
     };

@@ -377,7 +377,7 @@ describe('arithmetic: interpreter integration', () => {
   it('check valid: 5 < 3 is invalid (false comparison)', () => {
     const out = run(`logic arithmetic\ncheck valid 5 < 3`);
     expect(out.exitCode).toBe(0);
-    expect(out.stdout).toContain('La expresión aritmética es falsa');
+    expect(out.stdout).toContain('falso');
   });
 
   it('check valid: 5 >= 5 is valid', () => {
@@ -389,7 +389,7 @@ describe('arithmetic: interpreter integration', () => {
   it('check valid: 5 <= 4 is invalid', () => {
     const out = run(`logic arithmetic\ncheck valid 5 <= 4`);
     expect(out.exitCode).toBe(0);
-    expect(out.stdout).toContain('La expresión aritmética es falsa');
+    expect(out.stdout).toContain('falso');
   });
 
   it('check satisfiable: 2 + 2 > 3 is satisfiable', () => {

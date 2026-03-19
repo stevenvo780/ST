@@ -162,6 +162,28 @@ export interface RunResult {
   truthTable?: TruthTableResult;
   diagnostics: Diagnostic[];
   formula?: Formula;
+  reasoningType?: string;
+  reasoningSchema?: string;
+  formulaClassification?: string;
+  normalForms?: {
+    nnf?: string;
+    cnf?: string;
+    dnf?: string;
+    pnf?: string;
+    skolem?: string;
+  };
+  formulaAnalysis?: {
+    mainConnective?: string;
+    depth?: number;
+    complexity?: number;
+    subFormulas?: string[];
+    atomCount?: number;
+    connectivesUsed?: string[];
+  };
+  crossSystemComparison?: Record<string, string>;
+  tableauTrace?: any[];
+  educationalNote?: string;
+  paradoxWarning?: string;
 }
 
 export interface TruthTableResult {
@@ -170,6 +192,10 @@ export interface TruthTableResult {
   isTautology: boolean;
   isContradiction: boolean;
   isSatisfiable: boolean;
+  subFormulas?: { formula: Formula; label: string }[];
+  subFormulaValues?: Record<string, boolean | string>[];
+  satisfyingCount?: number;
+  totalCount?: number;
 }
 
 export interface TruthTableRow {

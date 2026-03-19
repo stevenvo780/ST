@@ -31,74 +31,91 @@ const COMPARISON_KINDS = new Set([
 
 // --- Evaluación numérica ---
 
-/**
- * Evalúa recursivamente una fórmula aritmética a un valor numérico.
- * Los átomos se interpretan como 0 (o se buscan en la teoría).
- * Las comparaciones retornan 1 (true) o 0 (false).
- */
-export function evalNumeric(f: Formula, vars?: Map<string, number>): number {
+export function evalNumeric(f: Formula, vars?: Map<string, number>, trace?: string[]): number {
   switch (f.kind) {
     case 'number':
       return f.value ?? 0;
     case 'atom': {
-      // Intentar resolver variable como número
       if (f.name && vars?.has(f.name)) {
         return vars.get(f.name)!;
       }
-      // Átomo sin valor numérico conocido
       return NaN;
     }
     case 'add': {
-      const l = evalNumeric(f.args![0], vars);
-      const r = evalNumeric(f.args![1], vars);
-      return l + r;
+      const l = evalNumeric(f.args![0], vars, trace);
+      const r = evalNumeric(f.args![1], vars, trace);
+      const res = l + r;
+      if (trace) trace.push(`  ${l} + ${r} = ${res} [suma]`);
+      return res;
     }
     case 'subtract': {
-      const l = evalNumeric(f.args![0], vars);
-      const r = evalNumeric(f.args![1], vars);
-      return l - r;
+      const l = evalNumeric(f.args![0], vars, trace);
+      const r = evalNumeric(f.args![1], vars, trace);
+      const res = l - r;
+      if (trace) trace.push(`  ${l} - ${r} = ${res} [resta]`);
+      return res;
     }
     case 'multiply': {
-      const l = evalNumeric(f.args![0], vars);
-      const r = evalNumeric(f.args![1], vars);
-      return l * r;
+      const l = evalNumeric(f.args![0], vars, trace);
+      const r = evalNumeric(f.args![1], vars, trace);
+      const res = l * r;
+      if (trace) trace.push(`  ${l} * ${r} = ${res} [multiplicación]`);
+      return res;
     }
     case 'divide': {
-      const l = evalNumeric(f.args![0], vars);
-      const r = evalNumeric(f.args![1], vars);
+      const l = evalNumeric(f.args![0], vars, trace);
+      const r = evalNumeric(f.args![1], vars, trace);
       if (r === 0) return NaN;
-      return l / r;
+      const res = l / r;
+      if (trace) trace.push(`  ${l} / ${r} = ${res} [división]`);
+      return res;
     }
     case 'modulo': {
-      const l = evalNumeric(f.args![0], vars);
-      const r = evalNumeric(f.args![1], vars);
+      const l = evalNumeric(f.args![0], vars, trace);
+      const r = evalNumeric(f.args![1], vars, trace);
       if (r === 0) return NaN;
-      return l % r;
+      const res = l % r;
+      if (trace) trace.push(`  ${l} % ${r} = ${res} [módulo]`);
+      return res;
     }
-    // Comparaciones retornan 1 (true) o 0 (false)
-    case 'less':
-      return evalNumeric(f.args![0], vars) < evalNumeric(f.args![1], vars) ? 1 : 0;
-    case 'greater':
-      return evalNumeric(f.args![0], vars) > evalNumeric(f.args![1], vars) ? 1 : 0;
-    case 'less_eq':
-      return evalNumeric(f.args![0], vars) <= evalNumeric(f.args![1], vars) ? 1 : 0;
-    case 'greater_eq':
-      return evalNumeric(f.args![0], vars) >= evalNumeric(f.args![1], vars) ? 1 : 0;
+    case 'less': {
+      const l = evalNumeric(f.args![0], vars, trace);
+      const r = evalNumeric(f.args![1], vars, trace);
+      const res = l < r;
+      if (trace) trace.push(`  ${l} < ${r} = ${res ? 'verdadero' : 'falso'} [comparación]`);
+      return res ? 1 : 0;
+    }
+    case 'greater': {
+      const l = evalNumeric(f.args![0], vars, trace);
+      const r = evalNumeric(f.args![1], vars, trace);
+      const res = l > r;
+      if (trace) trace.push(`  ${l} > ${r} = ${res ? 'verdadero' : 'falso'} [comparación]`);
+      return res ? 1 : 0;
+    }
+    case 'less_eq': {
+      const l = evalNumeric(f.args![0], vars, trace);
+      const r = evalNumeric(f.args![1], vars, trace);
+      const res = l <= r;
+      if (trace) trace.push(`  ${l} <= ${r} = ${res ? 'verdadero' : 'falso'} [comparación]`);
+      return res ? 1 : 0;
+    }
+    case 'greater_eq': {
+      const l = evalNumeric(f.args![0], vars, trace);
+      const r = evalNumeric(f.args![1], vars, trace);
+      const res = l >= r;
+      if (trace) trace.push(`  ${l} >= ${r} = ${res ? 'verdadero' : 'falso'} [comparación]`);
+      return res ? 1 : 0;
+    }
     default:
       return NaN;
   }
 }
 
-/**
- * Evalúa una comparación aritmética como valor booleano.
- * Para fórmulas no-comparativas, evalúa el resultado numérico (truthy = !== 0).
- */
-function evalComparison(f: Formula, vars?: Map<string, number>): boolean {
+function evalComparison(f: Formula, vars?: Map<string, number>, trace?: string[]): boolean {
   if (COMPARISON_KINDS.has(f.kind)) {
-    return evalNumeric(f, vars) === 1;
+    return evalNumeric(f, vars, trace) === 1;
   }
-  // Para expresiones no-comparativas, truthy si !== 0 y no NaN
-  const val = evalNumeric(f, vars);
+  const val = evalNumeric(f, vars, trace);
   return !isNaN(val) && val !== 0;
 }
 
@@ -158,13 +175,16 @@ export class ArithmeticProfile implements LogicProfile {
   }
 
   checkValid(formula: Formula): RunResult {
-    // Para aritmética pura sin variables, evaluar directamente
     const atoms = collectAtoms(formula);
     if (atoms.size === 0) {
-      const result = evalComparison(formula);
+      const trace: string[] = [];
+      const result = evalComparison(formula, undefined, trace);
+      let output = `Evaluación paso a paso:\n${trace.join('\n')}\n`;
+      output += `  → Resultado: ${result ? '✓ verdadero' : '✗ falso'}`;
+      
       return this.result(
         result ? 'valid' : 'invalid',
-        result ? 'La expresión aritmética es verdadera' : 'La expresión aritmética es falsa',
+        output
       );
     }
 
@@ -251,24 +271,83 @@ export class ArithmeticProfile implements LogicProfile {
   explain(formula: Formula): RunResult {
     const atoms = collectAtoms(formula);
 
+    let output = '';
     if (atoms.size === 0) {
-      const val = evalNumeric(formula);
+      const trace: string[] = [];
+      const val = evalNumeric(formula, undefined, trace);
+      output += `Evaluación paso a paso:\n${trace.join('\n')}\n`;
       if (COMPARISON_KINDS.has(formula.kind)) {
-        const result = evalComparison(formula);
-        return this.result(
-          result ? 'valid' : 'invalid',
-          `Comparación aritmética: resultado = ${result ? 'verdadero' : 'falso'}`,
-        );
+         const result = evalComparison(formula);
+         output += `  → Resultado: ${result ? '✓ verdadero' : '✗ falso'}\n\n`;
+      } else {
+         output += `  → Resultado: ${isNaN(val) ? 'indefinido' : val}\n\n`;
       }
-      return this.result(
-        'valid',
-        `Expresión aritmética: resultado = ${isNaN(val) ? 'indefinido' : val}`,
-      );
+    } else {
+      output += `Expresión aritmética con variables: ${[...atoms].join(', ')}.\n\n`;
+    }
+    
+    // Simplification 
+    const simpTrace: string[] = [];
+    simplifyArithmetic(formula, simpTrace);
+    if (simpTrace.length > 0) {
+      output += `Simplificación detectada:\n${simpTrace.join('\n')}\n\n`;
+    }
+    
+    // Properties
+    if (formula.kind === 'add') {
+       output += `Propiedades de la suma (+):\n`;
+       output += `  ✓ Conmutativa: a + b = b + a\n`;
+       output += `  ✓ Asociativa: (a + b) + c = a + (b + c)\n`;
+       output += `  ✓ Identidad: a + 0 = a\n`;
+       output += `  ✓ Inverso: a + (−a) = 0\n`;
+    } else if (formula.kind === 'multiply') {
+       output += `Propiedades de la multiplicación (*):\n`;
+       output += `  ✓ Conmutativa: a * b = b * a\n`;
+       output += `  ✓ Asociativa: (a * b) * c = a * (b * c)\n`;
+       output += `  ✓ Identidad: a * 1 = a\n`;
+       output += `  ✓ Absorción: a * 0 = 0\n`;
     }
 
     return this.result(
       'unknown',
-      `Expresión aritmética con variables: ${[...atoms].join(', ')}. Valor depende de asignación.`,
+      output.trim() || `Expresión aritmética: ${formula.kind}`
     );
   }
+}
+
+function simplifyArithmetic(f: Formula, trace: string[]): Formula {
+   if (f.kind === 'add' && f.args?.length === 2) {
+       const l = simplifyArithmetic(f.args[0], trace);
+       const r = simplifyArithmetic(f.args[1], trace);
+       if (l.kind === 'number' && l.value === 0) {
+           trace.push(`  0 + x = x  [identidad aditiva]`);
+           return r;
+       }
+       if (r.kind === 'number' && r.value === 0) {
+           trace.push(`  x + 0 = x  [identidad aditiva]`);
+           return l;
+       }
+       return { ...f, args: [l, r] };
+   }
+   if (f.kind === 'multiply' && f.args?.length === 2) {
+       const l = simplifyArithmetic(f.args[0], trace);
+       const r = simplifyArithmetic(f.args[1], trace);
+       if ((l.kind === 'number' && l.value === 0) || (r.kind === 'number' && r.value === 0)) {
+           trace.push(`  x * 0 = 0  [absorción multiplicativa]`);
+           return { kind: 'number', value: 0 };
+       }
+       if (l.kind === 'number' && l.value === 1) {
+           trace.push(`  1 * x = x  [identidad multiplicativa]`);
+           return r;
+       }
+       if (r.kind === 'number' && r.value === 1) {
+           trace.push(`  x * 1 = x  [identidad multiplicativa]`);
+           return l;
+       }
+       return { ...f, args: [l, r] };
+   }
+   if (f.args) {
+       f = { ...f, args: f.args.map(a => simplifyArithmetic(a, trace)) };
+   }
+   return f;
 }

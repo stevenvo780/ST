@@ -381,9 +381,10 @@ export class IntuitionisticPropositional implements LogicProfile {
     for (const model of generateModels(atoms, maxWorlds)) {
       if (!forces(model, 0, formula)) {
         const desc = describeModel(model);
+        const trace = traceForcing(model, 0, formula, 0);
         return {
           status: 'invalid',
-          output: `Contramodelo intuicionista para ${fStr}:\n${desc}`,
+          output: `Contramodelo intuicionista para ${fStr}:\n${desc}\n\nTraza de forcing en w0:\n${trace.join('\n')}`,
           diagnostics: [],
           formula,
         };
@@ -404,19 +405,28 @@ export class IntuitionisticPropositional implements LogicProfile {
     explanation += [
       'Sistema: Lógica Intuicionista Proposicional (IPC)',
       '',
-      'Rechazos clave vs. clásica:',
-      '  ✗ P ∨ ¬P          — Tercero excluido (LEM)',
-      '  ✗ ¬¬P → P         — Doble negación eliminación (DNE)',
-      '  ✗ ((P→Q)→P) → P   — Ley de Peirce',
+      'Interpretación Brouwer-Heyting-Kolmogorov (BHK):',
+      '  Una prueba de P → Q es un algoritmo que transforma una prueba de P en una prueba de Q',
+      '  Una prueba de P ∧ Q es un par (prueba de P, prueba de Q)',
+      '  Una prueba de P ∨ Q es un par (i, prueba) donde i indica si es prueba de P o de Q',
+      '  Una prueba de ¬P es una prueba de P → ⊥ (P lleva a absurdo)',
       '',
-      'Aceptados en IPC:',
-      '  ✓ P → ¬¬P         — Doble negación introducción',
-      '  ✓ (P→Q) → (¬Q→¬P) — Contraposición',
-      '  ✓ (P ∧ ¬P) → Q    — Ex falso quodlibet',
+      'Propiedad de la disyunción (IPC):',
+      '  Si ⊢ P ∨ Q en IPC, entonces ⊢ P o ⊢ Q.',
+      '  (No se puede probar una disyunción sin probar uno de los disyuntos)',
+      '',
+      'Comparación con lógica clásica (Leyes clave):',
+      '  │ Ley                          │ CPC │ IPC │',
+      '  │ P ∨ ¬P (LEM)                 │ ✓   │ ✗   │',
+      '  │ ¬¬P → P (DNE)                │ ✓   │ ✗   │',
+      '  │ ((P→Q)→P)→P (Peirce)         │ ✓   │ ✗   │',
+      '  │ P → ¬¬P                      │ ✓   │ ✓   │',
+      '  │ (P→Q) → (¬Q→¬P) (Contra.)    │ ✓   │ ✓   │',
+      '  │ (P ∧ ¬P) → Q (EFQ)           │ ✓   │ ✓   │',
+      '  │ ¬¬¬P → ¬P                    │ ✓   │ ✓   │',
       '',
       'Semántica: Kripke con preórdenes (reflexivo + transitivo)',
       '  Los átomos son persistentes (monótonos)',
-      '  Implementación: enumeración de modelos finitos',
     ].join('\n');
     explanation += `\n\nEstatus: ${valid ? 'VÁLIDA' : 'NO válida'} intuicionistamente`;
     return {
@@ -446,12 +456,92 @@ export class IntuitionisticPropositional implements LogicProfile {
 
 function describeModel(model: KripkeModel): string {
   const lines: string[] = [];
-  lines.push(`Mundos: {${model.worlds.join(', ')}}`);
+  lines.push(`Mundos: {${model.worlds.map(w => 'w' + w).join(', ')}}`);
   for (const w of model.worlds) {
     const acc = Array.from(model.access.get(w) || []).filter((v) => v !== w);
-    if (acc.length > 0) lines.push(`  ${w} → {${acc.join(', ')}}`);
+    if (acc.length > 0) lines.push(`  w${w} ≤ {${acc.map(v => 'w'+v).join(', ')}}`);
     const atoms = Array.from(model.val.get(w) || []);
-    lines.push(`  V(${w}) = {${atoms.join(', ')}}`);
+    lines.push(`  V(w${w}) = {${atoms.join(', ')}}`);
   }
   return lines.join('\n');
+}
+
+function traceForcing(model: KripkeModel, w: number, f: Formula, depth: number): string[] {
+  const pad = '  '.repeat(depth);
+  const fStr = formulaToString(f);
+  const prefix = `${pad}¿w${w} ⊩ ${fStr}?`;
+  const res = forces(model, w, f);
+  const suffix = res ? '→ SÍ' : '→ NO';
+  
+  const trace: string[] = [`${prefix}`];
+
+  if (f.kind === 'atom') {
+    trace.push(`${pad}  ${f.name} ${res ? '∈' : '∉'} V(w${w}) ${suffix}`);
+    return trace;
+  }
+
+  if (f.kind === 'or') {
+    const args = f.args || [];
+    trace.push(`${pad}  Rama izquierda: `);
+    trace.push(...traceForcing(model, w, args[0], depth + 2));
+    if (!res) {
+       trace.push(`${pad}  Rama derecha: `);
+       trace.push(...traceForcing(model, w, args[1], depth + 2));
+    }
+    trace.push(`${pad}  ${suffix}`);
+    return trace;
+  }
+  
+  if (f.kind === 'and') {
+    const args = f.args || [];
+    trace.push(...traceForcing(model, w, args[0], depth + 1));
+    if (res || !forces(model, w, args[0])) { // only show second if first passed evaluating true and overall true, or wait, if first failed, we know it's false, so don't show second
+      if (forces(model, w, args[0])) {
+         trace.push(...traceForcing(model, w, args[1], depth + 1));
+      }
+    }
+    trace.push(`${pad}  ${suffix}`);
+    return trace;
+  }
+
+  if (f.kind === 'not') {
+    const inner = (f.args || [])[0];
+    const reach = reachable(model, w);
+    trace.push(`${pad}  ¬${formulaToString(inner)} en w${w} ≡ ∀v≥w${w}: v ⊮ ${formulaToString(inner)}`);
+    for (const v of reach) {
+       trace.push(`${pad}  Explorando mundo accesible w${v}: `);
+       const fr = traceForcing(model, v, inner, depth + 2);
+       trace.push(...fr);
+       if (forces(model, v, inner)) {
+           trace.push(`${pad}  Pero w${v} ≥ w${w} y w${v} ⊩ ${formulaToString(inner)}`);
+           break;
+       }
+    }
+    trace.push(`${pad}  ${suffix}`);
+    return trace;
+  }
+  
+  if (f.kind === 'implies') {
+      const args = f.args || [];
+      const reach = reachable(model, w);
+      trace.push(`${pad}  (A→B) en w${w} ≡ ∀v≥w${w}: v ⊩ A implica v ⊩ B`);
+      for (const v of reach) {
+         trace.push(`${pad}  Explorando mundo accesible w${v}: `);
+         if (forces(model, v, args[0]) && !forces(model, v, args[1])) {
+             trace.push(`${pad}  Falla en w${v}:`);
+             trace.push(...traceForcing(model, v, args[0], depth + 2));
+             trace.push(...traceForcing(model, v, args[1], depth + 2));
+             break;
+         } else if (!forces(model, v, args[0])) {
+             trace.push(`${pad}    w${v} ⊮ ${formulaToString(args[0])} (Evitado falsedad antecedente)`);
+         } else {
+             trace.push(`${pad}    w${v} ⊩ ${formulaToString(args[0])} y w${v} ⊩ ${formulaToString(args[1])}`);
+         }
+      }
+      trace.push(`${pad}  ${suffix}`);
+      return trace;
+  }
+
+  trace.push(`${pad}  Eval: ${suffix}`);
+  return trace;
 }

@@ -63,6 +63,7 @@ import {
   registerContext,
   compileClaimsToTheory,
 } from '../text-layer/compiler';
+import { classifyFormula } from './formula-classifier';
 
 /**
  * Plantilla de una teoría (Clase)
@@ -1360,28 +1361,100 @@ export class Interpreter {
     this.stdoutLines.push(msg);
   }
 
+  private getVerbosity(): string {
+    const v = this.letBindings.get('verbose');
+    if (v && v.kind === 'atom' && v.name) {
+      const n = v.name.toLowerCase();
+      // Remove quotes if present
+      return n.replace(/(^"|"$)/g, '');
+    }
+    return 'off';
+  }
+
   private emitResult(cmd: string, result: RunResult): void {
     const statusIcon = this.statusIcon(result.status);
     this.emit(`${statusIcon} [${cmd}] ${result.output || result.status}`);
+    const verbosity = this.getVerbosity();
+
+    if (result.educationalNote && verbosity === 'on') {
+      this.emit(`  Nota pedagógica: ${result.educationalNote}`);
+    }
+    if (result.paradoxWarning) {
+      this.emit(`  ⚠ PARADOJA: ${result.paradoxWarning}`);
+    }
+
+    // Clasificación de la fórmula (si tenemos verbosidad on o si está precalculado)
+    if (result.formula && (verbosity === 'on' || result.formulaClassification)) {
+      const cls = classifyFormula(result.formula);
+      const name = result.formulaClassification || cls.formulaClassification;
+      if (name) {
+        this.emit(`  Identificación: ${name}`);
+      }
+    }
+
+    if (result.reasoningType) {
+      this.emit(`  Patrón de razonamiento: ${result.reasoningType}`);
+    }
+    if (result.reasoningSchema) {
+      this.emit(`  Esquema: ${result.reasoningSchema}`);
+    }
+
+    if (result.normalForms && verbosity === 'on') {
+      this.emit(`  Formas Normales:`);
+      if (result.normalForms.nnf) this.emit(`    NNF: ${result.normalForms.nnf}`);
+      if (result.normalForms.cnf) this.emit(`    CNF: ${result.normalForms.cnf}`);
+      if (result.normalForms.dnf) this.emit(`    DNF: ${result.normalForms.dnf}`);
+      if (result.normalForms.pnf) this.emit(`    PNF: ${result.normalForms.pnf}`);
+      if (result.normalForms.skolem) this.emit(`    Skolem: ${result.normalForms.skolem}`);
+    }
+
+    if (result.formula && (verbosity === 'on' || cmd === 'explain')) {
+      const { compareAcrossSystems } = require('./cross-system-compare');
+      const { registry } = require('../profiles/interface');
+      const comp = result.crossSystemComparison || compareAcrossSystems(result.formula, registry);
+      if (Object.keys(comp).length > 0) {
+        this.emit(`  Comparación entre sistemas:`);
+        for (const [sys, val] of Object.entries(comp)) {
+          this.emit(`    ${sys.padEnd(30)} ${val as string}`);
+        }
+      }
+    }
+
+    const outputFormatRaw = this.letBindings.get('output');
+    const isLatex = outputFormatRaw?.kind === 'atom' && outputFormatRaw.name?.replace(/['"]/g, '').toLowerCase() === 'latex';
 
     const proof = result.proof;
-    if (proof && proof.steps.length > 0) {
-      this.emit('  Prueba:');
-      for (const step of proof.steps) {
-        const premisesStr = step.premises.length > 0 ? ` [de ${step.premises.join(', ')}]` : '';
-        this.emit(
-          `    ${step.stepNumber}. ${formulaToUnicode(step.formula)}  — ${step.justification}${premisesStr}`,
-        );
+    if (proof && proof.steps.length > 0 && (verbosity === 'on' || verbosity === 'proof' || cmd === 'derive' || cmd === 'prove')) {
+      if (isLatex) {
+        const { proofToLaTeX } = require('./format');
+        this.emit('  Prueba (LaTeX):');
+        this.emit(proofToLaTeX(proof));
+      } else {
+        this.emit('  Prueba:');
+        for (const step of proof.steps) {
+          const premisesStr = step.premises.length > 0 ? ` [de ${step.premises.join(', ')}]` : '';
+          this.emit(
+            `    ${step.stepNumber}. ${formulaToUnicode(step.formula)}  — ${step.justification}${premisesStr}`,
+          );
+        }
       }
     }
 
     const model = result.model;
-    if (model && model.valuation) {
-      this.emit('  Modelo:');
+    if (model && model.valuation && (verbosity === 'on' || verbosity === 'model' || cmd === 'countermodel')) {
+      this.emit('  Modelo / Valuación:');
       for (const [k, v] of Object.entries(model.valuation)) {
         const desc = this.letDescriptions.get(k);
         const descStr = desc ? ` ("${desc}")` : '';
         this.emit(`    ${k}${descStr} = ${String(v)}`);
+      }
+    }
+
+    if (result.tableauTrace && result.tableauTrace.length > 0 && (verbosity === 'on' || verbosity === 'proof')) {
+      this.emit('  Traza del tableau:');
+      for (let i = 0; i < result.tableauTrace.length; i++) {
+        const step = result.tableauTrace[i];
+        this.emit(`    ${i + 1}. ${step.toString ? step.toString() : JSON.stringify(step)}`);
       }
     }
 
@@ -1438,24 +1511,60 @@ export class Interpreter {
   }
 
   private formatTruthTable(formula: Formula, tt: TruthTableResult): string {
+    const verbosity = this.getVerbosity();
+    const isVerbose = verbosity === 'on' || verbosity === 'model';
+    
     const lines: string[] = [];
-    const header = [...tt.variables, formulaToString(formula)];
-    const colWidths = header.map((h) => Math.max(h.length, 5));
-
+    
     // Header
-    lines.push(header.map((h, i) => h.padEnd(colWidths[i])).join(' | '));
+    const colLabels = [...tt.variables];
+    
+    if (isVerbose && tt.subFormulas) {
+      tt.subFormulas.forEach(sf => colLabels.push(sf.label));
+    }
+    
+    colLabels.push(formulaToString(formula));
+    const colWidths = colLabels.map((h) => Math.max(h.length, 5));
+
+    lines.push(colLabels.map((h, i) => h.padEnd(colWidths[i])).join(' | '));
     lines.push(colWidths.map((w) => '-'.repeat(w)).join('-+-'));
 
     // Rows
-    for (const row of tt.rows) {
-      const vals = tt.variables.map((v) => (row.valuation[v] ? 'T' : 'F'));
-      vals.push(row.result ? 'T' : 'F');
-      lines.push(vals.map((v, i) => v.padEnd(colWidths[i])).join(' | '));
+    for (let rowIndex = 0; rowIndex < tt.rows.length; rowIndex++) {
+      const row = tt.rows[rowIndex];
+      const vals: string[] = tt.variables.map((v) => (row.valuation[v] ? 'T' : 'F'));
+      
+      if (isVerbose && tt.subFormulas && tt.subFormulaValues) {
+        const subVals = tt.subFormulaValues[rowIndex];
+        tt.subFormulas.forEach(sf => {
+          let v = subVals[sf.label];
+          if (typeof v === 'boolean') v = v ? 'T' : 'F';
+          vals.push(String(v));
+        });
+      }
+      
+      let finalVal = row.result;
+      if (typeof finalVal === 'boolean') finalVal = finalVal ? 'T' : 'F';
+      vals.push(String(finalVal));
+      
+      const isCountermodel = (tt.isTautology === false && !row.result) || (tt.isSatisfiable && row.result);
+      const rowStr = vals.map((v, i) => v.padEnd(colWidths[i])).join(' | ');
+      
+      if (isVerbose && isCountermodel) {
+        lines.push(`${rowStr}   ←`);
+      } else {
+        lines.push(rowStr);
+      }
     }
 
     lines.push('');
-    if (tt.isTautology) lines.push('→ Tautologia');
-    else if (tt.isContradiction) lines.push('→ Contradiccion');
+    
+    if (tt.satisfyingCount !== undefined && tt.totalCount !== undefined) {
+      lines.push(`${tt.satisfyingCount}/${tt.totalCount} valuaciones verdaderas`);
+    }
+
+    if (tt.isTautology) lines.push('→ Tautologia ✓');
+    else if (tt.isContradiction) lines.push('→ Contradiccion ✗');
     else lines.push('→ Contingente (satisfacible)');
 
     return lines.join('\n');

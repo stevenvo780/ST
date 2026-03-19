@@ -14,6 +14,8 @@ import {
   Proof,
   ProofStep,
 } from '../../types';
+import { classifyFormula } from '../../runtime/formula-classifier';
+import { formulaToUnicode } from '../../runtime/format';
 
 // --- Utilidades de fórmulas ---
 
@@ -316,6 +318,60 @@ export function toNNF(f: Formula): Formula {
   return simplify(f, false);
 }
 
+function distributeOrOverAnd(f: Formula): Formula {
+  if (f.kind === 'or' && f.args?.[0] && f.args?.[1]) {
+    const l = distributeOrOverAnd(f.args[0]);
+    const r = distributeOrOverAnd(f.args[1]);
+    if (l.kind === 'and' && l.args?.[0] && l.args?.[1]) {
+      return { kind: 'and', args: [ distributeOrOverAnd({ kind: 'or', args: [l.args[0], r] }), distributeOrOverAnd({ kind: 'or', args: [l.args[1], r] }) ] };
+    }
+    if (r.kind === 'and' && r.args?.[0] && r.args?.[1]) {
+      return { kind: 'and', args: [ distributeOrOverAnd({ kind: 'or', args: [l, r.args[0]] }), distributeOrOverAnd({ kind: 'or', args: [l, r.args[1]] }) ] };
+    }
+    return { kind: 'or', args: [l, r] };
+  }
+  if (f.args) return { ...f, args: f.args.map(a => a ? distributeOrOverAnd(a) : a) };
+  return f;
+}
+export function toCNF(f: Formula): Formula {
+  return distributeOrOverAnd(toNNF(f));
+}
+
+function distributeAndOverOr(f: Formula): Formula {
+  if (f.kind === 'and' && f.args?.[0] && f.args?.[1]) {
+    const l = distributeAndOverOr(f.args[0]);
+    const r = distributeAndOverOr(f.args[1]);
+    if (l.kind === 'or' && l.args?.[0] && l.args?.[1]) {
+      return { kind: 'or', args: [ distributeAndOverOr({ kind: 'and', args: [l.args[0], r] }), distributeAndOverOr({ kind: 'and', args: [l.args[1], r] }) ] };
+    }
+    if (r.kind === 'or' && r.args?.[0] && r.args?.[1]) {
+      return { kind: 'or', args: [ distributeAndOverOr({ kind: 'and', args: [l, r.args[0]] }), distributeAndOverOr({ kind: 'and', args: [l, r.args[1]] }) ] };
+    }
+    return { kind: 'and', args: [l, r] };
+  }
+  if (f.args) return { ...f, args: f.args.map(a => a ? distributeAndOverOr(a) : a) };
+  return f;
+}
+export function toDNF(f: Formula): Formula {
+  return distributeAndOverOr(toNNF(f));
+}
+
+function getSubFormulas(f: Formula): Formula[] {
+  const result: Formula[] = [];
+  const seen = new Set<string>();
+  function walk(node: Formula) {
+    if (node.args) node.args.forEach(a => { if(a) walk(a); });
+    const hash = formulaToString(node);
+    if (!seen.has(hash)) {
+      seen.add(hash);
+      result.push(node);
+    }
+  }
+  walk(f);
+  // Remove atoms and the full formula itself
+  return result.filter(n => n.kind !== 'atom' && formulaToString(n) !== formulaToString(f));
+}
+
 function formulasEqual(a: Formula, b: Formula): boolean {
   if (a.kind !== b.kind) return false;
   if (a.kind === 'atom' && b.kind === 'atom') return a.name === b.name;
@@ -544,6 +600,44 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
             ]) || changed;
         }
 
+        // Dilema Constructivo: de (P->Q)&(R->S) y P|R derivar Q|S
+        if (
+          f1.kind === 'and' && f1.args?.[0]?.kind === 'implies' && f1.args?.[1]?.kind === 'implies' &&
+          f2.kind === 'or' && f2.args?.[0] && f2.args?.[1] &&
+          formulasEqual(f1.args[0].args![0], f2.args[0]) && formulasEqual(f1.args[1].args![0], f2.args[1])
+        ) {
+          const qs: Formula = { kind: 'or', args: [f1.args[0].args![1], f1.args[1].args![1]] };
+          changed = addDerivedFormula(state, qs, 'Dilema Constructivo', [findStep(state.steps, f1), findStep(state.steps, f2)]) || changed;
+        }
+
+        // Dilema Destructivo: de (P->Q)&(R->S) y !Q|!S derivar !P|!R
+        if (
+          f1.kind === 'and' && f1.args?.[0]?.kind === 'implies' && f1.args?.[1]?.kind === 'implies' &&
+          f2.kind === 'or' && f2.args?.[0]?.kind === 'not' && f2.args?.[1]?.kind === 'not' &&
+          formulasEqual(f1.args[0].args![1], f2.args[0].args![0]) && formulasEqual(f1.args[1].args![1], f2.args[1].args![0])
+        ) {
+          const npnr: Formula = { kind: 'or', args: [{ kind: 'not', args: [f1.args[0].args![0]] }, { kind: 'not', args: [f1.args[1].args![0]] }] };
+          changed = addDerivedFormula(state, npnr, 'Dilema Destructivo', [findStep(state.steps, f1), findStep(state.steps, f2)]) || changed;
+        }
+
+        // Dilema simple: P|Q, P->R, Q->R derivar R
+        if (f1.kind === 'or' && f1.args?.[0] && f1.args?.[1] && f2.kind === 'implies' && f2.args?.[0] && formulasEqual(f1.args[0], f2.args[0])) {
+          for (const f3 of currentFormulas) {
+            if (f3.kind === 'implies' && f3.args?.[0] && f3.args?.[1] && formulasEqual(f1.args[1], f3.args[0]) && formulasEqual(f2.args![1], f3.args[1])) {
+              changed = addDerivedFormula(state, f2.args![1], 'Dilema Simple', [findStep(state.steps, f1), findStep(state.steps, f2), findStep(state.steps, f3)]) || changed;
+              break; // solo una vez por par f1,f2
+            }
+          }
+        }
+
+        // Resolución: P|Q, !P|R derivar Q|R
+        if (f1.kind === 'or' && f1.args?.[0] && f1.args?.[1] && f2.kind === 'or' && f2.args?.[0] && f2.args?.[1]) {
+          if (f2.args[0].kind === 'not' && f2.args[0].args?.[0] && formulasEqual(f1.args[0], f2.args[0].args[0])) {
+            const qr: Formula = { kind: 'or', args: [f1.args[1], f2.args[1]] };
+            changed = addDerivedFormula(state, qr, 'Resolucion', [findStep(state.steps, f1), findStep(state.steps, f2)]) || changed;
+          }
+        }
+
         // Explosión: de A y !A, derivar la meta solicitada
         if (
           goal &&
@@ -640,6 +734,36 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
               findStep(state.steps, f1),
             ]) || changed;
         }
+      }
+
+      // Absorción: P->Q ⊢ P->(P&Q)
+      if (f1.kind === 'implies' && f1.args?.[0] && f1.args?.[1]) {
+        const abs: Formula = { kind: 'implies', args: [f1.args[0], { kind: 'and', args: [f1.args[0], f1.args[1]] }] };
+        changed = addDerivedFormula(state, abs, 'Absorcion', [findStep(state.steps, f1)]) || changed;
+      }
+
+      // Exportación: (P&Q)->R ⊢ P->(Q->R)
+      if (f1.kind === 'implies' && f1.args?.[0]?.kind === 'and' && f1.args[0].args?.[0] && f1.args[0].args?.[1] && f1.args?.[1]) {
+        const exp: Formula = { kind: 'implies', args: [f1.args[0].args[0], { kind: 'implies', args: [f1.args[0].args[1], f1.args[1]] }] };
+        changed = addDerivedFormula(state, exp, 'Exportacion', [findStep(state.steps, f1)]) || changed;
+      }
+
+      // Importación: P->(Q->R) ⊢ (P&Q)->R
+      if (f1.kind === 'implies' && f1.args?.[0] && f1.args?.[1]?.kind === 'implies' && f1.args[1].args?.[0] && f1.args[1].args?.[1]) {
+        const imp: Formula = { kind: 'implies', args: [{ kind: 'and', args: [f1.args[0], f1.args[1].args[0]] }, f1.args[1].args[1]] };
+        changed = addDerivedFormula(state, imp, 'Importacion', [findStep(state.steps, f1)]) || changed;
+      }
+
+      // De Morgan 1: !(P&Q) ⊢ !P|!Q
+      if (f1.kind === 'not' && f1.args?.[0]?.kind === 'and' && f1.args[0].args?.[0] && f1.args[0].args?.[1]) {
+        const dm1: Formula = { kind: 'or', args: [{ kind: 'not', args: [f1.args[0].args[0]] }, { kind: 'not', args: [f1.args[0].args[1]] }] };
+        changed = addDerivedFormula(state, dm1, 'De Morgan (AND)', [findStep(state.steps, f1)]) || changed;
+      }
+
+      // De Morgan 2: !(P|Q) ⊢ !P&!Q
+      if (f1.kind === 'not' && f1.args?.[0]?.kind === 'or' && f1.args[0].args?.[0] && f1.args[0].args?.[1]) {
+        const dm2: Formula = { kind: 'and', args: [{ kind: 'not', args: [f1.args[0].args[0]] }, { kind: 'not', args: [f1.args[0].args[1]] }] };
+        changed = addDerivedFormula(state, dm2, 'De Morgan (OR)', [findStep(state.steps, f1)]) || changed;
       }
     }
   }
@@ -922,14 +1046,41 @@ export class ClassicalPropositional implements LogicProfile {
     }
 
     const tt = this.truthTable(formula);
-    let explanation = `Formula: ${formulaToString(formula)}\n`;
-    explanation += `Variables: ${tt.variables.join(', ')}\n`;
-    explanation += `Tautologia: ${tt.isTautology ? 'si' : 'no'}\n`;
-    explanation += `Contradiccion: ${tt.isContradiction ? 'si' : 'no'}\n`;
-    explanation += `Satisfacible: ${tt.isSatisfiable ? 'si' : 'no'}\n`;
-    explanation += `Total valuaciones: ${tt.rows.length}\n`;
-    explanation += `Verdaderas: ${tt.rows.filter((r) => r.result).length}\n`;
-    explanation += `Falsas: ${tt.rows.filter((r) => !r.result).length}\n`;
+    const tAnalysis = classifyFormula(formula);
+
+    let explanation = `Fórmula: ${formulaToUnicode(formula)}\n`;
+    if (tAnalysis.formulaAnalysis.mainConnective) {
+      explanation += `Conectivo principal: ${tAnalysis.formulaAnalysis.mainConnective}\n`;
+    }
+    explanation += `Profundidad: ${tAnalysis.formulaAnalysis.depth}\n`;
+    explanation += `Complejidad: ${tAnalysis.formulaAnalysis.complexity} conectivos\n`;
+    explanation += `Átomos: { ${Array.from(collectAtoms(formula)).join(', ')} }\n`;
+
+    if (tAnalysis.formulaAnalysis.subFormulas.length > 0) {
+      explanation += `\nSub-fórmulas:\n`;
+      for (const sf of tAnalysis.formulaAnalysis.subFormulas) {
+        explanation += `  ├─ ${sf}\n`;
+      }
+    }
+
+    explanation += `\nFormas normales:\n`;
+    const nnf = toNNF(formula);
+    const cnf = toCNF(formula);
+    const dnf = toDNF(formula);
+    explanation += `  NNF: ${formulaToString(nnf)}\n`;
+    explanation += `  CNF: ${formulaToString(cnf)}\n`;
+    explanation += `  DNF: ${formulaToString(dnf)}\n`;
+
+    if (tAnalysis.formulaClassification) {
+      explanation += `\nClasificación semántica: Tautología\n`;
+      explanation += `Nombre conocido: ${tAnalysis.formulaClassification}\n`;
+    }
+
+    explanation += `\nTabla de verdad:\n`;
+    explanation += `  ${tt.totalCount} valuaciones, ${tt.satisfyingCount} verdaderas, ${tt.totalCount! - tt.satisfyingCount!} falsas\n`;
+    if (tt.isTautology) explanation += `  → Tautología ✓\n`;
+    else if (tt.isContradiction) explanation += `  → Contradicción ✗\n`;
+    else explanation += `  → Contingente (satisfacible)\n`;
 
     return {
       status: tt.isTautology ? 'valid' : tt.isSatisfiable ? 'satisfiable' : 'unsatisfiable',
@@ -937,17 +1088,34 @@ export class ClassicalPropositional implements LogicProfile {
       truthTable: tt,
       diagnostics: [],
       formula,
+      formulaAnalysis: tAnalysis.formulaAnalysis,
+      formulaClassification: tAnalysis.formulaClassification,
+      normalForms: {
+        nnf: formulaToString(nnf),
+        cnf: formulaToString(cnf),
+        dnf: formulaToString(dnf)
+      }
     };
   }
 
   truthTable(formula: Formula): TruthTableResult {
     const atoms = Array.from(collectAtoms(formula)).sort();
     const valuations = generateValuations(atoms);
+    const subForms = getSubFormulas(formula);
 
     const rows: TruthTableRow[] = valuations.map((v) => ({
       valuation: v,
       result: evaluate(formula, v),
     }));
+
+    const subFormulasInfo = subForms.map(sf => ({ formula: sf, label: formulaToString(sf) }));
+    const subFormulaValues = valuations.map((v) => {
+      const vals: Record<string, boolean> = {};
+      subForms.forEach(sf => {
+        vals[formulaToString(sf)] = evaluate(sf, v);
+      });
+      return vals;
+    });
 
     return {
       variables: atoms,
@@ -955,6 +1123,10 @@ export class ClassicalPropositional implements LogicProfile {
       isTautology: rows.every((r) => r.result),
       isContradiction: rows.every((r) => !r.result),
       isSatisfiable: rows.some((r) => r.result),
+      subFormulas: subFormulasInfo,
+      subFormulaValues: subFormulaValues,
+      satisfyingCount: rows.filter(r => r.result).length,
+      totalCount: rows.length
     };
   }
 

@@ -84,6 +84,6 @@ logic classical.first_order
 check valid ((exists x P(x)) -> (forall x P(x)))
 `;
     const output = interpreter.execute(source);
-    expect(output.results[0].status).toBe('unknown'); // El motor FOL devuelve unknown si no cierra el tableau
+    expect(output.results[0].status).toBe('invalid'); // El motor ahora puede refutar correctamentevuelve unknown si no cierra el tableau
   });
 });
