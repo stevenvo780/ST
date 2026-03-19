@@ -1,6 +1,6 @@
 # ST Language — Changelog de Mejoras v2 (Motor de Salidas Pedagógicas)
 
-> **Estado**: ✅ COMPLETO — 648/648 tests, 15/15 examples, 0 bugs
+> **Estado**: ✅ COMPLETO — 648/648 tests, 15/15 examples, 1 bug corregido (FOL checkSatisfiable)
 > **Fecha**: 2026-03-19
 > **Objetivo**: Cada comando en cada perfil produce salida educativamente completa comparable a un libro de texto universitario de lógica.
 
@@ -195,10 +195,10 @@ Campos nuevos en `TruthTableResult`:
 
 ### Sistema de Verbosidad
 ```st
-set verbose on     -- Todo: formas normales, sub-fórmulas, comparación cruzada, notas pedagógicas
-set verbose off    -- Salida compacta (default)
-set verbose proof  -- Solo pruebas detalladas
-set verbose model  -- Solo modelos detallados
+let verbose = "on"     -- Todo: formas normales, sub-fórmulas, comparación cruzada, notas pedagógicas
+let verbose = "off"    -- Salida compacta (default)
+let verbose = "proof"  -- Solo pruebas detalladas
+let verbose = "model"  -- Solo modelos detallados
 ```
 
 ### Comparación Cruzada entre Sistemas
@@ -232,7 +232,7 @@ Se activa con `set verbose on` o automáticamente en `explain`. Evalúa la fórm
 
 ---
 
-## Bugs Resueltos (4)
+## Bugs Resueltos (5)
 
 | Bug | Causa | Fix |
 |---|---|---|
@@ -240,6 +240,7 @@ Se activa con `set verbose on` o automáticamente en `explain`. Evalúa la fórm
 | **console.log en producción** | 3 líneas de debug en known-theorems.ts | Eliminadas |
 | **Figuras silogísticas** | `checkSyllogism()` solo comparaba tipos A/E/I/O sin verificar posición del término medio | Reescrito: identifica S/P/M por posición, valida figura |
 | **Strings en tests** | Tests esperaban "verdadera" pero salida decía "verdadero"; formato aritmético obsoleto | Assertions actualizados |
+| **FOL checkSatisfiable** | `first-order.ts:134` asignaba `SolveResult` (objeto, siempre truthy) en vez de `.closed` | Cambio a `this.solve([...]).closed` |
 
 ---
 

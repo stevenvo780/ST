@@ -131,7 +131,7 @@ export class ClassicalFirstOrder implements LogicProfile {
 
   checkSatisfiable(formula: Formula): RunResult {
     const nnf = toNNF(formula);
-    const isClosed = this.solve([{ formula: nnf }]);
+    const isClosed = this.solve([{ formula: nnf }]).closed;
     return {
       status: !isClosed ? 'satisfiable' : 'unsatisfiable',
       output: !isClosed ? `Satisfacible` : `Insatisfacible`,
