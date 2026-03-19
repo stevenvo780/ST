@@ -4,9 +4,13 @@
   "scopeName": "source.st",
   "patterns": [
     { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#profiles" },
+    { "include": "#modal-aliases" },
     { "include": "#keywords" },
     { "include": "#operators" },
-    { "include": "#strings" }
+    { "include": "#atoms" },
+    { "include": "#numbers" }
   ],
   "repository": {
     "comments": {
@@ -15,11 +19,28 @@
         { "name": "comment.block.st", "begin": "/\\*", "end": "\\*/" }
       ]
     },
+    "profiles": {
+      "patterns": [
+        {
+          "name": "support.class.st",
+          "match": "\\b(classical\\.propositional|classical\\.first_order|modal\\.k|paraconsistent\\.belnap|deontic\\.standard|epistemic\\.s5|intuitionistic\\.propositional|temporal\\.ltl|aristotelian\\.syllogistic|probabilistic\\.basic|arithmetic)\\b"
+        }
+      ]
+    },
+    "modal-aliases": {
+      "patterns": [
+        {
+          "comment": "Modal aliases: K(φ), B(φ), O(φ), P(φ), G(φ), F(φ) when followed by (",
+          "name": "keyword.operator.modal-alias.st",
+          "match": "\\b([KBOGFP])(?=\\s*\\()"
+        }
+      ]
+    },
     "keywords": {
       "patterns": [
         {
           "name": "keyword.control.st",
-          "match": "\\b(logic|logica|axiom|axioma|theorem|teorema|claim|afirmacion|let|sea|derive|derivar|from|desde|check|verificar|prove|probar|countermodel|contramodel|contramodelo|refute|refutar|truth_table|tabla_verdad|explain|explicar|analyze|analizar|passage|pasaje|formalize|formalizar|as|como|support|soporte|confidence|confianza|context|contexto|import|importar|export|exportar|assume|asumir|show|demostrar|qed|render|mostrar|theory|teoria|extends|extiende|private|privado|print|imprimir|set|asignar|if|si|else|sino|for|para|in|en|while|mientras|fn|funcion|return|retornar|nand|nor|xor|siguiente|hasta)\\b"
+          "match": "\\b(logic|logica|axiom|axioma|theorem|teorema|claim|afirmacion|let|sea|derive|derivar|from|desde|check|verificar|prove|probar|countermodel|contramodel|contramodelo|refute|refutar|truth_table|tabla_verdad|explain|explicar|analyze|analizar|passage|pasaje|formalize|formalizar|as|como|support|soporte|confidence|confianza|context|contexto|import|importar|export|exportar|assume|asumir|show|demostrar|qed|render|mostrar|theory|teoria|extends|extiende|private|privado|print|imprimir|set|asignar|if|si|else|sino|for|para|in|en|while|mientras|fn|funcion|return|retornar|nand|nor|xor|next|siguiente|until|hasta)\\b"
         },
         {
           "name": "constant.language.st",
@@ -28,23 +49,37 @@
         {
           "name": "support.function.builtin.st",
           "match": "\\b(typeof|is_valid|is_satisfiable|get_atoms|input)\\b"
-        },
-        {
-          "name": "support.class.st",
-          "match": "\\b(classical\\.propositional|classical\\.first_order|modal\\.k|paraconsistent\\.belnap|deontic\\.standard|epistemic\\.s5|intuitionistic\\.propositional|temporal\\.ltl|aristotelian\\.syllogistic|probabilistic\\.basic|arithmetic)\\b"
         }
       ]
     },
     "operators": {
       "patterns": [
-        { "name": "keyword.operator.logical.st", "match": "!&|!\\||<=|>=|≤|≥|<->|->|<-|&|\\||!|\\+|-|\\*|/|%|<|>|=|\\^|⊕|↑|↓|~|forall|paratodo|exists|existe|next|siguiente|until|hasta" },
-        { "name": "keyword.operator.modal.st", "match": "\\[\\]|<>|\\[\\]!" }
+        { "name": "keyword.operator.logical.st", "match": "!&|!\\||<=|>=|≤|≥|<->|->|<-|<>|&|\\||!|\\+|-|\\*|/|%|<|>|=|\\^|⊕|↑|↓|~" },
+        { "name": "keyword.operator.modal.st", "match": "\\[\\]|<>" },
+        { "name": "keyword.operator.quantifier.st", "match": "\\b(forall|paratodo|exists|existe)\\b" }
       ]
     },
     "strings": {
       "patterns": [
-        { "name": "string.quoted.double.st", "begin": "\"", "end": "\"" },
+        { "name": "string.quoted.double.st", "begin": "\"", "end": "\"", "patterns": [{ "name": "constant.character.escape.st", "match": "\\\\." }] },
         { "name": "string.other.passage.st", "begin": "\\[\\[", "end": "\\]\\]" }
+      ]
+    },
+    "atoms": {
+      "patterns": [
+        {
+          "comment": "Single uppercase letter atoms (P, Q, R, ...)",
+          "name": "constant.other.atom.st",
+          "match": "\\b[A-Z]\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.st",
+          "match": "\\b\\d+(\\.\\d+)?\\b"
+        }
       ]
     }
   }

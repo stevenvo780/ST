@@ -783,10 +783,10 @@ describe('Paraconsistent Belnap — Exhaustive', () => {
     expect(out.stdout).not.toContain('VÁLIDA');
   });
 
-  it('P -> P is valid in Belnap', () => {
+  it('P -> P is NOT a tautology in Belnap (None value)', () => {
     const out = runOk(`logic paraconsistent.belnap\ncheck valid P -> P`);
-    // In Belnap 4-valued, P->P should be valid (all 4 values give designated)
-    expect(out.stdout.toLowerCase()).toMatch(/válida|valid/i);
+    // In Belnap with 4 values, P->P can fail when P=N(None)
+    expect(out.stdout).not.toContain('VÁLIDA');
   });
 
   it('explosion fails in Belnap: (P & !P) -> Q', () => {

@@ -1,8 +1,8 @@
 {
   "name": "st-symbolic-theory",
   "displayName": "ST — Symbolic Theory Language",
-  "description": "Full IDE support for ST (Symbolic Theory Language) — Diagnostics, hover, completions, go-to-definition, folding, code actions, run & render for logic, proofs and text formalization.",
-  "version": "0.3.0",
+  "description": "Full IDE support for ST (Symbolic Theory Language) — Diagnostics, hover, completions, go-to-definition, folding, code actions, modal aliases (K/O/G/F/B), Belnap 4-valued, run & render for logic, proofs and text formalization.",
+  "version": "0.5.0",
   "publisher": "StevenVallejo",
   "license": "MIT",
   "repository": {

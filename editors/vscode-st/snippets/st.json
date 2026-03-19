@@ -229,5 +229,105 @@
     "prefix": ["analyze", "analizar"],
     "body": ["analyze {${1:premisas}} |- ${2:conclusión}"],
     "description": "Analizar estructura inferencial"
+  },
+  "Epistemic Template (K/B aliases)": {
+    "prefix": "st:epistemic",
+    "body": [
+      "logic epistemic.s5",
+      "",
+      "// K(φ) = □φ (conocimiento), B(φ) = ◇φ (creencia)",
+      "axiom ${1:know} : K(${2:P})",
+      "",
+      "check valid K(${2:P}) -> ${2:P}",
+      "check valid K(${2:P}) -> K(K(${2:P}))",
+      "check valid K(${2:P}) -> B(${2:P})"
+    ],
+    "description": "Plantilla de lógica epistémica S5 con aliases K/B"
+  },
+  "Deontic Template (O/P/F aliases)": {
+    "prefix": "st:deontic",
+    "body": [
+      "logic deontic.standard",
+      "",
+      "// O(φ) = obligación, P(φ) = permisión, F(φ) = prohibición",
+      "axiom ${1:obligacion} : O(${2:P})",
+      "",
+      "check valid O(${2:P}) -> P(${2:P})",
+      "check valid O(${2:P}) -> ~F(${2:P})"
+    ],
+    "description": "Plantilla de lógica deóntica con aliases O/P/F"
+  },
+  "Temporal Template (G/F aliases)": {
+    "prefix": "st:temporal",
+    "body": [
+      "logic temporal.ltl",
+      "",
+      "// G(φ) = □φ (siempre), F(φ) = ◇φ (eventualmente)",
+      "axiom ${1:siempre} : G(${2:P})",
+      "",
+      "check valid G(${2:P}) -> ${2:P}",
+      "check valid G(${2:P}) -> F(${2:P})"
+    ],
+    "description": "Plantilla de lógica temporal LTL con aliases G/F"
+  },
+  "Belnap Template (4-valued)": {
+    "prefix": "st:belnap",
+    "body": [
+      "logic paraconsistent.belnap",
+      "",
+      "// 4 valores: T (verdadero), F (falso), B (ambos), N (ninguno)",
+      "// Designados: {T, B}",
+      "truth_table ${1:P -> Q}",
+      "countermodel ${2:P & ~P}"
+    ],
+    "description": "Plantilla de lógica paraconsistente Belnap 4-valores"
+  },
+  "FOL Template (first order)": {
+    "prefix": "st:fol",
+    "body": [
+      "logic classical.first_order",
+      "",
+      "axiom ${1:ax1} : forall x (${2:P(x)} -> ${3:Q(x)})",
+      "axiom ${4:ax2} : ${2:P(a)}",
+      "",
+      "derive ${3:Q(a)} from {${1:ax1}, ${4:ax2}}"
+    ],
+    "description": "Plantilla de lógica de primer orden"
+  },
+  "Intuitionistic Template": {
+    "prefix": "st:intuitionistic",
+    "body": [
+      "logic intuitionistic.propositional",
+      "",
+      "// Sin tercero excluido: p ∨ ¬p NO es válido",
+      "check valid ${1:P -> (Q -> P)}",
+      "check valid ${2:P | ~P}  // esperado: inválido"
+    ],
+    "description": "Plantilla de lógica intuicionista"
+  },
+  "Refute": {
+    "prefix": ["refute", "refutar"],
+    "body": ["refute ${1:fórmula}"],
+    "description": "Refutar fórmula (buscar contramodelo)"
+  },
+  "Knowledge Alias K()": {
+    "prefix": "K(",
+    "body": ["K(${1:fórmula})"],
+    "description": "K(φ) — Conocimiento (epistemic.s5) ≡ □φ"
+  },
+  "Obligation Alias O()": {
+    "prefix": "O(",
+    "body": ["O(${1:fórmula})"],
+    "description": "O(φ) — Obligación (deontic.standard) ≡ □φ"
+  },
+  "Globally Alias G()": {
+    "prefix": "G(",
+    "body": ["G(${1:fórmula})"],
+    "description": "G(φ) — Siempre (temporal.ltl) ≡ □φ"
+  },
+  "Eventually Alias F()": {
+    "prefix": "F(",
+    "body": ["F(${1:fórmula})"],
+    "description": "F(φ) — Eventualmente (temporal.ltl) ≡ ◇φ"
   }
 }
