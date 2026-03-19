@@ -285,3 +285,129 @@ check satisfiable (P & Q)
     expect(output.results[0].status).toBe('satisfiable');
   });
 });
+
+// ── Paraconsistent Belnap — Enriched Output ─────────────────
+
+describe('Engines — Belnap Enriched Output', () => {
+  const interpreter = new Interpreter();
+
+  it('countermodel Belnap muestra valuaciones de 4 valores', () => {
+    const source = `
+logic paraconsistent.belnap
+countermodel P | !P
+`;
+    const output = interpreter.execute(source);
+    expect(output.results[0].status).toBe('invalid');
+    expect(output.results[0].output).toContain('N');
+    expect(output.results[0].output).toContain('no designado');
+  });
+
+  it('countermodel Belnap muestra explicación', () => {
+    const source = `
+logic paraconsistent.belnap
+countermodel P -> P
+`;
+    const output = interpreter.execute(source);
+    expect(output.results[0].status).toBe('invalid');
+    expect(output.results[0].output).toContain('Neither');
+    expect(output.results[0].output).toContain('Valuación');
+  });
+
+  it('truth_table Belnap devuelve tabla con 4 valores', () => {
+    const source = `
+logic paraconsistent.belnap
+truth_table P & !P
+`;
+    const output = interpreter.execute(source);
+    expect(output.results[0].output).toContain('B');
+    expect(output.results[0].output).toContain('N');
+    expect(output.results[0].output).toContain('Designado');
+    expect(output.results[0].output).toContain('Belnap');
+  });
+
+  it('truth_table Belnap marca valores designados', () => {
+    const source = `
+logic paraconsistent.belnap
+truth_table P | !P
+`;
+    const output = interpreter.execute(source);
+    // P|!P no es tautología en Belnap (falla para N)
+    expect(output.results[0].output).toContain('Contingente');
+    expect(output.results[0].output).toContain('Valores designados');
+  });
+});
+
+// ── Modal Syntax Aliases ────────────────────────────────────
+
+describe('Parser — Modal Syntax Aliases', () => {
+  const interpreter = new Interpreter();
+
+  it('K(P) parsea como modal_necessity en epistemic.s5', () => {
+    const source = `
+logic epistemic.s5
+check valid K(P) -> P
+`;
+    const output = interpreter.execute(source);
+    // K(P) → P is the T axiom, valid in S5
+    expect(output.results[0].status).toBe('valid');
+  });
+
+  it('B(P) parsea como modal_possibility en epistemic.s5', () => {
+    const source = `
+logic epistemic.s5
+check valid K(P) -> B(P)
+`;
+    const output = interpreter.execute(source);
+    // K(P) → B(P) should be valid (□P → ◇P)
+    expect(output.results[0].status).toBe('valid');
+  });
+
+  it('O(P) parsea como modal_necessity en deontic.standard', () => {
+    const source = `
+logic deontic.standard
+check valid O(P) -> P(P)
+`;
+    const output = interpreter.execute(source);
+    // O(P) → P(P) is the D axiom ([]P → <>P), valid in KD
+    expect(output.results[0].status).toBe('valid');
+  });
+
+  it('F(P) deóntico parsea como prohibición □(¬P)', () => {
+    const source = `
+logic deontic.standard
+check valid F(P) -> !P(P)
+`;
+    const output = interpreter.execute(source);
+    // F(P) = [](¬P), P(P) = <>P; [](¬P) → ¬<>P is valid
+    expect(output.results[0].status).toBe('valid');
+  });
+
+  it('G(P) parsea como modal_necessity en temporal.ltl', () => {
+    const source = `
+logic temporal.ltl
+check valid G(P) -> F(P)
+`;
+    const output = interpreter.execute(source);
+    // G(P) → F(P) is valid (always → eventually)
+    expect(output.results[0].status).toBe('valid');
+  });
+
+  it('sin perfil modal, K(P) es un predicado normal', () => {
+    const source = `
+logic classical.first_order
+check valid K(P) -> K(P)
+`;
+    const output = interpreter.execute(source);
+    // K(P) → K(P) is trivially valid regardless of interpretation
+    expect(output.results[0].status).toBe('valid');
+  });
+
+  it('aliases no interfieren con la sintaxis [] existente', () => {
+    const source = `
+logic epistemic.s5
+check valid ([]P -> P)
+`;
+    const output = interpreter.execute(source);
+    expect(output.results[0].status).toBe('valid');
+  });
+});

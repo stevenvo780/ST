@@ -42,6 +42,17 @@ import {
   FnCallNode,
 } from '../ast/nodes';
 
+// Modal aliases per profile: maps identifier names to modal formula types
+const MODAL_ALIASES: Record<string, Record<string, 'box' | 'diamond' | 'box_not'>> = {
+  'deontic.standard': { O: 'box', P: 'diamond', F: 'box_not' },
+  'epistemic.s5': { K: 'box', B: 'diamond' },
+  'temporal.ltl': { G: 'box', F: 'diamond' },
+  'modal.k': { Box: 'box', Dia: 'diamond' },
+  'modal.s4': { Box: 'box', Dia: 'diamond' },
+  'modal.s5': { Box: 'box', Dia: 'diamond' },
+  'modal.t': { Box: 'box', Dia: 'diamond' },
+};
+
 export class Parser {
   private tokens: Token[] = [];
   private pos: number = 0;
@@ -55,6 +66,7 @@ export class Parser {
     'input',
   ]);
   private knownTheoryNames: Set<string> = new Set();
+  private currentProfile: string = '';
 
   constructor(file: string = '<stdin>') {
     this.file = file;
@@ -194,6 +206,7 @@ export class Parser {
       profile += '.';
       profile += this.expectIdent();
     }
+    this.currentProfile = profile;
     return { kind: 'logic_decl', profile, source: src };
   }
 
@@ -1039,6 +1052,26 @@ export class Parser {
       }
 
       if (this.match(TokenType.LPAREN)) {
+        // Modal alias check: e.g. K(P) in epistemic, O(P) in deontic
+        const profileAliases = MODAL_ALIASES[this.currentProfile];
+        const aliasType = profileAliases?.[tok.value];
+        if (aliasType) {
+          const inner = this.parseFormula();
+          this.expect(TokenType.RPAREN);
+          if (aliasType === 'box') {
+            return { kind: 'modal_necessity', args: [inner], source: { line: tok.line, column: tok.column } };
+          } else if (aliasType === 'diamond') {
+            return { kind: 'modal_possibility', args: [inner], source: { line: tok.line, column: tok.column } };
+          } else {
+            // box_not: e.g. deontic F(φ) = □(¬φ)
+            return {
+              kind: 'modal_necessity',
+              args: [{ kind: 'not', args: [inner], source: { line: tok.line, column: tok.column } }],
+              source: { line: tok.line, column: tok.column },
+            };
+          }
+        }
+
         // Podría ser un predicado P(x, y) o una llamada a función fn(arg1, arg2)
         if (this.knownFunctionNames.has(tok.value) || this.knownTheoryNames.has(tok.value)) {
           const args: Formula[] = [];

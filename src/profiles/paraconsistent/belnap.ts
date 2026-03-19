@@ -210,9 +210,24 @@ export class ParaconsistentBelnap implements LogicProfile {
     const cm = tt.rows.find((r) => !designated.has(String(r.result)));
 
     if (cm) {
+      const valNames: Record<string, string> = {
+        T: 'True — solo verdadero',
+        F: 'False — solo falso',
+        B: 'Both — verdadero y falso',
+        N: 'Neither — ni verdadero ni falso',
+      };
+      let output = `Contramodelo Belnap para: ${formulaToString(formula)}\n`;
+      output += `  Valuación:\n`;
+      for (const [v, val] of Object.entries(cm.valuation)) {
+        output += `    ${v} = ${val} (${valNames[String(val)] ?? val})\n`;
+      }
+      output += `  Resultado: ${formulaToString(formula)} = ${cm.result} (no designado)\n`;
+      output += `\n  Explicación: En la lógica de Belnap, los valores designados son {T, B}.\n`;
+      output += `  El valor "${cm.result}" no es designado, por lo que la fórmula falla bajo esta valuación.`;
+
       return {
         status: 'invalid',
-        output: `Contramodelo encontrado en Belnap`,
+        output,
         model: { type: 'propositional', valuation: cm.valuation },
         diagnostics: [],
         formula,
@@ -411,5 +426,9 @@ export class ParaconsistentBelnap implements LogicProfile {
       }
     }
     return result;
+  }
+
+  truthTable(formula: Formula): TruthTableResult {
+    return this.generateBelnapTable(formula);
   }
 }

@@ -1614,6 +1614,15 @@ export class Interpreter {
 
     const lines: string[] = [];
 
+    // Detect Belnap (4-valued) table: results are strings like 'T','F','B','N'
+    const isBelnap = tt.rows.length > 0 && typeof tt.rows[0].result === 'string'
+      && ['T', 'F', 'B', 'N'].includes(String(tt.rows[0].result));
+
+    if (isBelnap) {
+      lines.push(`Tabla de verdad Belnap (4 valores) para: ${formulaToString(formula)}`);
+      lines.push('');
+    }
+
     // Header
     const colLabels = [...tt.variables];
 
@@ -1628,9 +1637,14 @@ export class Interpreter {
     lines.push(colWidths.map((w) => '-'.repeat(w)).join('-+-'));
 
     // Rows
+    const designated = new Set(['T', 'B']);
     for (let rowIndex = 0; rowIndex < tt.rows.length; rowIndex++) {
       const row = tt.rows[rowIndex];
-      const vals: string[] = tt.variables.map((v) => (row.valuation[v] ? 'T' : 'F'));
+      const vals: string[] = tt.variables.map((v) => {
+        const val = row.valuation[v];
+        if (typeof val === 'string') return val;
+        return val ? 'T' : 'F';
+      });
 
       if (isVerbose && tt.subFormulas && tt.subFormulaValues) {
         const subVals = tt.subFormulaValues[rowIndex];
@@ -1649,7 +1663,10 @@ export class Interpreter {
         (tt.isTautology === false && !row.result) || (tt.isSatisfiable && row.result);
       const rowStr = vals.map((v, i) => v.padEnd(colWidths[i])).join(' | ');
 
-      if (isVerbose && isCountermodel) {
+      // Belnap designation marker
+      if (isBelnap && designated.has(String(finalVal))) {
+        lines.push(`${rowStr}   ⊛ Designado`);
+      } else if (isVerbose && isCountermodel) {
         lines.push(`${rowStr}   ←`);
       } else {
         lines.push(rowStr);
@@ -1660,6 +1677,10 @@ export class Interpreter {
 
     if (tt.satisfyingCount !== undefined && tt.totalCount !== undefined) {
       lines.push(`${tt.satisfyingCount}/${tt.totalCount} valuaciones verdaderas`);
+    }
+
+    if (isBelnap) {
+      lines.push('Valores designados (portadores de verdad): {T, B}');
     }
 
     if (tt.isTautology) lines.push('→ Tautologia ✓');
