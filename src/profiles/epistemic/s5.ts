@@ -30,9 +30,22 @@ export class EpistemicS5 extends BaseTableauProfile {
       '  Axioma K:  K(φ→ψ) → (Kφ→Kψ)  — distribución',
       '  Axioma T:  Kφ → φ             — veridicidad (lo sabido es verdad)',
       '  Axioma 4:  Kφ → KKφ           — introspección positiva',
-      '  Axioma B:  φ → K¬K¬φ          — introspección negativa',
+      '  Axioma 5:  ¬Kφ → K¬Kφ         — introspección negativa',
+      '  Axioma B:  φ → K¬K¬φ          — simetría',
       '',
       '  Relación de accesibilidad: universal (equivalencia)',
+      '  Propiedades del frame: {reflexividad, simetría, transitividad}',
+      '  Significado: lo que sabes, sabes que lo sabes; lo que no sabes, sabes que no lo sabes',
+      '',
+      '  Simplificación de modalidades iteradas (colapsamiento S5):',
+      '    KKφ ≡ Kφ     (por axioma 4)',
+      '    BBφ ≡ Bφ     (colapsamiento dual)',
+      '    KBφ ≡ Bφ     (por axioma 5+B)',
+      '    BKφ ≡ Kφ     (colapsamiento dual)',
+      '',
+      '  ⚠ Paradojas conocidas:',
+      '    • Omnisciencia lógica: K(P→Q) ∧ K(P) → K(Q) — siempre válido (limitación del modelo)',
+      '    • Moore: P ∧ ¬K(P) — satisfacible pero no asertable',
     ].join('\n');
   }
 }

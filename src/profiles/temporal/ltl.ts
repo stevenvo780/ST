@@ -44,6 +44,81 @@ export class TemporalLTL extends BaseTableauProfile {
       '  Equivale al marco de Kripke S4 para G/F.',
     ].join('\n');
   }
+
+  explain(formula: Formula): import('../../types').RunResult {
+    const result = super.explain(formula);
+    const pattern = classifyTemporalPattern(formula);
+    if (pattern) {
+      const patternStr = `\nPatrón temporal: ${pattern.name}\n  Significado: ${pattern.meaning}\n  Categoría: ${pattern.category}`;
+      result.output = (result.output || '') + patternStr;
+      result.educationalNote =
+        (result.educationalNote || '') +
+        `\nEsta fórmula corresponde al patrón temporal "${pattern.name}" (${pattern.category}).`;
+    }
+    return result;
+  }
+}
+
+interface TemporalPattern {
+  name: string;
+  meaning: string;
+  category: string;
+}
+
+function classifyTemporalPattern(f: Formula): TemporalPattern | null {
+  // G(¬P) — Safety: "P nunca ocurre"
+  if (f.kind === 'modal_necessity' && f.args?.[0]?.kind === 'not') {
+    return {
+      name: 'Safety (Seguridad)',
+      meaning: '"Lo malo nunca ocurre"',
+      category: 'Propiedad de Safety',
+    };
+  }
+  // F(P) — Liveness: "P eventualmente ocurre"
+  if (f.kind === 'modal_possibility' && f.args?.[0]?.kind === 'atom') {
+    return {
+      name: 'Liveness (Vivacidad)',
+      meaning: '"Lo bueno eventualmente ocurre"',
+      category: 'Propiedad de Liveness',
+    };
+  }
+  // G(P → F(Q)) — Response: "Cada P es seguido por Q"
+  if (
+    f.kind === 'modal_necessity' &&
+    f.args?.[0]?.kind === 'implies' &&
+    f.args[0].args?.[1]?.kind === 'modal_possibility'
+  ) {
+    return {
+      name: 'Response (Respuesta)',
+      meaning: '"Cada solicitud eventualmente recibe respuesta"',
+      category: 'Propiedad de Liveness',
+    };
+  }
+  // F(G(P)) — Persistence: "P eventualmente se vuelve permanente"
+  if (f.kind === 'modal_possibility' && f.args?.[0]?.kind === 'modal_necessity') {
+    return {
+      name: 'Persistence (Persistencia)',
+      meaning: '"P eventualmente se vuelve permanente"',
+      category: 'Propiedad de Persistencia',
+    };
+  }
+  // G(F(P)) — Recurrence: "P ocurre infinitamente a menudo"
+  if (f.kind === 'modal_necessity' && f.args?.[0]?.kind === 'modal_possibility') {
+    return {
+      name: 'Recurrence (Recurrencia)',
+      meaning: '"P ocurre infinitamente a menudo"',
+      category: 'Propiedad de Fairness',
+    };
+  }
+  // ¬P U Q — Precedence: "Q llega antes que P"
+  if (f.kind === 'temporal_until' && f.args?.[0]?.kind === 'not') {
+    return {
+      name: 'Precedence (Precedencia)',
+      meaning: '"Q llega antes que P"',
+      category: 'Propiedad de Order',
+    };
+  }
+  return null;
 }
 
 function temporalToString(f: Formula): string {

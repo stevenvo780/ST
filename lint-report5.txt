@@ -1,0 +1,64 @@
+
+> @stevenvo780/st-lang@2.0.4 lint
+> eslint src --ext .ts
+
+
+/home/operador/proyectos/humanizar/ST/src/profiles/classical/first-order.ts
+   27:17  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+   45:46  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+   67:20  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+   73:17  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  428:53  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  435:53  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  482:46  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  499:46  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+/home/operador/proyectos/humanizar/ST/src/profiles/classical/propositional.ts
+   641:25   warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+   642:25   warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+   644:52   warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+   644:73   warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+   660:25   warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+   660:46   warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+   661:25   warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+   661:46   warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+   666:37   warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+   667:37   warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  1214:89   warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  1214:106  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+/home/operador/proyectos/humanizar/ST/src/profiles/intuitionistic/propositional.ts
+  144:21  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  187:11  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  205:19  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  241:9   warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+/home/operador/proyectos/humanizar/ST/src/profiles/shared/tableau-engine.ts
+   89:9   warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  137:17  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  152:19  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  339:81  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  459:9   warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+/home/operador/proyectos/humanizar/ST/src/runtime/interpreter.ts
+   372:44  error    Unsafe argument of type `any` assigned to a parameter of type `FnDeclNode`                                                                                                                             @typescript-eslint/no-unsafe-argument
+   372:74  warning  Unexpected any. Specify a different type                                                                                                                                                               @typescript-eslint/no-explicit-any
+   417:44  error    Replace `scope.letBindings.get(memberName)·as·Formula,·new·Set(visited)` with `⏎··················scope.letBindings.get(memberName)·as·Formula,⏎··················new·Set(visited),⏎················`  prettier/prettier
+   419:44  error    Replace `scope.axioms.get(memberName)·as·Formula,·new·Set(visited)` with `⏎··················scope.axioms.get(memberName)·as·Formula,⏎··················new·Set(visited),⏎················`            prettier/prettier
+   421:44  error    Replace `scope.theorems.get(memberName)·as·Formula,·new·Set(visited)` with `⏎··················scope.theorems.get(memberName)·as·Formula,⏎··················new·Set(visited),⏎················`        prettier/prettier
+   431:40  error    Replace `scope.letBindings.get(memberName)·as·Formula,·new·Set(visited)` with `⏎··············scope.letBindings.get(memberName)·as·Formula,⏎··············new·Set(visited),⏎············`              prettier/prettier
+   471:23  error    This assertion is unnecessary since it does not change the type of the expression                                                                                                                      @typescript-eslint/no-unnecessary-type-assertion
+  1090:26  warning  Forbidden non-null assertion                                                                                                                                                                           @typescript-eslint/no-non-null-assertion
+  1295:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-argument')
+  1448:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-member-access')
+  1448:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-argument')
+  1453:23  error    Unsafe argument of type `any` assigned to a parameter of type `{}`                                                                                                                                     @typescript-eslint/no-unsafe-argument
+  1455:49  error    Unsafe argument of type `any` assigned to a parameter of type `ArrayLike<unknown> | { [s: string]: unknown; }`                                                                                         @typescript-eslint/no-unsafe-argument
+  1473:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-member-access')
+
+/home/operador/proyectos/humanizar/ST/src/runtime/known-theorems.ts
+  115:21  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+✖ 44 problems (8 errors, 36 warnings)
+  5 errors and 4 warnings potentially fixable with the `--fix` option.
+

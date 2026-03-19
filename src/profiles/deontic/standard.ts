@@ -32,7 +32,19 @@ export class DeonticStandard extends BaseTableauProfile {
       'Sistema: KD (K + axioma D)',
       '  Axioma K: O(φ→ψ) → (O(φ)→O(ψ))',
       '  Axioma D: O(φ) → P(φ) — "lo obligatorio es permisible"',
-      '  Serialidad: todo mundo tiene al menos un mundo accesible',
+      '',
+      '  Relación de accesibilidad: serial',
+      '  Propiedades del frame: {serialidad}',
+      '  Significado: todo estado deóntico tiene al menos una alternativa permisible',
+      '',
+      '  No vale:',
+      '    ✗ Reflexividad  (O(φ) → φ — lo obligatorio no es necesariamente el caso)',
+      '    ✗ Transitividad, Simetría, Euclidianidad',
+      '',
+      '  ⚠ Paradojas conocidas en SDL:',
+      '    • Ross:       O(P) → O(P∨Q) — si es obligatorio enviar la carta, ¿es obligatorio enviarla o quemarla?',
+      '    • Chisholm:   O(P), O(P→Q), ¬P→O(¬Q), ¬P — inconsistente (contrary-to-duty)',
+      '    • Samaritano: O(¬P) → O(¬P∧Q) — obligaciones derivadas de eventos impermisibles',
     ].join('\n');
   }
 }

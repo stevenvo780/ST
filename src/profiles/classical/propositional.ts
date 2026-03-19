@@ -429,7 +429,7 @@ function formulasEqual(a: Formula, b: Formula): boolean {
 // --- Motor de derivación ---
 
 /** Límite duro de fórmulas derivadas para evitar explosión combinatoria */
-const MAX_KNOWN = 5000;
+const MAX_KNOWN = 500;
 
 /** Profundidad máxima de negación en cualquier sub-fórmula */
 function maxNegationDepth(f: Formula): number {
@@ -457,6 +457,20 @@ interface DerivationState {
 
 function formulaHash(f: Formula): string {
   return formulaToString(f);
+}
+
+/** Check if a formula is a sub-formula of the goal (prevents explosive rule cascading) */
+function isRelevantToGoal(f: Formula, goal: Formula): boolean {
+  const goalHash = formulaHash(goal);
+  const fHash = formulaHash(f);
+  if (fHash === goalHash) return true;
+  // Check if f appears as sub-formula of goal
+  const checkSub = (node: Formula): boolean => {
+    if (formulaHash(node) === fHash) return true;
+    if (node.args) return node.args.some(checkSub);
+    return false;
+  };
+  return checkSub(goal);
 }
 
 function addDerivedFormula(
@@ -501,7 +515,7 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
   }
 
   // Intentar derivar con BFS aplicando reglas
-  const maxIterations = 200;
+  const maxIterations = 100;
   let changed = true;
   let iterations = 0;
 
@@ -825,17 +839,19 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
         }
       }
 
-      // Absorción: P->Q ⊢ P->(P&Q)
+      // Absorción: P->Q ⊢ P->(P&Q) — SOLO si resultado es relevante al goal
       if (f1.kind === 'implies' && f1.args?.[0] && f1.args?.[1]) {
         const abs: Formula = {
           kind: 'implies',
           args: [f1.args[0], { kind: 'and', args: [f1.args[0], f1.args[1]] }],
         };
-        changed =
-          addDerivedFormula(state, abs, 'Absorcion', [findStep(state.steps, f1)]) || changed;
+        if (isRelevantToGoal(abs, goal)) {
+          changed =
+            addDerivedFormula(state, abs, 'Absorcion', [findStep(state.steps, f1)]) || changed;
+        }
       }
 
-      // Exportación: (P&Q)->R ⊢ P->(Q->R)
+      // Exportación: (P&Q)->R ⊢ P->(Q->R) — SOLO si resultado es relevante al goal
       if (
         f1.kind === 'implies' &&
         f1.args?.[0]?.kind === 'and' &&
@@ -847,11 +863,13 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           kind: 'implies',
           args: [f1.args[0].args[0], { kind: 'implies', args: [f1.args[0].args[1], f1.args[1]] }],
         };
-        changed =
-          addDerivedFormula(state, exp, 'Exportacion', [findStep(state.steps, f1)]) || changed;
+        if (isRelevantToGoal(exp, goal)) {
+          changed =
+            addDerivedFormula(state, exp, 'Exportacion', [findStep(state.steps, f1)]) || changed;
+        }
       }
 
-      // Importación: P->(Q->R) ⊢ (P&Q)->R
+      // Importación: P->(Q->R) ⊢ (P&Q)->R — SOLO si resultado es relevante al goal
       if (
         f1.kind === 'implies' &&
         f1.args?.[0] &&
@@ -863,8 +881,10 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           kind: 'implies',
           args: [{ kind: 'and', args: [f1.args[0], f1.args[1].args[0]] }, f1.args[1].args[1]],
         };
-        changed =
-          addDerivedFormula(state, imp, 'Importacion', [findStep(state.steps, f1)]) || changed;
+        if (isRelevantToGoal(imp, goal)) {
+          changed =
+            addDerivedFormula(state, imp, 'Importacion', [findStep(state.steps, f1)]) || changed;
+        }
       }
 
       // De Morgan 1: !(P&Q) ⊢ !P|!Q

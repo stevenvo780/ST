@@ -100,15 +100,43 @@ export const MODAL_THEOREMS: KnownTheorem[] = [
     paradox: true,
     note: 'El agente conoce todas las consecuencias lógicas de su conocimiento.',
   },
+
+  // Paradoja de Moore (#12)
+  {
+    pattern: 'P & ![]P',
+    name: 'Paradoja de Moore',
+    abbr: 'Moore',
+    systems: ['epistemic.s5'],
+    paradox: true,
+    note: "Satisfacible pero no asertable: 'llueve pero no sé que llueve'. Coherente semánticamente pero pragmáticamente absurda.",
+  },
+
+  // Introspección negativa (#14)
+  {
+    pattern: '![]P -> []![]P',
+    name: 'Introspección Negativa (Axioma 5)',
+    abbr: '5-Intro',
+    systems: ['epistemic.s5', 'modal.s5'],
+    paradox: false,
+    note: 'Si no sabes algo, sabes que no lo sabes. Requiere euclidianidad.',
+  },
+
+  // Paradoja de Chisholm (#13) — simplified recognizable pattern
+  {
+    pattern: '[]P & [](P -> Q) & (!P -> []!Q) & !P',
+    name: 'Paradoja de Chisholm',
+    abbr: 'Chisholm',
+    systems: ['deontic.standard'],
+    paradox: true,
+    note: 'Conjunto contrary-to-duty: obligaciones derivadas de actos que no deberían ocurrir. Inconsistente en KD estándar.',
+  },
 ];
 
 let schemasAST: { tag: KnownTheorem; ast: Formula }[] | null = null;
 function getSchemas() {
   if (schemasAST === null) {
     schemasAST = [];
-    console.log('Loading known theorems...');
     for (const schema of MODAL_THEOREMS) {
-      console.log('Parsing theorem:', schema.pattern);
       const parser = new Parser();
       const prog = parser.parse(`claim P = ${schema.pattern}`);
       if (prog.statements[0] && prog.statements[0].kind === 'claim_decl') {
@@ -116,7 +144,6 @@ function getSchemas() {
         schemasAST.push({ tag: schema, ast });
       }
     }
-    console.log('Finished loading known theorems.');
   }
   return schemasAST;
 }

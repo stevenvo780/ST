@@ -1501,26 +1501,58 @@ export class Interpreter {
     const model = result.model;
     if (
       model &&
-      model.valuation &&
-      (verbosity === 'on' || verbosity === 'model' || cmd === 'countermodel')
+      (verbosity === 'on' ||
+        verbosity === 'model' ||
+        cmd === 'countermodel' ||
+        cmd === 'check_valid' ||
+        cmd === 'check_satisfiable')
     ) {
-      this.emit('  Modelo / Valuación:');
-      for (const [k, v] of Object.entries(model.valuation)) {
-        const desc = this.letDescriptions.get(k);
-        const descStr = desc ? ` ("${desc}")` : '';
-        this.emit(`    ${k}${descStr} = ${String(v)}`);
+      // Display Kripke model with worlds if available
+      if (model.worlds && model.worlds.length > 0) {
+        this.emit('  Contramodelo Kripke:');
+        this.emit(`    Mundos: {${model.worlds.map((w) => w.name).join(', ')}}`);
+        this.emit('    Accesibilidad:');
+        for (const w of model.worlds) {
+          if (w.accessible.length > 0) {
+            this.emit(`      ${w.name} R ${w.accessible.join(', ')}`);
+          }
+        }
+        this.emit('    Valuación:');
+        for (const w of model.worlds) {
+          const trueAtoms = Object.entries(w.valuation)
+            .filter(([, val]) => val)
+            .map(([k]) => k);
+          const falseAtoms = Object.entries(w.valuation)
+            .filter(([, val]) => !val)
+            .map(([k]) => k);
+          const parts: string[] = [];
+          if (trueAtoms.length > 0) parts.push(trueAtoms.join(', '));
+          if (falseAtoms.length > 0) parts.push(`¬${falseAtoms.join(', ¬')}`);
+          this.emit(`      V(${w.name}) = {${parts.join(', ')}}`);
+        }
+      } else if (model.valuation) {
+        // Flat propositional model
+        this.emit('  Modelo / Valuación:');
+        for (const [k, v] of Object.entries(model.valuation)) {
+          const desc = this.letDescriptions.get(k);
+          const descStr = desc ? ` ("${desc}")` : '';
+          this.emit(`    ${k}${descStr} = ${String(v)}`);
+        }
       }
     }
 
     if (
       result.tableauTrace &&
       result.tableauTrace.length > 0 &&
-      (verbosity === 'on' || verbosity === 'proof')
+      (verbosity === 'on' ||
+        verbosity === 'proof' ||
+        cmd === 'check_valid' ||
+        cmd === 'check_satisfiable')
     ) {
       this.emit('  Traza del tableau:');
       for (let i = 0; i < result.tableauTrace.length; i++) {
         const step = result.tableauTrace[i] as { toString?: () => string };
-        this.emit(`    ${i + 1}. ${step.toString ? step.toString() : JSON.stringify(step)}`);
+        this.emit(`    ${i + 1}. ${step.toString ? step.toString() : String(step)}`);
       }
     }
 

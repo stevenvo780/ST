@@ -232,24 +232,67 @@ export class ParaconsistentBelnap implements LogicProfile {
     const designated = new Set(['T', 'B']);
     const isTautology = tt.rows.every((r) => designated.has(String(r.result)));
     const isSatisfiable = tt.rows.some((r) => designated.has(String(r.result)));
+    const atoms = Array.from(this.collectAtoms(formula));
 
     let out = `Lógica Paraconsistente de Belnap (4-Valores)\n`;
     out += `Fórmula: ${formulaToString(formula)}\n\n`;
 
-    out += `Retículo de Verdad (A4):\n`;
-    out += `  T: Verdadero (Solo verdad) [Designado]\n`;
-    out += `  B: Ambos (Verdadero y Falso - Inconsistente) [Designado]\n`;
-    out += `  N: Ninguno (Ni Verdadero ni Falso - Indeterminado)\n`;
-    out += `  F: Falso (Solo falsedad)\n\n`;
+    out += `Retículo de verdad (A4):\n`;
+    out += `       T\n`;
+    out += `      / \\\n`;
+    out += `     B   N\n`;
+    out += `      \\ /\n`;
+    out += `       F\n`;
+    out += `  Valores designados: {T, B} (portadores de verdad)\n\n`;
 
-    out += `Leyes Clásicas que FALLAN en Belnap:\n`;
-    out += `  - Tercero Excluido (P ∨ ¬P): Falla cuando P=N (da N no designado)\n`;
-    out += `  - No Contradicción ¬(P ∧ ¬P): Falla cuando P=B (da B designado)\n`;
-    out += `  - Silogismo Disyuntivo (P ∨ Q) ∧ ¬P → Q: Falla porque permite verdades inconsistentes.\n\n`;
+    // Per-value evaluation (#16)
+    if (atoms.length <= 2) {
+      out += `Evaluación por valor de ${atoms.length > 0 ? atoms[0] : 'P'}:\n`;
+      for (const val of VALUES) {
+        const valuation: Record<string, BelnapValue> = {};
+        for (const a of atoms) valuation[a] = val;
+        const result = this.evaluateBelnap(formula, valuation);
+        const isDesig = designated.has(result);
+        out += `  ${atoms.length > 0 ? atoms[0] : 'P'} = ${val} → ${formulaToString(formula)} = ${result}${isDesig ? ' ⊛ ← Designado' : ''}\n`;
+      }
+      out += `\n`;
+    }
+
+    // Designación marks in table (#17)
+    out += `Tabla Belnap:\n`;
+    const headerAtoms = atoms.length > 0 ? atoms : ['P'];
+    out += `  ${headerAtoms.join(' | ')} | ${formulaToString(formula)}\n`;
+    out += `  ${headerAtoms.map(() => '---').join('-+-')}---+---${'-'.repeat(formulaToString(formula).length)}\n`;
+    for (const row of tt.rows) {
+      const vals = headerAtoms.map((a) => String(row.valuation[a] || 'F'));
+      const res = String(row.result);
+      const mark = designated.has(res) ? ' ⊛' : '';
+      out += `  ${vals.join(' | ')} | ${res}${mark}\n`;
+    }
+    out += `  ⊛ = valor designado (T o B = porta verdad)\n\n`;
+
+    // Laws that FAIL (#16)
+    out += `Leyes clásicas que FALLAN en Belnap:\n`;
+    out += `  ✗ P ∨ ¬P (Tercero excluido): Falla cuando P=N (da N, no designado)\n`;
+    out += `  ✗ ¬(P ∧ ¬P) (No-contradicción): Falla cuando P=B (¬(B∧B) = ¬B = B, designado pero contradictorio)\n`;
+    out += `  ✗ (P ∧ ¬P) → Q (Ex falso): Falla — la explosión no vale\n`;
+    out += `  ✗ P → P (Identidad): Falla cuando P=N (N→N = N, no designado)\n\n`;
+
+    // Laws that HOLD (#18)
+    out += `Leyes clásicas que SE MANTIENEN en Belnap:\n`;
+    out += `  ✓ De Morgan: ¬(P∧Q) ≡ ¬P∨¬Q y ¬(P∨Q) ≡ ¬P∧¬Q\n`;
+    out += `  ✓ Distributividad: P∧(Q∨R) ≡ (P∧Q)∨(P∧R)\n`;
+    out += `  ✓ Idempotencia: P∧P ≡ P y P∨P ≡ P\n`;
+    out += `  ✓ Doble negación: ¬¬P ≡ P\n\n`;
+
+    // Classical comparison (#19)
+    out += `Comparación con lógica clásica:\n`;
+    out += `  En lógica clásica, esta fórmula sería: ${isTautology ? 'TAUTOLOGÍA (siempre V)' : isSatisfiable ? 'CONTINGENTE (a veces V, a veces F)' : 'CONTRADICCIÓN (siempre F)'}\n`;
+    out += `  En Belnap: ${isTautology ? 'TAUTOLOGÍA (siempre designada)' : isSatisfiable ? 'SATISFACIBLE (al menos una valuación designada)' : 'INSATISFACIBLE (nunca designada)'}\n\n`;
 
     out += `Estatus: ${isTautology ? 'TAUTOLOGÍA' : isSatisfiable ? 'SATISFACIBLE' : 'INSATISFACIBLE (Nunca designada)'}\n`;
 
-    const educationalNote = `En la lógica de Belnap, una contradicción (como P ∧ ¬P) puede tomar el valor designado 'B', lo que significa que de una contradicción no se sigue cualquier cosa (no hay "explosión"). La lógica de Belnap está estrechamente relacionada con la lógica de la relevancia y el razonamiento con bases de datos inconsistentes o incompletas.`;
+    const educationalNote = `En la lógica de Belnap, una contradicción (como P ∧ ¬P) puede tomar el valor designado 'B' (Both), lo que significa que de una contradicción no se sigue cualquier cosa (no hay "explosión" / ex falso quodlibet). Belnap modela fuentes de información contradictorias que coexisten sin colapso. Está relacionada con la lógica de la relevancia.`;
 
     return {
       status: isTautology ? 'valid' : 'invalid',

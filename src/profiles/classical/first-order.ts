@@ -196,14 +196,101 @@ export class ClassicalFirstOrder implements LogicProfile {
     const prenex = toPrenex(formula);
     const skolem = skolemize(formula);
 
+    // Collect quantifiers, predicates, variables
+    const quantifiers: { kind: string; variable: string; scope: string }[] = [];
+    const predicates = new Map<string, number>(); // name -> arity
+    const freeVars = new Set<string>();
+    const boundVars = new Set<string>();
+
+    const collectInfo = (f: Formula, bound: Set<string>) => {
+      if (f.kind === 'forall' || f.kind === 'exists') {
+        const v = f.variable || '_';
+        const innerStr = f.args?.[0] ? formulaToString(f.args[0]) : '?';
+        quantifiers.push({
+          kind: f.kind === 'forall' ? '∀' : '∃',
+          variable: v,
+          scope: innerStr,
+        });
+        const newBound = new Set(bound);
+        newBound.add(v);
+        boundVars.add(v);
+        if (f.args) f.args.forEach((a) => collectInfo(a, newBound));
+        return;
+      }
+      if (f.kind === 'predicate' && f.name) {
+        const arity = (f.params || []).length;
+        predicates.set(f.name, arity);
+        for (const p of f.params || []) {
+          if (!bound.has(p)) freeVars.add(p);
+        }
+      }
+      if (f.kind === 'atom' && f.name) {
+        predicates.set(f.name, 0);
+      }
+      if (f.args) f.args.forEach((a) => collectInfo(a, bound));
+    };
+    collectInfo(formula, new Set());
+
     let out = `Análisis de Fórmula en Primer Orden:\n`;
     out += `  Fórmula original: ${formulaToString(formula)}\n`;
-    out += `  Forma Normal Negativa (NNF): ${formulaToString(nnf)}\n`;
-    out += `  Forma Normal Prenex (PNF): ${formulaToString(prenex)}\n`;
-    out += `  Forma de Skolem: ${formulaToString(skolem)}\n\n`;
 
+    // Syntactic analysis
+    out += `\nAnálisis sintáctico:\n`;
+    if (quantifiers.length > 0) {
+      const qStrs = quantifiers.map(
+        (q) => `${q.kind}${q.variable} (${q.kind === '∀' ? 'universal' : 'existencial'})`,
+      );
+      out += `  Cuantificadores: ${qStrs.join(', ')}\n`;
+      for (const q of quantifiers) {
+        out += `  Alcance de ${q.kind}${q.variable}: ${q.scope}\n`;
+      }
+    } else {
+      out += `  Cuantificadores: ninguno (fórmula proposicional con predicados)\n`;
+    }
+
+    if (predicates.size > 0) {
+      const predStrs = Array.from(predicates.entries()).map(([n, a]) => `${n}/${a} (aridad ${a})`);
+      out += `  Predicados: ${predStrs.join(', ')}\n`;
+    }
+
+    if (boundVars.size > 0) out += `  Variables ligadas: ${Array.from(boundVars).join(', ')}\n`;
+    if (freeVars.size > 0) {
+      out += `  Variables libres: ${Array.from(freeVars).join(', ')}\n`;
+    } else {
+      out += `  Variables libres: ninguna (sentencia cerrada)\n`;
+    }
+
+    // Quantifier alternation depth
+    let altDepth = 0;
+    let lastQ = '';
+    for (const q of quantifiers) {
+      if (lastQ && lastQ !== q.kind) altDepth++;
+      lastQ = q.kind;
+    }
+    out += `  Alternancia de cuantificadores: ${altDepth}\n`;
+    out += `  Profundidad de cuantificadores: ${quantifiers.length}\n`;
+
+    // Normal forms
+    out += `\nFormas normales:\n`;
+    out += `  NNF: ${formulaToString(nnf)}\n`;
+    out += `  PNF: ${formulaToString(prenex)}\n`;
+    out += `  Skolem: ${formulaToString(skolem)}\n`;
+
+    // Natural language interpretation
+    if (
+      quantifiers.length === 1 &&
+      quantifiers[0].kind === '∀' &&
+      formula.args?.[0]?.kind === 'implies' &&
+      predicates.size === 2
+    ) {
+      const pNames = Array.from(predicates.keys());
+      out += `\nInterpretación natural: "Para todo ${quantifiers[0].variable}, si ${quantifiers[0].variable} es ${pNames[0]} entonces ${quantifiers[0].variable} es ${pNames[1]}"\n`;
+      out += `Lectura categórica: "Todo ${pNames[0]} es ${pNames[1]}" (proposición tipo A)\n`;
+    }
+
+    // Validity check
     const res = this.solve([{ formula: toNNF({ kind: 'not', args: [formula] }) }]);
-    out += `Estatus: ${res.closed ? 'VÁLIDA' : 'INVÁLIDA'}`;
+    out += `\nEstatus: ${res.closed ? 'VÁLIDA (demostrada por tableau)' : 'INVÁLIDA (rama abierta encontrada)'}`;
 
     return {
       status: res.closed ? 'valid' : 'invalid',
