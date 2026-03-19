@@ -181,7 +181,7 @@ export interface RunResult {
     connectivesUsed?: string[];
   };
   crossSystemComparison?: Record<string, string>;
-  tableauTrace?: any[];
+  tableauTrace?: unknown[];
   educationalNote?: string;
   paradoxWarning?: string;
 }

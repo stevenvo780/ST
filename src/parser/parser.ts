@@ -47,7 +47,13 @@ export class Parser {
   private pos: number = 0;
   private file: string;
   public diagnostics: Diagnostic[] = [];
-  private knownFunctionNames: Set<string> = new Set(['typeof', 'is_valid', 'is_satisfiable', 'get_atoms', 'input']);
+  private knownFunctionNames: Set<string> = new Set([
+    'typeof',
+    'is_valid',
+    'is_satisfiable',
+    'get_atoms',
+    'input',
+  ]);
   private knownTheoryNames: Set<string> = new Set();
 
   constructor(file: string = '<stdin>') {
@@ -101,7 +107,12 @@ export class Parser {
     }
 
     // Detección de llamada a método: objeto.metodo(...)
-    if (tok.type === TokenType.IDENTIFIER && this.peek(1) === TokenType.DOT && this.peek(2) === TokenType.IDENTIFIER && this.peek(3) === TokenType.LPAREN) {
+    if (
+      tok.type === TokenType.IDENTIFIER &&
+      this.peek(1) === TokenType.DOT &&
+      this.peek(2) === TokenType.IDENTIFIER &&
+      this.peek(3) === TokenType.LPAREN
+    ) {
       return this.parseMemberFnCall();
     }
 
@@ -436,7 +447,7 @@ export class Parser {
     const src = this.loc();
     this.expect(TokenType.IMPORT);
     // Acepta string entrecomillado o secuencia de ident.ident/ident
-    let path = '';
+    let path: string;
     if (this.checkType(TokenType.STRING)) {
       path = this.current().value;
       this.advance();
@@ -703,8 +714,11 @@ export class Parser {
     this.expect(TokenType.RETURN);
     let formula: Formula | undefined;
     // Si hay algo después del return que no sea newline/EOF/}
-    if (!this.checkType(TokenType.NEWLINE) && !this.checkType(TokenType.EOF) &&
-        !this.checkType(TokenType.RBRACE)) {
+    if (
+      !this.checkType(TokenType.NEWLINE) &&
+      !this.checkType(TokenType.EOF) &&
+      !this.checkType(TokenType.RBRACE)
+    ) {
       formula = this.parseFormula();
     }
     return { kind: 'return_stmt', formula, source: src };
@@ -825,7 +839,7 @@ export class Parser {
     while (this.match(TokenType.OR) || this.match(TokenType.XOR) || this.match(TokenType.NOR)) {
       const type = this.previous().type;
       const right = this.parseUntil();
-      const kind = type === TokenType.OR ? 'or' : (type === TokenType.XOR ? 'xor' : 'nor');
+      const kind = type === TokenType.OR ? 'or' : type === TokenType.XOR ? 'xor' : 'nor';
       left = { kind, args: [left, right], source: this.loc() };
     }
     return left;
@@ -917,7 +931,11 @@ export class Parser {
     // Unary minus: -expr → subtract(0, expr)
     if (this.match(TokenType.MINUS)) {
       const operand = this.parseUnary();
-      return { kind: 'subtract', args: [{ kind: 'number', value: 0, source: this.loc() }, operand], source: this.loc() };
+      return {
+        kind: 'subtract',
+        args: [{ kind: 'number', value: 0, source: this.loc() }, operand],
+        source: this.loc(),
+      };
     }
     if (this.match(TokenType.NOT)) {
       const operand = this.parseUnary();
@@ -953,16 +971,24 @@ export class Parser {
     if (this.checkType(TokenType.NUMBER)) {
       const tok = this.current();
       this.advance();
-      return { kind: 'number', value: parseFloat(tok.value), source: { line: tok.line, column: tok.column } };
+      return {
+        kind: 'number',
+        value: parseFloat(tok.value),
+        source: { line: tok.line, column: tok.column },
+      };
     }
 
     // Literal de texto (String)
     if (this.checkType(TokenType.STRING)) {
       const tok = this.current();
       this.advance();
-      // Lo representamos como un átomo especial o un nuevo kind. 
+      // Lo representamos como un átomo especial o un nuevo kind.
       // Por simplicidad para el motor lógico, lo tratamos como un átomo cuyo nombre es el valor del string entre comillas.
-      return { kind: 'atom', name: `"${tok.value}"`, source: { line: tok.line, column: tok.column } };
+      return {
+        kind: 'atom',
+        name: `"${tok.value}"`,
+        source: { line: tok.line, column: tok.column },
+      };
     }
 
     // Paréntesis
@@ -974,18 +1000,24 @@ export class Parser {
 
     // Dot notation con keyword como prefijo: Logic.mp, Theory.axiom, etc.
     // Si el token actual es una keyword seguida de DOT + IDENTIFIER, tratarlo como nombre calificado
-    if (this.checkType(TokenType.DOT) === false &&
-        this.current().type !== TokenType.IDENTIFIER &&
-        this.current().type !== TokenType.NEWLINE &&
-        this.current().type !== TokenType.EOF &&
-        this.peek(1) === TokenType.DOT &&
-        this.peek(2) === TokenType.IDENTIFIER) {
+    if (
+      this.checkType(TokenType.DOT) === false &&
+      this.current().type !== TokenType.IDENTIFIER &&
+      this.current().type !== TokenType.NEWLINE &&
+      this.current().type !== TokenType.EOF &&
+      this.peek(1) === TokenType.DOT &&
+      this.peek(2) === TokenType.IDENTIFIER
+    ) {
       const tok = this.current();
       this.advance(); // consumir keyword
       this.advance(); // consumir DOT
       const memberTok = this.current();
       this.advance(); // consumir IDENTIFIER
-      return { kind: 'atom', name: `${tok.value}.${memberTok.value}`, source: { line: tok.line, column: tok.column } };
+      return {
+        kind: 'atom',
+        name: `${tok.value}.${memberTok.value}`,
+        source: { line: tok.line, column: tok.column },
+      };
     }
 
     // Predicado o Atomo proposicional
@@ -999,7 +1031,11 @@ export class Parser {
         const memberTok = this.current();
         this.advance(); // consumir IDENTIFIER
         // Nombre calificado: "Theory.member"
-        return { kind: 'atom', name: `${tok.value}.${memberTok.value}`, source: { line: tok.line, column: tok.column } };
+        return {
+          kind: 'atom',
+          name: `${tok.value}.${memberTok.value}`,
+          source: { line: tok.line, column: tok.column },
+        };
       }
 
       if (this.match(TokenType.LPAREN)) {
@@ -1138,11 +1174,15 @@ export class Parser {
       }
       case 'and':
         return arg0 && arg1
-          ? `(${this.collectAssociativeArgs(f, 'and').map(a => this.formulaToString(a)).join(' & ')})`
+          ? `(${this.collectAssociativeArgs(f, 'and')
+              .map((a) => this.formulaToString(a))
+              .join(' & ')})`
           : '(? & ?)';
       case 'or':
         return arg0 && arg1
-          ? `(${this.collectAssociativeArgs(f, 'or').map(a => this.formulaToString(a)).join(' | ')})`
+          ? `(${this.collectAssociativeArgs(f, 'or')
+              .map((a) => this.formulaToString(a))
+              .join(' | ')})`
           : '(? | ?)';
       case 'nand':
         return arg0 && arg1
@@ -1154,7 +1194,9 @@ export class Parser {
           : '(? ↓ ?)';
       case 'xor':
         return arg0 && arg1
-          ? `(${this.collectAssociativeArgs(f, 'xor').map(a => this.formulaToString(a)).join(' ⊕ ')})`
+          ? `(${this.collectAssociativeArgs(f, 'xor')
+              .map((a) => this.formulaToString(a))
+              .join(' ⊕ ')})`
           : '(? ⊕ ?)';
       case 'implies':
         return arg0 && arg1
@@ -1257,14 +1299,24 @@ export class Parser {
       return tok.value;
     }
     // Aceptar cualquier keyword como nombre en contextos de nombre
-    if (tok.type !== TokenType.NEWLINE && tok.type !== TokenType.EOF &&
-        tok.type !== TokenType.LPAREN && tok.type !== TokenType.RPAREN &&
-        tok.type !== TokenType.LBRACE && tok.type !== TokenType.RBRACE &&
-        tok.type !== TokenType.COLON && tok.type !== TokenType.EQUALS &&
-        tok.type !== TokenType.ARROW && tok.type !== TokenType.AND &&
-        tok.type !== TokenType.OR && tok.type !== TokenType.NOT &&
-        tok.type !== TokenType.DOT && tok.type !== TokenType.COMMA &&
-        tok.type !== TokenType.STRING && tok.type !== TokenType.NUMBER) {
+    if (
+      tok.type !== TokenType.NEWLINE &&
+      tok.type !== TokenType.EOF &&
+      tok.type !== TokenType.LPAREN &&
+      tok.type !== TokenType.RPAREN &&
+      tok.type !== TokenType.LBRACE &&
+      tok.type !== TokenType.RBRACE &&
+      tok.type !== TokenType.COLON &&
+      tok.type !== TokenType.EQUALS &&
+      tok.type !== TokenType.ARROW &&
+      tok.type !== TokenType.AND &&
+      tok.type !== TokenType.OR &&
+      tok.type !== TokenType.NOT &&
+      tok.type !== TokenType.DOT &&
+      tok.type !== TokenType.COMMA &&
+      tok.type !== TokenType.STRING &&
+      tok.type !== TokenType.NUMBER
+    ) {
       this.advance();
       return tok.value;
     }

@@ -80,9 +80,7 @@ describe('Classical Propositional — Exhaustive', () => {
 
   for (const [name, formula] of tautologies) {
     it(`tautology: ${name}`, () => {
-      expectOutput(
-        `logic classical.propositional\ncheck valid ${formula}`,
-      );
+      expectOutput(`logic classical.propositional\ncheck valid ${formula}`);
     });
   }
 
@@ -157,100 +155,133 @@ describe('Classical Propositional — Exhaustive', () => {
   // 1.5 Derivation rules
   describe('Derivation — all rules', () => {
     it('Modus Ponens', () => {
-      expectOutput(`
+      expectOutput(
+        `
 logic classical.propositional
 axiom mp1 = P -> Q
 axiom mp2 = P
 derive Q from {mp1, mp2}
-`, '✓ [derive]');
+`,
+        '✓ [derive]',
+      );
     });
 
     it('Modus Tollens', () => {
-      expectOutput(`
+      expectOutput(
+        `
 logic classical.propositional
 axiom mt1 = P -> Q
 axiom mt2 = !Q
 derive !P from {mt1, mt2}
-`, '✓ [derive]');
+`,
+        '✓ [derive]',
+      );
     });
 
     it('Hypothetical Syllogism', () => {
-      expectOutput(`
+      expectOutput(
+        `
 logic classical.propositional
 axiom hs1 = P -> Q
 axiom hs2 = Q -> R
 derive P -> R from {hs1, hs2}
-`, '✓ [derive]');
+`,
+        '✓ [derive]',
+      );
     });
 
     it('Disjunctive Syllogism', () => {
-      expectOutput(`
+      expectOutput(
+        `
 logic classical.propositional
 axiom ds1 = P | Q
 axiom ds2 = !P
 derive Q from {ds1, ds2}
-`, '✓ [derive]');
+`,
+        '✓ [derive]',
+      );
     });
 
     it('Conjunction Introduction', () => {
-      expectOutput(`
+      expectOutput(
+        `
 logic classical.propositional
 axiom ci1 = P
 axiom ci2 = Q
 derive P & Q from {ci1, ci2}
-`, '✓ [derive]');
+`,
+        '✓ [derive]',
+      );
     });
 
     it('Conjunction Elimination left', () => {
-      expectOutput(`
+      expectOutput(
+        `
 logic classical.propositional
 axiom ce1 = P & Q
 derive P from {ce1}
-`, '✓ [derive]');
+`,
+        '✓ [derive]',
+      );
     });
 
     it('Conjunction Elimination right', () => {
-      expectOutput(`
+      expectOutput(
+        `
 logic classical.propositional
 axiom ce2 = P & Q
 derive Q from {ce2}
-`, '✓ [derive]');
+`,
+        '✓ [derive]',
+      );
     });
 
     it('Disjunction Introduction', () => {
-      expectOutput(`
+      expectOutput(
+        `
 logic classical.propositional
 axiom di1 = P
 derive P | Q from {di1}
-`, '✓ [derive]');
+`,
+        '✓ [derive]',
+      );
     });
 
     it('Double Negation Elimination', () => {
-      expectOutput(`
+      expectOutput(
+        `
 logic classical.propositional
 axiom dn1 = !!P
 derive P from {dn1}
-`, '✓ [derive]');
+`,
+        '✓ [derive]',
+      );
     });
 
     it('Biconditional Elimination', () => {
-      expectOutput(`
+      expectOutput(
+        `
 logic classical.propositional
 axiom be1 = P <-> Q
 axiom be2 = P
 derive Q from {be1, be2}
-`, '✓ [derive]');
+`,
+        '✓ [derive]',
+      );
     });
 
     it('Chain of 4 implications', () => {
-      expectOutput(`
+      expectOutput(
+        `
 logic classical.propositional
 axiom c1 = A -> B
 axiom c2 = B -> C
 axiom c3 = C -> D
 axiom c4 = A
 derive D from {c1, c2, c3, c4}
-`, '✓ [derive]');
+`,
+        '✓ [derive]',
+      );
     });
 
     it('Invalid derivation does not succeed', () => {
@@ -272,9 +303,7 @@ derive P from {inv1, inv2}
     });
 
     it('2 variables: P & Q', () => {
-      const out = expectOutput(
-        `logic classical.propositional\ntruth_table P & Q`,
-      );
+      const out = expectOutput(`logic classical.propositional\ntruth_table P & Q`);
       // Should have 4 rows
       expect(out.stdout).toContain('P');
       expect(out.stdout).toContain('Q');
@@ -292,9 +321,7 @@ derive P from {inv1, inv2}
   // 1.7 Countermodel
   describe('Countermodel', () => {
     it('finds countermodel for non-tautology', () => {
-      expectOutput(
-        `logic classical.propositional\ncountermodel P -> Q`,
-      );
+      expectOutput(`logic classical.propositional\ncountermodel P -> Q`);
     });
 
     it('no countermodel for tautology', () => {
@@ -323,13 +350,16 @@ derive P from {inv1, inv2}
   // 1.9 Prove command
   describe('Prove', () => {
     it('proves tautology', () => {
-      expectOutput(`
+      expectOutput(
+        `
 logic classical.propositional
 axiom a1 = P -> Q
 axiom a2 = P
 theorem t1 = Q
 prove Q from {a1, a2}
-`, '✓');
+`,
+        '✓',
+      );
     });
 
     it('fails to prove non-theorem', () => {
@@ -350,15 +380,11 @@ prove P from {a1, a2}
 // ============================================================
 describe('Classical First Order — Exhaustive', () => {
   it('universal instantiation: forall x P(x) -> P(a)', () => {
-    expectOutput(
-      `logic classical.first_order\ncheck valid (forall x P(x)) -> P(a)`,
-    );
+    expectOutput(`logic classical.first_order\ncheck valid (forall x P(x)) -> P(a)`);
   });
 
   it('existential generalization: P(a) -> exists x P(x)', () => {
-    expectOutput(
-      `logic classical.first_order\ncheck valid P(a) -> (exists x P(x))`,
-    );
+    expectOutput(`logic classical.first_order\ncheck valid P(a) -> (exists x P(x))`);
   });
 
   it('vacuous universal: forall x P -> P (no x free in P)', () => {
@@ -396,12 +422,15 @@ describe('Classical First Order — Exhaustive', () => {
   });
 
   it('derivation in FOL', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.first_order
 axiom all_mortal = forall x (H(x) -> M(x))
 axiom socrates = H(s)
 derive M(s) from {all_mortal, socrates}
-`, '✓');
+`,
+      '✓',
+    );
   });
 });
 
@@ -410,18 +439,12 @@ derive M(s) from {all_mortal, socrates}
 // ============================================================
 describe('Modal K — Exhaustive', () => {
   it('K axiom: [](P -> Q) -> ([]P -> []Q)', () => {
-    expectOutput(
-      `logic modal.k\ncheck valid [](P -> Q) -> ([]P -> []Q)`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic modal.k\ncheck valid [](P -> Q) -> ([]P -> []Q)`, 'VÁLIDA');
   });
 
   it('necessitation: valid prop -> []valid prop (schema)', () => {
     // [](P -> P) should be valid
-    expectOutput(
-      `logic modal.k\ncheck valid [](P -> P)`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic modal.k\ncheck valid [](P -> P)`, 'VÁLIDA');
   });
 
   it('T axiom NOT valid in K: []P -> P', () => {
@@ -445,17 +468,11 @@ describe('Modal K — Exhaustive', () => {
   });
 
   it('modal duality: []P <-> !<>!P', () => {
-    expectOutput(
-      `logic modal.k\ncheck valid []P <-> !<>!P`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic modal.k\ncheck valid []P <-> !<>!P`, 'VÁLIDA');
   });
 
   it('diamond duality: <>P <-> ![]!P', () => {
-    expectOutput(
-      `logic modal.k\ncheck valid <>P <-> ![]!P`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic modal.k\ncheck valid <>P <-> ![]!P`, 'VÁLIDA');
   });
 
   it('nested modalities: [][]P should be parseable', () => {
@@ -480,17 +497,11 @@ describe('Modal K — Exhaustive', () => {
 // ============================================================
 describe('Deontic Standard — Exhaustive', () => {
   it('D axiom: O(P) -> P(P) (obligation implies permission)', () => {
-    expectOutput(
-      `logic deontic.standard\ncheck valid [](P) -> <>(P)`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic deontic.standard\ncheck valid [](P) -> <>(P)`, 'VÁLIDA');
   });
 
   it('K axiom holds: [](P->Q) -> ([]P -> []Q)', () => {
-    expectOutput(
-      `logic deontic.standard\ncheck valid [](P -> Q) -> ([]P -> []Q)`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic deontic.standard\ncheck valid [](P -> Q) -> ([]P -> []Q)`, 'VÁLIDA');
   });
 
   it('T axiom NOT valid: O(P) -> P', () => {
@@ -507,7 +518,7 @@ describe('Deontic Standard — Exhaustive', () => {
   });
 
   it('deontic conflict satisfiable: O(P) & O(!P)', () => {
-    // In KD this should be unsatisfiable (by D axiom leads to P(P) & P(!P) which is fine, 
+    // In KD this should be unsatisfiable (by D axiom leads to P(P) & P(!P) which is fine,
     // but O(P) & O(!P) -> P(P) & P(!P) -> P(P & !P)? Actually in KD it might be sat)
     runOk(`logic deontic.standard\ncheck satisfiable ([]P & [](!P))`);
   });
@@ -518,45 +529,27 @@ describe('Deontic Standard — Exhaustive', () => {
 // ============================================================
 describe('Epistemic S5 — Exhaustive', () => {
   it('T axiom (veridicality): K(P) -> P', () => {
-    expectOutput(
-      `logic epistemic.s5\ncheck valid []P -> P`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic epistemic.s5\ncheck valid []P -> P`, 'VÁLIDA');
   });
 
   it('4 axiom (positive introspection): K(P) -> K(K(P))', () => {
-    expectOutput(
-      `logic epistemic.s5\ncheck valid []P -> [][]P`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic epistemic.s5\ncheck valid []P -> [][]P`, 'VÁLIDA');
   });
 
   it('B axiom (negative introspection dual): P -> []<>P', () => {
-    expectOutput(
-      `logic epistemic.s5\ncheck valid P -> []<>P`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic epistemic.s5\ncheck valid P -> []<>P`, 'VÁLIDA');
   });
 
   it('5 axiom: <>P -> []<>P', () => {
-    expectOutput(
-      `logic epistemic.s5\ncheck valid <>P -> []<>P`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic epistemic.s5\ncheck valid <>P -> []<>P`, 'VÁLIDA');
   });
 
   it('knowledge is factive: K(P & Q) -> P', () => {
-    expectOutput(
-      `logic epistemic.s5\ncheck valid [](P & Q) -> P`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic epistemic.s5\ncheck valid [](P & Q) -> P`, 'VÁLIDA');
   });
 
   it('K distributes: K(P -> Q) -> (K(P) -> K(Q))', () => {
-    expectOutput(
-      `logic epistemic.s5\ncheck valid [](P -> Q) -> ([]P -> []Q)`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic epistemic.s5\ncheck valid [](P -> Q) -> ([]P -> []Q)`, 'VÁLIDA');
   });
 
   it('unknown is possible: !K(P) -> <>(!P)', () => {
@@ -604,7 +597,9 @@ describe('Intuitionistic Propositional — Exhaustive', () => {
       const out = runOk(`logic intuitionistic.propositional\ncheck valid ${formula}`);
       // Should be rejected or not valid
       const lower = out.stdout.toLowerCase();
-      expect(lower).toMatch(/rechazada|no es válida|no válida|invalid|refutada|contraejemplo|not valid/i);
+      expect(lower).toMatch(
+        /rechazada|no es válida|no válida|invalid|refutada|contraejemplo|not valid/i,
+      );
     });
   }
 
@@ -618,31 +613,19 @@ describe('Intuitionistic Propositional — Exhaustive', () => {
 // ============================================================
 describe('Temporal LTL — Exhaustive', () => {
   it('G(P) -> F(P): always implies eventually', () => {
-    expectOutput(
-      `logic temporal.ltl\ncheck valid [](P) -> <>(P)`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic temporal.ltl\ncheck valid [](P) -> <>(P)`, 'VÁLIDA');
   });
 
   it('G(P) -> P: always implies now (reflexivity)', () => {
-    expectOutput(
-      `logic temporal.ltl\ncheck valid [](P) -> P`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic temporal.ltl\ncheck valid [](P) -> P`, 'VÁLIDA');
   });
 
   it('G(P) -> G(G(P)): transitivity (S4)', () => {
-    expectOutput(
-      `logic temporal.ltl\ncheck valid []P -> [][]P`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic temporal.ltl\ncheck valid []P -> [][]P`, 'VÁLIDA');
   });
 
   it('F duality: F(P) <-> !G(!P)', () => {
-    expectOutput(
-      `logic temporal.ltl\ncheck valid <>(P) <-> !([](!P))`,
-      'VÁLIDA',
-    );
+    expectOutput(`logic temporal.ltl\ncheck valid <>(P) <-> !([](!P))`, 'VÁLIDA');
   });
 
   it('next operator: X(P) parseable', () => {
@@ -670,28 +653,85 @@ describe('Aristotelian Syllogistic — Exhaustive', () => {
   // All 19 valid syllogisms
   const validSyllogisms: [string, string][] = [
     // Figure 1: M-P, S-M ⊢ S-P
-    ['Barbara (AAA-1)', '(forall x (M(x) -> P(x))) & (forall x (S(x) -> M(x))) -> (forall x (S(x) -> P(x)))'],
-    ['Celarent (EAE-1)', '(forall x (M(x) -> !P(x))) & (forall x (S(x) -> M(x))) -> (forall x (S(x) -> !P(x)))'],
-    ['Darii (AII-1)', '(forall x (M(x) -> P(x))) & (exists x (S(x) & M(x))) -> (exists x (S(x) & P(x)))'],
-    ['Ferio (EIO-1)', '(forall x (M(x) -> !P(x))) & (exists x (S(x) & M(x))) -> (exists x (S(x) & !P(x)))'],
+    [
+      'Barbara (AAA-1)',
+      '(forall x (M(x) -> P(x))) & (forall x (S(x) -> M(x))) -> (forall x (S(x) -> P(x)))',
+    ],
+    [
+      'Celarent (EAE-1)',
+      '(forall x (M(x) -> !P(x))) & (forall x (S(x) -> M(x))) -> (forall x (S(x) -> !P(x)))',
+    ],
+    [
+      'Darii (AII-1)',
+      '(forall x (M(x) -> P(x))) & (exists x (S(x) & M(x))) -> (exists x (S(x) & P(x)))',
+    ],
+    [
+      'Ferio (EIO-1)',
+      '(forall x (M(x) -> !P(x))) & (exists x (S(x) & M(x))) -> (exists x (S(x) & !P(x)))',
+    ],
     // Figure 2: P-M, S-M ⊢ S-P
-    ['Cesare (EAE-2)', '(forall x (P(x) -> !M(x))) & (forall x (S(x) -> M(x))) -> (forall x (S(x) -> !P(x)))'],
-    ['Camestres (AEE-2)', '(forall x (P(x) -> M(x))) & (forall x (S(x) -> !M(x))) -> (forall x (S(x) -> !P(x)))'],
-    ['Festino (EIO-2)', '(forall x (P(x) -> !M(x))) & (exists x (S(x) & M(x))) -> (exists x (S(x) & !P(x)))'],
-    ['Baroco (AOO-2)', '(forall x (P(x) -> M(x))) & (exists x (S(x) & !M(x))) -> (exists x (S(x) & !P(x)))'],
+    [
+      'Cesare (EAE-2)',
+      '(forall x (P(x) -> !M(x))) & (forall x (S(x) -> M(x))) -> (forall x (S(x) -> !P(x)))',
+    ],
+    [
+      'Camestres (AEE-2)',
+      '(forall x (P(x) -> M(x))) & (forall x (S(x) -> !M(x))) -> (forall x (S(x) -> !P(x)))',
+    ],
+    [
+      'Festino (EIO-2)',
+      '(forall x (P(x) -> !M(x))) & (exists x (S(x) & M(x))) -> (exists x (S(x) & !P(x)))',
+    ],
+    [
+      'Baroco (AOO-2)',
+      '(forall x (P(x) -> M(x))) & (exists x (S(x) & !M(x))) -> (exists x (S(x) & !P(x)))',
+    ],
     // Figure 3: M-P, M-S ⊢ S-P
-    ['Darapti (AAI-3)', '(forall x (M(x) -> P(x))) & (forall x (M(x) -> S(x))) -> (exists x (S(x) & P(x)))'],
-    ['Disamis (IAI-3)', '(exists x (M(x) & P(x))) & (forall x (M(x) -> S(x))) -> (exists x (S(x) & P(x)))'],
-    ['Datisi (AII-3)', '(forall x (M(x) -> P(x))) & (exists x (M(x) & S(x))) -> (exists x (S(x) & P(x)))'],
-    ['Felapton (EAO-3)', '(forall x (M(x) -> !P(x))) & (forall x (M(x) -> S(x))) -> (exists x (S(x) & !P(x)))'],
-    ['Bocardo (OAO-3)', '(exists x (M(x) & !P(x))) & (forall x (M(x) -> S(x))) -> (exists x (S(x) & !P(x)))'],
-    ['Ferison (EIO-3)', '(forall x (M(x) -> !P(x))) & (exists x (M(x) & S(x))) -> (exists x (S(x) & !P(x)))'],
+    [
+      'Darapti (AAI-3)',
+      '(forall x (M(x) -> P(x))) & (forall x (M(x) -> S(x))) -> (exists x (S(x) & P(x)))',
+    ],
+    [
+      'Disamis (IAI-3)',
+      '(exists x (M(x) & P(x))) & (forall x (M(x) -> S(x))) -> (exists x (S(x) & P(x)))',
+    ],
+    [
+      'Datisi (AII-3)',
+      '(forall x (M(x) -> P(x))) & (exists x (M(x) & S(x))) -> (exists x (S(x) & P(x)))',
+    ],
+    [
+      'Felapton (EAO-3)',
+      '(forall x (M(x) -> !P(x))) & (forall x (M(x) -> S(x))) -> (exists x (S(x) & !P(x)))',
+    ],
+    [
+      'Bocardo (OAO-3)',
+      '(exists x (M(x) & !P(x))) & (forall x (M(x) -> S(x))) -> (exists x (S(x) & !P(x)))',
+    ],
+    [
+      'Ferison (EIO-3)',
+      '(forall x (M(x) -> !P(x))) & (exists x (M(x) & S(x))) -> (exists x (S(x) & !P(x)))',
+    ],
     // Figure 4: P-M, M-S ⊢ S-P
-    ['Bramantip (AAI-4)', '(forall x (P(x) -> M(x))) & (forall x (M(x) -> S(x))) -> (exists x (S(x) & P(x)))'],
-    ['Camenes (AEE-4)', '(forall x (P(x) -> M(x))) & (forall x (M(x) -> !S(x))) -> (forall x (S(x) -> !P(x)))'],
-    ['Dimaris (IAI-4)', '(exists x (P(x) & M(x))) & (forall x (M(x) -> S(x))) -> (exists x (S(x) & P(x)))'],
-    ['Fesapo (EAO-4)', '(forall x (P(x) -> !M(x))) & (forall x (M(x) -> S(x))) -> (exists x (S(x) & !P(x)))'],
-    ['Fresison (EIO-4)', '(forall x (P(x) -> !M(x))) & (exists x (M(x) & S(x))) -> (exists x (S(x) & !P(x)))'],
+    [
+      'Bramantip (AAI-4)',
+      '(forall x (P(x) -> M(x))) & (forall x (M(x) -> S(x))) -> (exists x (S(x) & P(x)))',
+    ],
+    [
+      'Camenes (AEE-4)',
+      '(forall x (P(x) -> M(x))) & (forall x (M(x) -> !S(x))) -> (forall x (S(x) -> !P(x)))',
+    ],
+    [
+      'Dimaris (IAI-4)',
+      '(exists x (P(x) & M(x))) & (forall x (M(x) -> S(x))) -> (exists x (S(x) & P(x)))',
+    ],
+    [
+      'Fesapo (EAO-4)',
+      '(forall x (P(x) -> !M(x))) & (forall x (M(x) -> S(x))) -> (exists x (S(x) & !P(x)))',
+    ],
+    [
+      'Fresison (EIO-4)',
+      '(forall x (P(x) -> !M(x))) & (exists x (M(x) & S(x))) -> (exists x (S(x) & !P(x)))',
+    ],
   ];
 
   for (const [name, formula] of validSyllogisms) {
@@ -702,8 +742,14 @@ describe('Aristotelian Syllogistic — Exhaustive', () => {
 
   // Invalid syllogisms
   const invalidSyllogisms: [string, string][] = [
-    ['Affirming consequent', '(forall x (M(x) -> P(x))) & (forall x (S(x) -> P(x))) -> (forall x (S(x) -> M(x)))'],
-    ['Undistributed middle', '(exists x (M(x) & P(x))) & (exists x (S(x) & M(x))) -> (exists x (S(x) & P(x)))'],
+    [
+      'Affirming consequent',
+      '(forall x (M(x) -> P(x))) & (forall x (S(x) -> P(x))) -> (forall x (S(x) -> M(x)))',
+    ],
+    [
+      'Undistributed middle',
+      '(exists x (M(x) & P(x))) & (exists x (S(x) & M(x))) -> (exists x (S(x) & P(x)))',
+    ],
   ];
 
   for (const [name, formula] of invalidSyllogisms) {
@@ -711,10 +757,13 @@ describe('Aristotelian Syllogistic — Exhaustive', () => {
       const out = runOk(`logic aristotelian.syllogistic\ncheck valid ${formula}`);
       const lower = out.stdout.toLowerCase();
       // Should not be recognized as valid syllogism
-      const isMarkedValid = lower.includes('silogismo válido') || lower.includes('barbara') || lower.includes('celarent');
+      const isMarkedValid =
+        lower.includes('silogismo válido') ||
+        lower.includes('barbara') ||
+        lower.includes('celarent');
       // If recognized as valid that's wrong, but the engine may just not detect it as a syllogism pattern
       // which is also acceptable - it should at least not crash
-      expect(out.exitCode).toBe(0);
+      expect(isMarkedValid).toBe(false);
     });
   }
 });
@@ -772,10 +821,7 @@ describe('Paraconsistent Belnap — Exhaustive', () => {
 // ============================================================
 describe('Probabilistic Basic — Exhaustive', () => {
   it('tautology: P | !P has probability 1', () => {
-    expectOutput(
-      `logic probabilistic.basic\ncheck valid P | !P`,
-      'tautología',
-    );
+    expectOutput(`logic probabilistic.basic\ncheck valid P | !P`, 'tautología');
   });
 
   it('contradiction: P & !P is not valid', () => {
@@ -784,10 +830,7 @@ describe('Probabilistic Basic — Exhaustive', () => {
   });
 
   it('implication tautology: P -> P', () => {
-    expectOutput(
-      `logic probabilistic.basic\ncheck valid P -> P`,
-      'tautología',
-    );
+    expectOutput(`logic probabilistic.basic\ncheck valid P -> P`, 'tautología');
   });
 
   it('satisfiability of simple atom', () => {
@@ -863,11 +906,14 @@ describe('Arithmetic — Exhaustive', () => {
   });
 
   it('let with arithmetic', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic arithmetic
 let total = 2 + 3
 print total
-`, '(2 + 3)');
+`,
+      '(2 + 3)',
+    );
   });
 });
 
@@ -876,74 +922,96 @@ print total
 // ============================================================
 describe('Runtime — Control Flow', () => {
   it('if valid', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 if valid (P | !P) {
   print "yes"
 }
-`, 'yes');
+`,
+      'yes',
+    );
   });
 
   it('if satisfiable', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 if satisfiable (P & Q) {
   print "sat"
 }
-`, 'sat');
+`,
+      'sat',
+    );
   });
 
   it('if unsatisfiable', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 if unsatisfiable (P & !P) {
   print "unsat"
 }
-`, 'unsat');
+`,
+      'unsat',
+    );
   });
 
   it('if invalid', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 if invalid P {
   print "inv"
 }
-`, 'inv');
+`,
+      'inv',
+    );
   });
 
   it('if-else', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 if valid P {
   print "wrong"
 } else {
   print "correct"
 }
-`, 'correct');
+`,
+      'correct',
+    );
   });
 
   it('nested if', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 if valid (P -> P) {
   if valid (Q -> Q) {
     print "nested"
   }
 }
-`, 'nested');
+`,
+      'nested',
+    );
   });
 
   it('for loop over set', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 for X in {A, B, C} {
   print X
 }
-`, 'A');
+`,
+      'A',
+    );
   });
 
   it('while loop with safety', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 let counter = 0
 while valid (P -> P) {
@@ -952,7 +1020,9 @@ while valid (P -> P) {
     print counter
   }
 }
-`, '1');
+`,
+      '1',
+    );
   });
 
   it('for loop iterates all items', () => {
@@ -970,35 +1040,44 @@ for X in {P, Q, R} {
 
 describe('Runtime — Functions', () => {
   it('basic function declaration and call', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 fn greet(Name) {
   print Name
 }
 greet(Hello)
-`, 'Hello');
+`,
+      'Hello',
+    );
   });
 
   it('function with return', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 fn double(X) {
   return X
 }
 let result = double(P)
 print result
-`, 'P');
+`,
+      'P',
+    );
   });
 
   it('function with multiple params', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 fn pair(A, B) {
   print A
   print B
 }
 pair(X, Y)
-`, 'X');
+`,
+      'X',
+    );
   });
 
   it('nested function calls', () => {
@@ -1017,14 +1096,17 @@ g(Hello)
 
 describe('Runtime — Theories (OOP)', () => {
   it('basic theory', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 theory MyTheory {
   axiom a1 = P -> Q
   theorem t1 = !Q -> !P
 }
 print MyTheory.a1
-`, 'P');
+`,
+      'P',
+    );
   });
 
   it('theory with extends', () => {
@@ -1138,37 +1220,49 @@ export axiom a1 = P -> Q
 
 describe('Runtime — Set (reassignment)', () => {
   it('set variable', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 let x = P
 set x = Q
 print x
-`, 'Q');
+`,
+      'Q',
+    );
   });
 });
 
 describe('Runtime — Print variations', () => {
   it('print string literal', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 print "hello world"
-`, 'hello world');
+`,
+      'hello world',
+    );
   });
 
   it('print formula', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 let f = P & Q
 print f
-`, '∧');
+`,
+      '∧',
+    );
   });
 
   it('print number (arithmetic)', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic arithmetic
 let n = 42
 print n
-`, '42');
+`,
+      '42',
+    );
   });
 });
 
@@ -1195,7 +1289,9 @@ describe('Parser — Edge Cases', () => {
   });
 
   it('very long formula name', () => {
-    runOk(`logic classical.propositional\nlet f = VeryLongVariableName -> AnotherLongName\nprint f`);
+    runOk(
+      `logic classical.propositional\nlet f = VeryLongVariableName -> AnotherLongName\nprint f`,
+    );
   });
 
   it('single letter atoms', () => {
@@ -1207,7 +1303,9 @@ describe('Parser — Edge Cases', () => {
   });
 
   it('back arrow in support', () => {
-    runOk(`logic classical.propositional\nlet p1 = passage([[ test ]])\nlet f1 = formalize p1 as P\nclaim c1 = P\nsupport c1 <- p1`);
+    runOk(
+      `logic classical.propositional\nlet p1 = passage([[ test ]])\nlet f1 = formalize p1 as P\nclaim c1 = P\nsupport c1 <- p1`,
+    );
   });
 
   it('multiple logic switches', () => {
@@ -1237,12 +1335,15 @@ print "d"
 // ============================================================
 describe('Spanish Keywords — Bilingüe', () => {
   it('logica, axioma, teorema, derivar, desde', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logica classical.propositional
 axioma a1 = P -> Q
 axioma a2 = P
 derivar Q desde {a1, a2}
-`, '✓');
+`,
+      '✓',
+    );
   });
 
   it('verificar, valido', () => {
@@ -1250,31 +1351,40 @@ derivar Q desde {a1, a2}
   });
 
   it('sea (let), imprimir (print)', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logica classical.propositional
 sea f = P & Q
 imprimir f
-`, '∧');
+`,
+      '∧',
+    );
   });
 
   it('si/sino (if/else)', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logica classical.propositional
 si valido (P -> P) {
   imprimir "verdadero"
 } sino {
   imprimir "falso"
 }
-`, 'verdadero');
+`,
+      'verdadero',
+    );
   });
 
   it('para/en (for/in)', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logica classical.propositional
 para X en {A, B} {
   imprimir X
 }
-`, 'A');
+`,
+      'A',
+    );
   });
 
   it('funcion/retornar', () => {
@@ -1447,13 +1557,16 @@ check valid (2 + 3) >= 5
   });
 
   it('declarations persist across profile switches', () => {
-    expectOutput(`
+    expectOutput(
+      `
 logic classical.propositional
 let f = P -> Q
 print f
 logic modal.k
 print f
-`, '→');
+`,
+      '→',
+    );
   });
 
   it('heavy computation: many checks in sequence', () => {
@@ -1538,7 +1651,7 @@ print get_atoms(f)
 // ============================================================
 describe('Operator Combinatorics', () => {
   const binaryOps = ['&', '|', '->', '<->', '!&', '!|', '^'];
-  
+
   for (const op of binaryOps) {
     it(`binary op ${op} parses and evaluates`, () => {
       runOk(`logic classical.propositional\nlet f = P ${op} Q\nprint f`);

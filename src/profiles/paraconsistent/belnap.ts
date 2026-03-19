@@ -112,7 +112,8 @@ export class ParaconsistentBelnap implements LogicProfile {
         ? `${formulaToString(formula)} es satisfacible en Belnap`
         : `${formulaToString(formula)} es una contradicion en Belnap (nunca designada)`,
       truthTable: tt,
-      educationalNote: 'En la lógica de Belnap, P ∧ ¬P es satisfacible porque P puede tomar el valor designado B (Both).',
+      educationalNote:
+        'En la lógica de Belnap, P ∧ ¬P es satisfacible porque P puede tomar el valor designado B (Both).',
       diagnostics: [],
       formula,
     };
@@ -246,7 +247,7 @@ export class ParaconsistentBelnap implements LogicProfile {
     out += `  - No Contradicción ¬(P ∧ ¬P): Falla cuando P=B (da B designado)\n`;
     out += `  - Silogismo Disyuntivo (P ∨ Q) ∧ ¬P → Q: Falla porque permite verdades inconsistentes.\n\n`;
 
-    out += `Estatus: ${isTautology ? 'TAUTOLOGÍA' : (isSatisfiable ? 'SATISFACIBLE' : 'INSATISFACIBLE (Nunca designada)')}\n`;
+    out += `Estatus: ${isTautology ? 'TAUTOLOGÍA' : isSatisfiable ? 'SATISFACIBLE' : 'INSATISFACIBLE (Nunca designada)'}\n`;
 
     const educationalNote = `En la lógica de Belnap, una contradicción (como P ∧ ¬P) puede tomar el valor designado 'B', lo que significa que de una contradicción no se sigue cualquier cosa (no hay "explosión"). La lógica de Belnap está estrechamente relacionada con la lógica de la relevancia y el razonamiento con bases de datos inconsistentes o incompletas.`;
 

@@ -456,10 +456,10 @@ export class IntuitionisticPropositional implements LogicProfile {
 
 function describeModel(model: KripkeModel): string {
   const lines: string[] = [];
-  lines.push(`Mundos: {${model.worlds.map(w => 'w' + w).join(', ')}}`);
+  lines.push(`Mundos: {${model.worlds.map((w) => 'w' + w).join(', ')}}`);
   for (const w of model.worlds) {
     const acc = Array.from(model.access.get(w) || []).filter((v) => v !== w);
-    if (acc.length > 0) lines.push(`  w${w} ≤ {${acc.map(v => 'w'+v).join(', ')}}`);
+    if (acc.length > 0) lines.push(`  w${w} ≤ {${acc.map((v) => 'w' + v).join(', ')}}`);
     const atoms = Array.from(model.val.get(w) || []);
     lines.push(`  V(w${w}) = {${atoms.join(', ')}}`);
   }
@@ -472,7 +472,7 @@ function traceForcing(model: KripkeModel, w: number, f: Formula, depth: number):
   const prefix = `${pad}¿w${w} ⊩ ${fStr}?`;
   const res = forces(model, w, f);
   const suffix = res ? '→ SÍ' : '→ NO';
-  
+
   const trace: string[] = [`${prefix}`];
 
   if (f.kind === 'atom') {
@@ -485,19 +485,20 @@ function traceForcing(model: KripkeModel, w: number, f: Formula, depth: number):
     trace.push(`${pad}  Rama izquierda: `);
     trace.push(...traceForcing(model, w, args[0], depth + 2));
     if (!res) {
-       trace.push(`${pad}  Rama derecha: `);
-       trace.push(...traceForcing(model, w, args[1], depth + 2));
+      trace.push(`${pad}  Rama derecha: `);
+      trace.push(...traceForcing(model, w, args[1], depth + 2));
     }
     trace.push(`${pad}  ${suffix}`);
     return trace;
   }
-  
+
   if (f.kind === 'and') {
     const args = f.args || [];
     trace.push(...traceForcing(model, w, args[0], depth + 1));
-    if (res || !forces(model, w, args[0])) { // only show second if first passed evaluating true and overall true, or wait, if first failed, we know it's false, so don't show second
+    if (res || !forces(model, w, args[0])) {
+      // only show second if first passed evaluating true and overall true, or wait, if first failed, we know it's false, so don't show second
       if (forces(model, w, args[0])) {
-         trace.push(...traceForcing(model, w, args[1], depth + 1));
+        trace.push(...traceForcing(model, w, args[1], depth + 1));
       }
     }
     trace.push(`${pad}  ${suffix}`);
@@ -507,39 +508,43 @@ function traceForcing(model: KripkeModel, w: number, f: Formula, depth: number):
   if (f.kind === 'not') {
     const inner = (f.args || [])[0];
     const reach = reachable(model, w);
-    trace.push(`${pad}  ¬${formulaToString(inner)} en w${w} ≡ ∀v≥w${w}: v ⊮ ${formulaToString(inner)}`);
+    trace.push(
+      `${pad}  ¬${formulaToString(inner)} en w${w} ≡ ∀v≥w${w}: v ⊮ ${formulaToString(inner)}`,
+    );
     for (const v of reach) {
-       trace.push(`${pad}  Explorando mundo accesible w${v}: `);
-       const fr = traceForcing(model, v, inner, depth + 2);
-       trace.push(...fr);
-       if (forces(model, v, inner)) {
-           trace.push(`${pad}  Pero w${v} ≥ w${w} y w${v} ⊩ ${formulaToString(inner)}`);
-           break;
-       }
+      trace.push(`${pad}  Explorando mundo accesible w${v}: `);
+      const fr = traceForcing(model, v, inner, depth + 2);
+      trace.push(...fr);
+      if (forces(model, v, inner)) {
+        trace.push(`${pad}  Pero w${v} ≥ w${w} y w${v} ⊩ ${formulaToString(inner)}`);
+        break;
+      }
     }
     trace.push(`${pad}  ${suffix}`);
     return trace;
   }
-  
+
   if (f.kind === 'implies') {
-      const args = f.args || [];
-      const reach = reachable(model, w);
-      trace.push(`${pad}  (A→B) en w${w} ≡ ∀v≥w${w}: v ⊩ A implica v ⊩ B`);
-      for (const v of reach) {
-         trace.push(`${pad}  Explorando mundo accesible w${v}: `);
-         if (forces(model, v, args[0]) && !forces(model, v, args[1])) {
-             trace.push(`${pad}  Falla en w${v}:`);
-             trace.push(...traceForcing(model, v, args[0], depth + 2));
-             trace.push(...traceForcing(model, v, args[1], depth + 2));
-             break;
-         } else if (!forces(model, v, args[0])) {
-             trace.push(`${pad}    w${v} ⊮ ${formulaToString(args[0])} (Evitado falsedad antecedente)`);
-         } else {
-             trace.push(`${pad}    w${v} ⊩ ${formulaToString(args[0])} y w${v} ⊩ ${formulaToString(args[1])}`);
-         }
+    const args = f.args || [];
+    const reach = reachable(model, w);
+    trace.push(`${pad}  (A→B) en w${w} ≡ ∀v≥w${w}: v ⊩ A implica v ⊩ B`);
+    for (const v of reach) {
+      trace.push(`${pad}  Explorando mundo accesible w${v}: `);
+      if (forces(model, v, args[0]) && !forces(model, v, args[1])) {
+        trace.push(`${pad}  Falla en w${v}:`);
+        trace.push(...traceForcing(model, v, args[0], depth + 2));
+        trace.push(...traceForcing(model, v, args[1], depth + 2));
+        break;
+      } else if (!forces(model, v, args[0])) {
+        trace.push(`${pad}    w${v} ⊮ ${formulaToString(args[0])} (Evitado falsedad antecedente)`);
+      } else {
+        trace.push(
+          `${pad}    w${v} ⊩ ${formulaToString(args[0])} y w${v} ⊩ ${formulaToString(args[1])}`,
+        );
       }
-      trace.push(`${pad}  ${suffix}`);
-      return trace;
+    }
+    trace.push(`${pad}  ${suffix}`);
+    return trace;
   }
 
   trace.push(`${pad}  Eval: ${suffix}`);

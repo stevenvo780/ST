@@ -225,11 +225,12 @@ function checkFalseDisjunction(premises: Formula[], conclusion: Formula): Fallac
  * Petición de principio: La conclusión ya está asumida en una de las premisas.
  */
 function checkBeggingQuestion(premises: Formula[], conclusion: Formula): FallacyInfo | null {
-  if (premises.some(p => formulaEquals(p, conclusion))) {
+  if (premises.some((p) => formulaEquals(p, conclusion))) {
     return {
       name: 'Petición de principio (Petitio Principii)',
-      description: 'La conclusión que se intenta probar ya se asume como verdadera en las premisas. Argumento circular.',
-      pattern: `φ ∈ {premisas} ⊢ φ`
+      description:
+        'La conclusión que se intenta probar ya se asume como verdadera en las premisas. Argumento circular.',
+      pattern: `φ ∈ {premisas} ⊢ φ`,
     };
   }
   return null;
@@ -242,23 +243,24 @@ function checkIllicitConversion(premises: Formula[], conclusion: Formula): Falla
   if (conclusion.kind === 'forall' && conclusion.args?.length === 1) {
     const cImp = conclusion.args[0];
     if (isImplies(cImp) && cImp.args?.[0] && cImp.args?.[1]) {
-       const cs = cImp.args[0];
-       const cp = cImp.args[1];
-       
-       for (const p of premises) {
-          if (p.kind === 'forall' && p.args?.length === 1 && p.variable === conclusion.variable) {
-              const pImp = p.args[0];
-              if (isImplies(pImp) && pImp.args?.[0] && pImp.args?.[1]) {
-                 if (formulaEquals(pImp.args[0], cp) && formulaEquals(pImp.args[1], cs)) {
-                     return {
-                       name: 'Conversión ilícita',
-                       description: 'Del hecho de que "Todo S es P" no se sigue lógicamente que "Todo P es S". (Ej. "Todo humano es mortal" no implica "Todo mortal es humano").',
-                       pattern: `∀x(A(x) → B(x)) ⊬ ∀x(B(x) → A(x))`
-                     };
-                 }
-              }
+      const cs = cImp.args[0];
+      const cp = cImp.args[1];
+
+      for (const p of premises) {
+        if (p.kind === 'forall' && p.args?.length === 1 && p.variable === conclusion.variable) {
+          const pImp = p.args[0];
+          if (isImplies(pImp) && pImp.args?.[0] && pImp.args?.[1]) {
+            if (formulaEquals(pImp.args[0], cp) && formulaEquals(pImp.args[1], cs)) {
+              return {
+                name: 'Conversión ilícita',
+                description:
+                  'Del hecho de que "Todo S es P" no se sigue lógicamente que "Todo P es S". (Ej. "Todo humano es mortal" no implica "Todo mortal es humano").',
+                pattern: `∀x(A(x) → B(x)) ⊬ ∀x(B(x) → A(x))`,
+              };
+            }
           }
-       }
+        }
+      }
     }
   }
   return null;
@@ -269,23 +271,27 @@ function checkIllicitConversion(premises: Formula[], conclusion: Formula): Falla
  */
 function checkHastyGeneralization(premises: Formula[], conclusion: Formula): FallacyInfo | null {
   if (conclusion.kind === 'forall' && conclusion.args?.length === 1) {
-     const cImp = conclusion.args[0];
-     if (isImplies(cImp) && cImp.args?.[0] && cImp.args?.[1]) {
-       for (const p of premises) {
-           if (p.kind === 'exists' && p.args?.length === 1 && p.variable === conclusion.variable) {
-               const pAnd = p.args[0];
-               if (isAnd(pAnd) && pAnd.args?.[0] && pAnd.args?.[1]) {
-                 if (formulaEquals(pAnd.args[0], cImp.args[0]) && formulaEquals(pAnd.args[1], cImp.args[1])) {
-                     return {
-                       name: 'Generalización apresurada',
-                       description: 'Inferir una regla universal ("Todo S es P") a partir de casos particulares ("Algún S es P") o ejemplos aislados no es válido lógicamente.',
-                       pattern: `∃x(S(x) ∧ P(x)) ⊬ ∀x(S(x) → P(x))`
-                     };
-                 }
-               }
-           }
-       }
-     }
+    const cImp = conclusion.args[0];
+    if (isImplies(cImp) && cImp.args?.[0] && cImp.args?.[1]) {
+      for (const p of premises) {
+        if (p.kind === 'exists' && p.args?.length === 1 && p.variable === conclusion.variable) {
+          const pAnd = p.args[0];
+          if (isAnd(pAnd) && pAnd.args?.[0] && pAnd.args?.[1]) {
+            if (
+              formulaEquals(pAnd.args[0], cImp.args[0]) &&
+              formulaEquals(pAnd.args[1], cImp.args[1])
+            ) {
+              return {
+                name: 'Generalización apresurada',
+                description:
+                  'Inferir una regla universal ("Todo S es P") a partir de casos particulares ("Algún S es P") o ejemplos aislados no es válido lógicamente.',
+                pattern: `∃x(S(x) ∧ P(x)) ⊬ ∀x(S(x) → P(x))`,
+              };
+            }
+          }
+        }
+      }
+    }
   }
   return null;
 }
@@ -298,21 +304,26 @@ function checkFourTerms(premises: Formula[], conclusion: Formula): FallacyInfo |
   // Solo aplicamos a sentencias con predicados
   const predicates = new Set<string>();
   function collectPreds(f: Formula) {
-      if (f.kind === 'predicate' && f.name) predicates.add(f.name);
-      if (f.args) f.args.forEach(collectPreds);
+    if (f.kind === 'predicate' && f.name) predicates.add(f.name);
+    if (f.args) f.args.forEach(collectPreds);
   }
   premises.forEach(collectPreds);
   collectPreds(conclusion);
 
   // Un silogismo categórico válido tiene exactamente 3 términos categóricos.
   // Solo aplicamos la falacia si la estructura básica sugiere silogismo.
-  const allAreQuantified = [conclusion, ...premises].every(f => f.kind === 'forall' || f.kind === 'exists');
+  const allAreQuantified = [conclusion, ...premises].every(
+    (f) => f.kind === 'forall' || f.kind === 'exists',
+  );
   if (allAreQuantified && predicates.size > 3) {
-      return {
-          name: 'Falacia de cuatro términos (Quaternio terminorum)',
-          description: 'Un silogismo categórico requiere exactamente tres términos (mayor, menor, medio). Encontrar ' + predicates.size + ' términos (ej. por ambigüedad o equivocación) destruye el enlace silogístico.',
-          pattern: `Predicados usados: {${[...predicates].join(', ')}} (esperados 3)`
-      };
+    return {
+      name: 'Falacia de cuatro términos (Quaternio terminorum)',
+      description:
+        'Un silogismo categórico requiere exactamente tres términos (mayor, menor, medio). Encontrar ' +
+        predicates.size +
+        ' términos (ej. por ambigüedad o equivocación) destruye el enlace silogístico.',
+      pattern: `Predicados usados: {${[...predicates].join(', ')}} (esperados 3)`,
+    };
   }
   return null;
 }
@@ -325,23 +336,24 @@ function checkFourTerms(premises: Formula[], conclusion: Formula): FallacyInfo |
  */
 function checkDivisionFallacy(premises: Formula[], conclusion: Formula): FallacyInfo | null {
   if (isImplies(conclusion) && conclusion.args?.[0] && conclusion.args?.[1]) {
-      const part = conclusion.args[0];
-      const cons = conclusion.args[1];
-      const wholeFound = premises.find(p => {
-          if (!isImplies(p) || !p.args?.[0] || !p.args?.[1]) return false;
-          if (!formulaEquals(p.args[1], cons)) return false;
-          const ant = p.args[0];
-          // si el antecedente de la premisa es un 'and' que contiene a 'part'
-          return isAnd(ant) && ant.args?.some(a => formulaEquals(a, part));
-      });
-      
-      if (wholeFound) {
-          return {
-             name: 'Falacia de división',
-             description: 'Que un todo o conjunto (A ∧ B) tenga una propiedad (C) no implica que sus partes individuales aseguren lógicamente esa misma propiedad (A → C).',
-             pattern: `((A ∧ B) → C) ⊬ (A → C)`
-          };
-      }
+    const part = conclusion.args[0];
+    const cons = conclusion.args[1];
+    const wholeFound = premises.find((p) => {
+      if (!isImplies(p) || !p.args?.[0] || !p.args?.[1]) return false;
+      if (!formulaEquals(p.args[1], cons)) return false;
+      const ant = p.args[0];
+      // si el antecedente de la premisa es un 'and' que contiene a 'part'
+      return isAnd(ant) && ant.args?.some((a) => formulaEquals(a, part));
+    });
+
+    if (wholeFound) {
+      return {
+        name: 'Falacia de división',
+        description:
+          'Que un todo o conjunto (A ∧ B) tenga una propiedad (C) no implica que sus partes individuales aseguren lógicamente esa misma propiedad (A → C).',
+        pattern: `((A ∧ B) → C) ⊬ (A → C)`,
+      };
+    }
   }
   return null;
 }

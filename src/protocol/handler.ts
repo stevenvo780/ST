@@ -12,7 +12,7 @@ import {
 } from '../types';
 import { Parser } from '../parser/parser';
 import { Interpreter } from '../runtime/interpreter';
-import { Statement, TheoryDeclNode } from '../ast/nodes';
+import { Statement } from '../ast/nodes';
 import { formulaToString } from '../profiles/classical/propositional';
 
 export class ProtocolHandler {
@@ -106,7 +106,8 @@ export class ProtocolHandler {
     const program = parser.parse(source);
 
     // Recopilar todas las definiciones let del programa
-    const letDefs: Map<string, { formula?: string; description?: string; line: number }> = new Map();
+    const letDefs: Map<string, { formula?: string; description?: string; line: number }> =
+      new Map();
     const axiomDefs: Map<string, { formula: string; line: number }> = new Map();
     const theoremDefs: Map<string, { formula: string; line: number }> = new Map();
 
@@ -116,36 +117,64 @@ export class ProtocolHandler {
           if (stmt.letType === 'description') {
             letDefs.set(stmt.name, { description: stmt.description, line: stmt.source.line });
           } else if (stmt.letType === 'formula') {
-            const desc = 'description' in stmt ? (stmt as { description?: string }).description : undefined;
-            letDefs.set(stmt.name, { formula: formulaToString(stmt.formula), description: desc, line: stmt.source.line });
+            const desc =
+              'description' in stmt ? (stmt as { description?: string }).description : undefined;
+            letDefs.set(stmt.name, {
+              formula: formulaToString(stmt.formula),
+              description: desc,
+              line: stmt.source.line,
+            });
           } else if (stmt.letType === 'passage') {
-            letDefs.set(stmt.name, { description: `passage([[${stmt.anchorPath}]])`, line: stmt.source.line });
+            letDefs.set(stmt.name, {
+              description: `passage([[${stmt.anchorPath}]])`,
+              line: stmt.source.line,
+            });
           }
           break;
         case 'axiom_decl':
-          axiomDefs.set(stmt.name, { formula: formulaToString(stmt.formula), line: stmt.source.line });
+          axiomDefs.set(stmt.name, {
+            formula: formulaToString(stmt.formula),
+            line: stmt.source.line,
+          });
           break;
         case 'theorem_decl':
-          theoremDefs.set(stmt.name, { formula: formulaToString(stmt.formula), line: stmt.source.line });
+          theoremDefs.set(stmt.name, {
+            formula: formulaToString(stmt.formula),
+            line: stmt.source.line,
+          });
           break;
-        case 'export_decl':
+        case 'export_decl': {
           // Tratar la declaración interna como si estuviera en el scope global
           const inner = stmt.statement;
           if (inner.kind === 'let_decl') {
             if (inner.letType === 'description') {
               letDefs.set(inner.name, { description: inner.description, line: inner.source.line });
             } else if (inner.letType === 'formula') {
-              const desc = 'description' in inner ? (inner as { description?: string }).description : undefined;
-              letDefs.set(inner.name, { formula: formulaToString(inner.formula), description: desc, line: inner.source.line });
+              const desc =
+                'description' in inner
+                  ? (inner as { description?: string }).description
+                  : undefined;
+              letDefs.set(inner.name, {
+                formula: formulaToString(inner.formula),
+                description: desc,
+                line: inner.source.line,
+              });
             }
           } else if (inner.kind === 'axiom_decl') {
-            axiomDefs.set(inner.name, { formula: formulaToString(inner.formula), line: inner.source.line });
+            axiomDefs.set(inner.name, {
+              formula: formulaToString(inner.formula),
+              line: inner.source.line,
+            });
           } else if (inner.kind === 'theorem_decl') {
-            theoremDefs.set(inner.name, { formula: formulaToString(inner.formula), line: inner.source.line });
+            theoremDefs.set(inner.name, {
+              formula: formulaToString(inner.formula),
+              line: inner.source.line,
+            });
           } else if (inner.kind === 'fn_decl') {
-             // Registrar función si fuera posible (habría que añadir functionDefs)
+            // Registrar función si fuera posible (habría que añadir functionDefs)
           }
           break;
+        }
         case 'theory_decl':
           // Registrar miembros de la teoría como defs prefijados
           for (const member of stmt.members) {
@@ -153,15 +182,29 @@ export class ProtocolHandler {
             const qPrefix = `${stmt.name}.`;
             if (ms.kind === 'let_decl') {
               if (ms.letType === 'description') {
-                letDefs.set(qPrefix + ms.name, { description: ms.description, line: ms.source.line });
+                letDefs.set(qPrefix + ms.name, {
+                  description: ms.description,
+                  line: ms.source.line,
+                });
               } else if (ms.letType === 'formula') {
-                const desc = 'description' in ms ? (ms as { description?: string }).description : undefined;
-                letDefs.set(qPrefix + ms.name, { formula: formulaToString(ms.formula), description: desc, line: ms.source.line });
+                const desc =
+                  'description' in ms ? (ms as { description?: string }).description : undefined;
+                letDefs.set(qPrefix + ms.name, {
+                  formula: formulaToString(ms.formula),
+                  description: desc,
+                  line: ms.source.line,
+                });
               }
             } else if (ms.kind === 'axiom_decl') {
-              axiomDefs.set(qPrefix + ms.name, { formula: formulaToString(ms.formula), line: ms.source.line });
+              axiomDefs.set(qPrefix + ms.name, {
+                formula: formulaToString(ms.formula),
+                line: ms.source.line,
+              });
             } else if (ms.kind === 'theorem_decl') {
-              theoremDefs.set(qPrefix + ms.name, { formula: formulaToString(ms.formula), line: ms.source.line });
+              theoremDefs.set(qPrefix + ms.name, {
+                formula: formulaToString(ms.formula),
+                line: ms.source.line,
+              });
             }
           }
           break;
@@ -202,7 +245,10 @@ export class ProtocolHandler {
           if (theoremDef) {
             return {
               id: request.id,
-              result: { content: `**Teorema** \`${word}\` = \`${theoremDef.formula}\``, range: { line, column } } as HoverInfo,
+              result: {
+                content: `**Teorema** \`${word}\` = \`${theoremDef.formula}\``,
+                range: { line, column },
+              } as HoverInfo,
             };
           }
 
@@ -249,22 +295,30 @@ export class ProtocolHandler {
   private getStaticHoverInfo(word: string): string | null {
     const lower = word.toLowerCase();
     const keywordInfo: Record<string, string> = {
-      logic: '**logic**\n\nActiva el perfil lógico del script actual.\n\nEjemplo: `logic arithmetic`',
-      axiom: '**axiom**\n\nDeclara una premisa o ley base disponible para derivaciones.\n\nEjemplo: `axiom regla : P -> Q`',
-      theorem: '**theorem**\n\nDeclara un teorema nombrado dentro de una teoría o script.\n\nEjemplo: `theorem identidad : P -> P`',
+      logic:
+        '**logic**\n\nActiva el perfil lógico del script actual.\n\nEjemplo: `logic arithmetic`',
+      axiom:
+        '**axiom**\n\nDeclara una premisa o ley base disponible para derivaciones.\n\nEjemplo: `axiom regla : P -> Q`',
+      theorem:
+        '**theorem**\n\nDeclara un teorema nombrado dentro de una teoría o script.\n\nEjemplo: `theorem identidad : P -> P`',
       let: '**let**\n\nCrea un alias reutilizable para fórmulas, descripciones o pasajes.',
-      derive: '**derive**\n\nIntenta derivar una conclusión a partir de premisas nombradas.\n\nEjemplo: `derive Q from {regla, hecho}`',
+      derive:
+        '**derive**\n\nIntenta derivar una conclusión a partir de premisas nombradas.\n\nEjemplo: `derive Q from {regla, hecho}`',
       check: '**check**\n\nEvalúa propiedades como validez, satisfacibilidad o equivalencia.',
       prove: '**prove**\n\nSolicita una demostración formal del objetivo.',
       countermodel: '**countermodel**\n\nBusca un modelo que haga falsa la fórmula dada.',
       truth_table: '**truth_table**\n\nGenera la tabla de verdad de una fórmula proposicional.',
       explain: '**explain**\n\nDevuelve una explicación del perfil o del juicio ejecutado.',
-      analyze: '**analyze**\n\nAnaliza premisas y conclusión para detectar estructura inferencial o falacias.',
+      analyze:
+        '**analyze**\n\nAnaliza premisas y conclusión para detectar estructura inferencial o falacias.',
       import: '**import**\n\nImporta otro archivo `.st` dentro del script actual.',
-      export: '**export**\n\nMarca una declaración para que sea visible desde otros scripts que importen este archivo.',
-      theory: '**theory**\n\nDefine un bloque reutilizable (Clase o Singleton) con miembros públicos y privados.\n\nEjemplo:\n```st\ntheory Agente(nombre) {\n  let id = nombre\n}\n```',
+      export:
+        '**export**\n\nMarca una declaración para que sea visible desde otros scripts que importen este archivo.',
+      theory:
+        '**theory**\n\nDefine un bloque reutilizable (Clase o Singleton) con miembros públicos y privados.\n\nEjemplo:\n```st\ntheory Agente(nombre) {\n  let id = nombre\n}\n```',
       extends: '**extends**\n\nPermite que una teoría herede miembros públicos de otra teoría.',
-      private: '**private**\n\nMarca un miembro de teoría como interno y no accesible externamente.',
+      private:
+        '**private**\n\nMarca un miembro de teoría como interno y no accesible externamente.',
       print: '**print**\n\nImprime texto o fórmulas durante la ejecución.',
       set: '**set**\n\nReasigna el valor de una variable o alias en tiempo de ejecución.',
       if: '**if**\n\nEjecuta un bloque cuando una condición (`valid`, `satisfiable`, etc.) se cumple.',
@@ -274,7 +328,8 @@ export class ProtocolHandler {
       while: '**while**\n\nRepite un bloque mientras una condición siga siendo verdadera.',
       fn: '**fn**\n\nDeclara una función con parámetros y posible retorno.',
       return: '**return**\n\nDevuelve un valor desde una función.',
-      arithmetic: '**arithmetic**\n\nPerfil numérico para expresiones aritméticas, comparaciones y scripting ST.',
+      arithmetic:
+        '**arithmetic**\n\nPerfil numérico para expresiones aritméticas, comparaciones y scripting ST.',
       '+': '**+**\n\nSuma dos expresiones numéricas.',
       '-': '**-**\n\nResta dos expresiones numéricas o expresa signo negativo.',
       '*': '**\\***\n\nMultiplica dos expresiones numéricas.',
@@ -288,13 +343,13 @@ export class ProtocolHandler {
       '≥': '**≥**\n\nVersión Unicode de `>=`.',
       '^': '**^** (XOR)\n\nDisyunción exclusiva. Verdadera si solo uno de los operandos es verdadero.',
       '⊕': '**⊕** (XOR)\n\nVersión Unicode de `^`.',
-      'xor': '**xor**\n\nVersión textual de `^`.',
+      xor: '**xor**\n\nVersión textual de `^`.',
       '!&': '**!&** (NAND)\n\nNegación alternativa (Sheffer stroke). Falsa solo si ambos operandos son verdaderos.',
       '↑': '**↑** (NAND)\n\nVersión Unicode de `!&`.',
-      'nand': '**nand**\n\nVersión textual de `!&`.',
+      nand: '**nand**\n\nVersión textual de `!&`.',
       '!|': '**!|** (NOR)\n\nNegación conjunta (Peirce arrow). Verdadera solo si ambos operandos son falsos.',
       '↓': '**↓** (NOR)\n\nVersión Unicode de `!|`.',
-      'nor': '**nor**\n\nVersión textual de `!|`.'
+      nor: '**nor**\n\nVersión textual de `!|`.',
     };
 
     const aliases: Record<string, string> = {
@@ -319,24 +374,36 @@ export class ProtocolHandler {
       en: keywordInfo.in,
       mientras: keywordInfo.while,
       funcion: keywordInfo.fn,
-      retornar: keywordInfo.return
+      retornar: keywordInfo.return,
     };
 
     const profileInfo: Record<string, string> = {
-      'classical.propositional': '**classical.propositional**\n\nLógica proposicional clásica con tablas de verdad y tableaux.',
-      'classical.first_order': '**classical.first_order**\n\nLógica de primer orden con cuantificadores, predicados e igualdad.',
+      'classical.propositional':
+        '**classical.propositional**\n\nLógica proposicional clásica con tablas de verdad y tableaux.',
+      'classical.first_order':
+        '**classical.first_order**\n\nLógica de primer orden con cuantificadores, predicados e igualdad.',
       'modal.k': '**modal.k**\n\nLógica modal mínima con necesidad (`[]`) y posibilidad (`<>`).',
-      'paraconsistent.belnap': '**paraconsistent.belnap**\n\nLógica paraconsistente de cuatro valores.',
-      'deontic.standard': '**deontic.standard**\n\nLógica deóntica para obligación, permisión y prohibición.',
+      'paraconsistent.belnap':
+        '**paraconsistent.belnap**\n\nLógica paraconsistente de cuatro valores.',
+      'deontic.standard':
+        '**deontic.standard**\n\nLógica deóntica para obligación, permisión y prohibición.',
       'epistemic.s5': '**epistemic.s5**\n\nLógica epistémica del conocimiento en marcos S5.',
-      'intuitionistic.propositional': '**intuitionistic.propositional**\n\nLógica constructiva sin tercero excluido general.',
+      'intuitionistic.propositional':
+        '**intuitionistic.propositional**\n\nLógica constructiva sin tercero excluido general.',
       'temporal.ltl': '**temporal.ltl**\n\nLógica temporal lineal con `next` y `until`.',
       'aristotelian.syllogistic': '**aristotelian.syllogistic**\n\nSilogística categórica clásica.',
       'probabilistic.basic': '**probabilistic.basic**\n\nRazonamiento probabilístico básico.',
       arithmetic: keywordInfo.arithmetic,
     };
 
-    return keywordInfo[word] ?? keywordInfo[lower] ?? aliases[lower] ?? profileInfo[word] ?? profileInfo[lower] ?? null;
+    return (
+      keywordInfo[word] ??
+      keywordInfo[lower] ??
+      aliases[lower] ??
+      profileInfo[word] ??
+      profileInfo[lower] ??
+      null
+    );
   }
 
   private handleSymbols(request: ProtocolRequest): ProtocolResponse {
@@ -375,15 +442,30 @@ export class ProtocolHandler {
         case 'let_decl':
           symbols.push({
             name: stmt.name,
-            kind: stmt.letType === 'passage' ? 'passage' : stmt.letType === 'description' ? 'variable' : 'formula',
-            description: stmt.letType === 'description' ? stmt.description : ('description' in stmt ? (stmt as { description?: string }).description : undefined),
-            detail: stmt.letType === 'formula' ? formulaToString(stmt.formula) : stmt.letType === 'description' ? `"${stmt.description}"` : undefined,
+            kind:
+              stmt.letType === 'passage'
+                ? 'passage'
+                : stmt.letType === 'description'
+                  ? 'variable'
+                  : 'formula',
+            description:
+              stmt.letType === 'description'
+                ? stmt.description
+                : 'description' in stmt
+                  ? (stmt as { description?: string }).description
+                  : undefined,
+            detail:
+              stmt.letType === 'formula'
+                ? formulaToString(stmt.formula)
+                : stmt.letType === 'description'
+                  ? `"${stmt.description}"`
+                  : undefined,
             location: stmt.source,
           });
           break;
         case 'theory_decl': {
           // Agregar la teoría como símbolo
-          const theoryStmt = stmt as TheoryDeclNode;
+          const theoryStmt = stmt;
           symbols.push({
             name: theoryStmt.name,
             kind: 'axiom',
@@ -398,9 +480,19 @@ export class ProtocolHandler {
               const memberName = `${theoryStmt.name}.${(ms as { name: string }).name}`;
               const vis = member.visibility === 'private' ? '🔒 ' : '';
               if (ms.kind === 'axiom_decl') {
-                symbols.push({ name: memberName, kind: 'axiom', detail: `${vis}${formulaToString(ms.formula)}`, location: ms.source });
+                symbols.push({
+                  name: memberName,
+                  kind: 'axiom',
+                  detail: `${vis}${formulaToString(ms.formula)}`,
+                  location: ms.source,
+                });
               } else if (ms.kind === 'theorem_decl') {
-                symbols.push({ name: memberName, kind: 'theorem', detail: `${vis}${formulaToString(ms.formula)}`, location: ms.source });
+                symbols.push({
+                  name: memberName,
+                  kind: 'theorem',
+                  detail: `${vis}${formulaToString(ms.formula)}`,
+                  location: ms.source,
+                });
               } else if (ms.kind === 'let_decl') {
                 symbols.push({
                   name: memberName,
@@ -504,7 +596,8 @@ export class ProtocolHandler {
         label: 'logic arithmetic',
         kind: 'value',
         detail: 'Perfil aritmético para cálculos numéricos, comparaciones y scripting',
-        documentation: 'Activa el perfil `arithmetic` para usar `+`, `-`, `*`, `/`, `%`, `<`, `>`, `<=` y `>=` con evaluación numérica.',
+        documentation:
+          'Activa el perfil `arithmetic` para usar `+`, `-`, `*`, `/`, `%`, `<`, `>`, `<=` y `>=` con evaluación numérica.',
         insertText: 'logic arithmetic',
       },
 
@@ -973,7 +1066,8 @@ export class ProtocolHandler {
         label: 'print',
         kind: 'keyword',
         detail: 'Imprimir texto o fórmulas durante la ejecución',
-        documentation: 'Úsalo para inspeccionar valores intermedios, resultados o mensajes del script.',
+        documentation:
+          'Úsalo para inspeccionar valores intermedios, resultados o mensajes del script.',
         insertText: 'print ${1:value}',
       },
       {
@@ -986,7 +1080,8 @@ export class ProtocolHandler {
         label: 'set',
         kind: 'keyword',
         detail: 'Reasignar una variable o alias',
-        documentation: 'Actualiza un valor en tiempo de ejecución, útil dentro de loops y funciones.',
+        documentation:
+          'Actualiza un valor en tiempo de ejecución, útil dentro de loops y funciones.',
         insertText: 'set ${1:name} = ${2:value}',
       },
       {
@@ -999,7 +1094,8 @@ export class ProtocolHandler {
         label: 'if',
         kind: 'keyword',
         detail: 'Condicional ST con rama else',
-        documentation: 'Evalúa condiciones como `valid`, `invalid`, `satisfiable` o `unsatisfiable` y ejecuta bloques según el resultado.',
+        documentation:
+          'Evalúa condiciones como `valid`, `invalid`, `satisfiable` o `unsatisfiable` y ejecuta bloques según el resultado.',
         insertText: 'if ${1:valid} ${2:formula} {\n  ${3}\n} else {\n  ${4}\n}',
       },
       {
@@ -1132,7 +1228,10 @@ export class ProtocolHandler {
     };
   }
 
-  private getStatementHoverInfo(stmt: Statement, letDefs?: Map<string, { formula?: string; description?: string; line: number }>): HoverInfo | null {
+  private getStatementHoverInfo(
+    stmt: Statement,
+    _letDefs?: Map<string, { formula?: string; description?: string; line: number }>,
+  ): HoverInfo | null {
     switch (stmt.kind) {
       case 'axiom_decl':
         return {
@@ -1152,7 +1251,8 @@ export class ProtocolHandler {
           content += `\n\n📝 *"${stmt.description}"*`;
         } else if (stmt.letType === 'formula') {
           content += ` = \`${formulaToString(stmt.formula)}\``;
-          const desc = 'description' in stmt ? (stmt as { description?: string }).description : undefined;
+          const desc =
+            'description' in stmt ? (stmt as { description?: string }).description : undefined;
           if (desc) content += `\n\n📝 *"${desc}"*`;
         } else if (stmt.letType === 'passage') {
           content += ` = passage([[${stmt.anchorPath}]])`;
@@ -1160,10 +1260,10 @@ export class ProtocolHandler {
         return { content, range: stmt.source };
       }
       case 'theory_decl': {
-        const theoryStmt = stmt as TheoryDeclNode;
+        const theoryStmt = stmt;
         const parentStr = theoryStmt.parent ? ` extends \`${theoryStmt.parent}\`` : '';
-        const pubCount = theoryStmt.members.filter(m => m.visibility === 'public').length;
-        const privCount = theoryStmt.members.filter(m => m.visibility === 'private').length;
+        const pubCount = theoryStmt.members.filter((m) => m.visibility === 'public').length;
+        const privCount = theoryStmt.members.filter((m) => m.visibility === 'private').length;
         let content = `**Theory** \`${theoryStmt.name}\`${parentStr}\n\n`;
         content += `📦 ${pubCount} miembros públicos`;
         if (privCount > 0) content += `, 🔒 ${privCount} privados`;

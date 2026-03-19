@@ -511,7 +511,10 @@ describe('LTL next and until', () => {
 
     const untilF: Formula = {
       kind: 'temporal_until',
-      args: [{ kind: 'atom', name: 'P' }, { kind: 'atom', name: 'Q' }],
+      args: [
+        { kind: 'atom', name: 'P' },
+        { kind: 'atom', name: 'Q' },
+      ],
     };
     expect(formulaToUnicode(untilF)).toBe('(P U Q)');
   });
@@ -522,7 +525,10 @@ describe('LTL next and until', () => {
 
     const untilF: Formula = {
       kind: 'temporal_until',
-      args: [{ kind: 'atom', name: 'P' }, { kind: 'atom', name: 'Q' }],
+      args: [
+        { kind: 'atom', name: 'P' },
+        { kind: 'atom', name: 'Q' },
+      ],
     };
     expect(formulaToLaTeX(untilF)).toContain('U');
   });

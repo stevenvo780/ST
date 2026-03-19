@@ -12,9 +12,13 @@ interface FONode {
 // ── Transforms ─────────────────────────────────────────────────────────────
 
 let varCounter = 0;
-function getNewVar() { return `v${varCounter++}`; }
+function getNewVar() {
+  return `v${varCounter++}`;
+}
 let skolemCounter = 0;
-function getSkolem(isFunc: boolean) { return isFunc ? `f${skolemCounter++}` : `c${skolemCounter++}`; }
+function getSkolem(isFunc: boolean) {
+  return isFunc ? `f${skolemCounter++}` : `c${skolemCounter++}`;
+}
 
 export function toPrenex(f: Formula): Formula {
   const nnf = toNNF(f);
@@ -26,10 +30,10 @@ export function toPrenex(f: Formula): Formula {
       return { ...node, variable: nv, args: [rename((node.args || [])[0], newMap)] };
     }
     if (node.kind === 'predicate') {
-      return { ...node, params: (node.params || []).map(p => mapping.get(p) || p) };
+      return { ...node, params: (node.params || []).map((p) => mapping.get(p) || p) };
     }
     if (node.args) {
-      return { ...node, args: node.args.map(a => rename(a, mapping)) };
+      return { ...node, args: node.args.map((a) => rename(a, mapping)) };
     }
     return node;
   }
@@ -73,7 +77,7 @@ export function skolemize(f: Formula): Formula {
 
       function rep(n: Formula): Formula {
         if (n.kind === 'predicate') {
-          return { ...n, params: (n.params || []).map(p => (p === v ? replaceStr : p)) };
+          return { ...n, params: (n.params || []).map((p) => (p === v ? replaceStr : p)) };
         }
         if (n.args) return { ...n, args: n.args.map(rep) };
         return n;
@@ -84,7 +88,7 @@ export function skolemize(f: Formula): Formula {
   }
   const rawMatrix = process(prenex);
   // Restore remaining foralls (Skolemization removes existentials, keeps foralls usually implicitly but we make them explicit)
-  let finalRes = rawMatrix;
+  const finalRes = rawMatrix;
   return finalRes; // Simplification: we just return the matrix, standard skolemization implicitly universalizes
 }
 
@@ -92,7 +96,6 @@ interface SolveResult {
   closed: boolean;
   trace: string[];
 }
-
 
 export class ClassicalFirstOrder implements LogicProfile {
   readonly name = 'classical.first_order';
@@ -155,7 +158,9 @@ export class ClassicalFirstOrder implements LogicProfile {
   }
 
   derive(goal: Formula, premises: string[], theory: Theory): RunResult {
-    const formulas = premises.map((p) => theory.axioms.get(p) || theory.theorems.get(p)).filter((f): f is Formula => !!f);
+    const formulas = premises
+      .map((p) => theory.axioms.get(p) || theory.theorems.get(p))
+      .filter((f): f is Formula => !!f);
     const nodes: FONode[] = [
       ...formulas.map((f) => ({ formula: toNNF(f) })),
       { formula: toNNF({ kind: 'not', args: [goal] }) },
@@ -163,7 +168,9 @@ export class ClassicalFirstOrder implements LogicProfile {
     const res = this.solve(nodes);
     return {
       status: res.closed ? 'provable' : 'refutable',
-      output: res.closed ? 'Derivado con éxito mediante tableau de primer orden.' : 'No se pudo derivar.',
+      output: res.closed
+        ? 'Derivado con éxito mediante tableau de primer orden.'
+        : 'No se pudo derivar.',
       tableauTrace: res.trace,
       diagnostics: [],
       formula: goal,
@@ -175,38 +182,40 @@ export class ClassicalFirstOrder implements LogicProfile {
     const res = this.solve([{ formula: { kind: 'not', args: [nnf] } }]);
     return {
       status: !res.closed ? 'valid' : 'invalid',
-      output: !res.closed ? `Existe al menos un modelo que satisface ¬F.` : `No existen contramodelos (F es válida).`,
+      output: !res.closed
+        ? `Existe al menos un modelo que satisface ¬F.`
+        : `No existen contramodelos (F es válida).`,
       tableauTrace: res.trace,
       diagnostics: [],
-      formula
+      formula,
     };
   }
-  
+
   explain(formula: Formula): RunResult {
     const nnf = toNNF(formula);
     const prenex = toPrenex(formula);
     const skolem = skolemize(formula);
-    
+
     let out = `Análisis de Fórmula en Primer Orden:\n`;
     out += `  Fórmula original: ${formulaToString(formula)}\n`;
     out += `  Forma Normal Negativa (NNF): ${formulaToString(nnf)}\n`;
     out += `  Forma Normal Prenex (PNF): ${formulaToString(prenex)}\n`;
     out += `  Forma de Skolem: ${formulaToString(skolem)}\n\n`;
-    
+
     const res = this.solve([{ formula: toNNF({ kind: 'not', args: [formula] }) }]);
     out += `Estatus: ${res.closed ? 'VÁLIDA' : 'INVÁLIDA'}`;
-    
-    return { 
-      status: res.closed ? 'valid' : 'invalid', 
-      output: out, 
+
+    return {
+      status: res.closed ? 'valid' : 'invalid',
+      output: out,
       tableauTrace: res.trace,
       normalForms: {
         nnf: formulaToString(nnf),
         pnf: formulaToString(prenex),
-        skolem: formulaToString(skolem)
+        skolem: formulaToString(skolem),
       },
-      diagnostics: [], 
-      formula 
+      diagnostics: [],
+      formula,
     };
   }
 
@@ -244,9 +253,12 @@ export class ClassicalFirstOrder implements LogicProfile {
     constants: Set<string>,
     processed: Set<string>,
     depth: number,
-    trace: string[]
+    trace: string[],
   ): boolean {
-    if (depth > 50) { trace.push(`[${depth}] ⚠ Se superó la profundidad máxima permitida (50).`); return false; }
+    if (depth > 50) {
+      trace.push(`[${depth}] ⚠ Se superó la profundidad máxima permitida (50).`);
+      return false;
+    }
     if (nodes.length === 0) return false;
 
     // 1. Contradicción robusta (comparación canónica)
@@ -254,8 +266,8 @@ export class ClassicalFirstOrder implements LogicProfile {
       if (n1.formula.kind === 'not' && n1.formula.args) {
         const atom = n1.formula.args[0];
         if (nodes.some((n2) => this.isEqual(n2.formula, atom))) {
-            trace.push(`[${depth}] ✕ Rama cerrada por contradicción con ${formulaToString(atom)}`);
-            return true;
+          trace.push(`[${depth}] ✕ Rama cerrada por contradicción con ${formulaToString(atom)}`);
+          return true;
         }
       }
     }
@@ -303,20 +315,22 @@ export class ClassicalFirstOrder implements LogicProfile {
             constants,
             nextProcessed,
             depth + 1,
-            trace
+            trace,
           );
         case 'exists': {
           const variable = f.variable;
           if (!args[0] || !variable) return false;
           const newC = `c${constants.size}`;
-          trace.push(`[${depth}] Delta (∃ - Instanciación Existencial EI): ${formulaToString(f)} -> asignando cte nueva ${newC}`);
+          trace.push(
+            `[${depth}] Delta (∃ - Instanciación Existencial EI): ${formulaToString(f)} -> asignando cte nueva ${newC}`,
+          );
           const nextConstants = new Set(constants).add(newC);
           return this.solveRecursive(
             [{ formula: this.substitute(args[0], variable, newC) }, ...rest],
             nextConstants,
             nextProcessed,
             depth + 1,
-            trace
+            trace,
           );
         }
         case 'forall': {
@@ -331,28 +345,76 @@ export class ClassicalFirstOrder implements LogicProfile {
             }
           }
           if (newInsts.length > 0) {
-            trace.push(`[${depth}] Gamma (∀ - Instanciación Universal UI): ${formulaToString(f)} -> con instantes actuales`);
-            return this.solveRecursive([...newInsts, ...nodes], constants, processed, depth + 1, trace);
+            trace.push(
+              `[${depth}] Gamma (∀ - Instanciación Universal UI): ${formulaToString(f)} -> con instantes actuales`,
+            );
+            return this.solveRecursive(
+              [...newInsts, ...nodes],
+              constants,
+              processed,
+              depth + 1,
+              trace,
+            );
           }
           return this.solveRecursive(rest, constants, nextProcessed, depth, trace);
         }
         case 'or':
           trace.push(`[${depth}] Beta (∨): ${formulaToString(f)} -> Bifurcando`);
           return (
-            this.solveRecursive([{ formula: args[0] }, ...rest], constants, nextProcessed, depth + 1, [...trace, `[${depth}]    -> Rama 1: ${formulaToString(args[0])}`]) &&
-            this.solveRecursive([{ formula: args[1] }, ...rest], constants, nextProcessed, depth + 1, [...trace, `[${depth}]    -> Rama 2: ${formulaToString(args[1])}`])
+            this.solveRecursive(
+              [{ formula: args[0] }, ...rest],
+              constants,
+              nextProcessed,
+              depth + 1,
+              [...trace, `[${depth}]    -> Rama 1: ${formulaToString(args[0])}`],
+            ) &&
+            this.solveRecursive(
+              [{ formula: args[1] }, ...rest],
+              constants,
+              nextProcessed,
+              depth + 1,
+              [...trace, `[${depth}]    -> Rama 2: ${formulaToString(args[1])}`],
+            )
           );
         case 'implies':
           trace.push(`[${depth}] Beta (→): ${formulaToString(f)} -> Bifurcando`);
           return (
-            this.solveRecursive([{ formula: { kind: 'not', args: [args[0]] } }, ...rest], constants, nextProcessed, depth + 1, [...trace, `[${depth}]    -> Rama 1: ¬${formulaToString(args[0])}`]) &&
-            this.solveRecursive([{ formula: args[1] }, ...rest], constants, nextProcessed, depth + 1, [...trace, `[${depth}]    -> Rama 2: ${formulaToString(args[1])}`])
+            this.solveRecursive(
+              [{ formula: { kind: 'not', args: [args[0]] } }, ...rest],
+              constants,
+              nextProcessed,
+              depth + 1,
+              [...trace, `[${depth}]    -> Rama 1: ¬${formulaToString(args[0])}`],
+            ) &&
+            this.solveRecursive(
+              [{ formula: args[1] }, ...rest],
+              constants,
+              nextProcessed,
+              depth + 1,
+              [...trace, `[${depth}]    -> Rama 2: ${formulaToString(args[1])}`],
+            )
           );
         case 'biconditional':
           trace.push(`[${depth}] Beta (↔): ${formulaToString(f)}`);
           return (
-            this.solveRecursive([{ formula: args[0] }, { formula: args[1] }, ...rest], constants, nextProcessed, depth + 1, [...trace]) &&
-            this.solveRecursive([{ formula: { kind: 'not', args: [args[0]] } }, { formula: { kind: 'not', args: [args[1]] } }, ...rest], constants, nextProcessed, depth + 1, [...trace])
+            this.solveRecursive(
+              [{ formula: args[0] }, { formula: args[1] }, ...rest],
+              constants,
+              nextProcessed,
+              depth + 1,
+              [...trace],
+            ) &&
+            this.solveRecursive(
+              [
+                { formula: { kind: 'not', args: [args[0]] } },
+                { formula: { kind: 'not', args: [args[1]] } },
+                ...rest,
+              ],
+              constants,
+              nextProcessed,
+              depth + 1,
+              [...trace],
+            )
           );
         case 'not': {
           const inner = args[0];
@@ -362,33 +424,100 @@ export class ClassicalFirstOrder implements LogicProfile {
               trace.push(`[${depth}] Beta (¬∧): ${formulaToString(f)}`);
               return (
                 (inner.args || []).length >= 2 &&
-                this.solveRecursive([{ formula: { kind: 'not', args: [inner.args![0]] } }, ...rest], constants, nextProcessed, depth + 1, [...trace]) &&
-                this.solveRecursive([{ formula: { kind: 'not', args: [inner.args![1]] } }, ...rest], constants, nextProcessed, depth + 1, [...trace])
+                this.solveRecursive(
+                  [{ formula: { kind: 'not', args: [inner.args![0]] } }, ...rest],
+                  constants,
+                  nextProcessed,
+                  depth + 1,
+                  [...trace],
+                ) &&
+                this.solveRecursive(
+                  [{ formula: { kind: 'not', args: [inner.args![1]] } }, ...rest],
+                  constants,
+                  nextProcessed,
+                  depth + 1,
+                  [...trace],
+                )
               );
             case 'or':
               trace.push(`[${depth}] Alfa (¬∨): ${formulaToString(f)}`);
-              return this.solveRecursive([...((inner.args || []).map((a) => ({ formula: { kind: 'not' as const, args: [a] } }))), ...rest], constants, nextProcessed, depth + 1, trace);
+              return this.solveRecursive(
+                [
+                  ...(inner.args || []).map((a) => ({
+                    formula: { kind: 'not' as const, args: [a] },
+                  })),
+                  ...rest,
+                ],
+                constants,
+                nextProcessed,
+                depth + 1,
+                trace,
+              );
             case 'implies':
               trace.push(`[${depth}] Alfa (¬→): ${formulaToString(f)}`);
-              return this.solveRecursive([{ formula: (inner.args || [])[0] }, { formula: { kind: 'not', args: [(inner.args || [])[1]] } }, ...rest], constants, nextProcessed, depth + 1, trace);
+              return this.solveRecursive(
+                [
+                  { formula: (inner.args || [])[0] },
+                  { formula: { kind: 'not', args: [(inner.args || [])[1]] } },
+                  ...rest,
+                ],
+                constants,
+                nextProcessed,
+                depth + 1,
+                trace,
+              );
             case 'forall': {
               const variable = inner.variable;
               if (!(inner.args || [])[0] || !variable) return false;
               const newC = `c${constants.size}`;
-              trace.push(`[${depth}] Delta (¬∀): ${formulaToString(f)} -> instanciando con ${newC} (EI)`);
+              trace.push(
+                `[${depth}] Delta (¬∀): ${formulaToString(f)} -> instanciando con ${newC} (EI)`,
+              );
               const nextConstants = new Set(constants).add(newC);
-              return this.solveRecursive([{ formula: { kind: 'not', args: [this.substitute(inner.args![0], variable, newC)] } }, ...rest], nextConstants, nextProcessed, depth + 1, trace);
+              return this.solveRecursive(
+                [
+                  {
+                    formula: {
+                      kind: 'not',
+                      args: [this.substitute(inner.args![0], variable, newC)],
+                    },
+                  },
+                  ...rest,
+                ],
+                nextConstants,
+                nextProcessed,
+                depth + 1,
+                trace,
+              );
             }
             case 'exists': {
               const variable = inner.variable;
               if (!(inner.args || [])[0] || !variable) return false;
-              const negForall: Formula = { kind: 'forall', variable, args: [{ kind: 'not', args: [inner.args![0]] }] };
-              trace.push(`[${depth}] Gamma (¬∃): ${formulaToString(f)} -> transformando a ∀¬ (UG/UI prep)`);
-              return this.solveRecursive([{ formula: negForall }, ...rest], constants, nextProcessed, depth + 1, trace);
+              const negForall: Formula = {
+                kind: 'forall',
+                variable,
+                args: [{ kind: 'not', args: [inner.args![0]] }],
+              };
+              trace.push(
+                `[${depth}] Gamma (¬∃): ${formulaToString(f)} -> transformando a ∀¬ (UG/UI prep)`,
+              );
+              return this.solveRecursive(
+                [{ formula: negForall }, ...rest],
+                constants,
+                nextProcessed,
+                depth + 1,
+                trace,
+              );
             }
             case 'not':
               trace.push(`[${depth}] Doble negación: ${formulaToString(f)}`);
-              return this.solveRecursive([{ formula: (inner.args || [])[0] }, ...rest], constants, nextProcessed, depth + 1, trace);
+              return this.solveRecursive(
+                [{ formula: (inner.args || [])[0] }, ...rest],
+                constants,
+                nextProcessed,
+                depth + 1,
+                trace,
+              );
           }
           break;
         }
@@ -405,8 +534,7 @@ export class ClassicalFirstOrder implements LogicProfile {
     const sub = (n: Formula): Formula => {
       if (n.kind === 'predicate' && n.params)
         return { ...n, params: n.params.map((p) => (p === v ? c : p)) };
-      if (n.kind === 'atom' && n.name === v)
-        return { ...n, name: c };
+      if (n.kind === 'atom' && n.name === v) return { ...n, name: c };
       if ((n.kind === 'forall' || n.kind === 'exists') && n.variable === v) return n;
       if (n.args) return { ...n, args: n.args.map(sub) };
       return n;

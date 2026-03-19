@@ -13,9 +13,9 @@ import { REPL } from '../repl/repl';
 import { ProtocolHandler } from '../protocol/handler';
 import { registry } from '../profiles/interface';
 import { ProtocolRequest } from '../types';
-
-const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf-8'));
-
+const pkg = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf-8'),
+) as { version: string };
 const program = new Command();
 
 program

@@ -33,15 +33,16 @@ export function formulasEqual(a: Formula, b: Formula): boolean {
 export function unify(f: Formula, template: Formula, mapping: Map<string, Formula>): boolean {
   if (template.kind === 'atom' && template.name) {
     // If it's a metavariable in the template, e.g. P, Q, R
-    if (mapping.has(template.name)) {
-      return formulasEqual(mapping.get(template.name)!, f);
+    const existing = mapping.get(template.name);
+    if (existing !== undefined) {
+      return formulasEqual(existing, f);
     } else {
       mapping.set(template.name, f);
       return true;
     }
   }
   if (f.kind !== template.kind) return false;
-  if (!f.args || !template.args) return f.args === template.args; 
+  if (!f.args || !template.args) return f.args === template.args;
   if (f.args.length !== template.args.length) return false;
   for (let i = 0; i < f.args.length; i++) {
     if (!unify(f.args[i], template.args[i], mapping)) return false;
@@ -70,18 +71,27 @@ const knownSchemas = [
   { pattern: 'P&(Q|R) <-> (P&Q)|(P&R)', name: 'Distributividad ∧/∨', abbr: 'DistAndOr' },
   { pattern: 'P|(Q&R) <-> (P|Q)&(P|R)', name: 'Distributividad ∨/∧', abbr: 'DistOrAnd' },
   { pattern: '(P->Q) <-> (!P|Q)', name: 'Definición material del condicional', abbr: 'DefCond' },
-  { pattern: '(P<->Q) <-> ((P->Q)&(Q->P))', name: 'Definición del bicondicional', abbr: 'DefBicond' },
+  {
+    pattern: '(P<->Q) <-> ((P->Q)&(Q->P))',
+    name: 'Definición del bicondicional',
+    abbr: 'DefBicond',
+  },
   { pattern: 'P&(P|Q) <-> P', name: 'Absorción ∧', abbr: 'AbsAnd' },
   { pattern: 'P|(P&Q) <-> P', name: 'Absorción ∨', abbr: 'AbsOr' },
   { pattern: '(P&P) <-> P', name: 'Idempotencia ∧', abbr: 'IdempAnd' },
   { pattern: '(P|P) <-> P', name: 'Idempotencia ∨', abbr: 'IdempOr' },
   { pattern: '((P&Q)->R) <-> (P->(Q->R))', name: 'Exportación/Importación', abbr: 'ExpImp' },
   { pattern: '(P<->Q) <-> (Q<->P)', name: 'Simetría del bicondicional', abbr: 'SymBicond' },
-  { pattern: '!!P <-> P', name: 'Doble negación', abbr: 'DN_Equiv' }
+  { pattern: '!!P <-> P', name: 'Doble negación', abbr: 'DN_Equiv' },
 ];
 
 // Parser instanced only once for schema loading (lazy)
-let schemasAST: { tag: any; ast: Formula }[] | null = null;
+interface SchemaDef {
+  pattern: string;
+  name: string;
+  abbr: string;
+}
+let schemasAST: { tag: SchemaDef; ast: Formula }[] | null = null;
 function getSchemas() {
   if (schemasAST === null) {
     schemasAST = [];
@@ -89,7 +99,7 @@ function getSchemas() {
       const parser = new Parser();
       const prog = parser.parse(`claim P = ${schema.pattern}`);
       if (prog.statements[0] && prog.statements[0].kind === 'claim_decl') {
-        const ast = prog.statements[0].formula!;
+        const ast = prog.statements[0].formula as Formula;
         schemasAST.push({ tag: schema, ast });
       }
     }
@@ -99,19 +109,32 @@ function getSchemas() {
 
 function getConnectiveSymbol(kind: string): string {
   switch (kind) {
-    case 'not': return '¬';
-    case 'and': return '∧';
-    case 'or': return '∨';
-    case 'implies': return '→';
-    case 'biconditional': return '↔';
-    case 'nand': return '↑';
-    case 'nor': return '↓';
-    case 'xor': return '⊕';
-    case 'forall': return '∀';
-    case 'exists': return '∃';
-    case 'modal_necessity': return '□';
-    case 'modal_possibility': return '◇';
-    default: return kind;
+    case 'not':
+      return '¬';
+    case 'and':
+      return '∧';
+    case 'or':
+      return '∨';
+    case 'implies':
+      return '→';
+    case 'biconditional':
+      return '↔';
+    case 'nand':
+      return '↑';
+    case 'nor':
+      return '↓';
+    case 'xor':
+      return '⊕';
+    case 'forall':
+      return '∀';
+    case 'exists':
+      return '∃';
+    case 'modal_necessity':
+      return '□';
+    case 'modal_possibility':
+      return '◇';
+    default:
+      return kind;
   }
 }
 
@@ -166,9 +189,9 @@ export function classifyFormula(f: Formula): ClassificationResult {
       mainConnective: f.kind === 'atom' ? undefined : getConnectiveSymbol(f.kind),
       depth,
       complexity,
-      subFormulas: Array.from(subFormulas).sort((a,b) => a.length - b.length),
+      subFormulas: Array.from(subFormulas).sort((a, b) => a.length - b.length),
       atomCount: atoms.size,
-      connectivesUsed: Array.from(connectives)
-    }
+      connectivesUsed: Array.from(connectives),
+    },
   };
 }

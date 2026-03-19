@@ -172,9 +172,7 @@ export function formulaToString(f: Formula): string {
         ? `exists ${f.variable}(${formulaToString(f.args[0])})`
         : 'exists ?(?)';
     case 'predicate':
-      return f.name
-        ? `${f.name}(${(f.params || []).join(', ')})`
-        : '?(...)';
+      return f.name ? `${f.name}(${(f.params || []).join(', ')})` : '?(...)';
     // Arithmetic
     case 'number':
       return f.value !== undefined ? String(f.value) : '?';
@@ -242,9 +240,27 @@ export function toNNF(f: Formula): Formula {
         case 'exists':
           return { ...node, args: args.map((a) => simplify(a, false)) };
         case 'nand':
-          return simplify({ kind: 'or', args: [{ kind: 'not', args: [args[0]] }, { kind: 'not', args: [args[1]] }] }, false);
+          return simplify(
+            {
+              kind: 'or',
+              args: [
+                { kind: 'not', args: [args[0]] },
+                { kind: 'not', args: [args[1]] },
+              ],
+            },
+            false,
+          );
         case 'nor':
-          return simplify({ kind: 'and', args: [{ kind: 'not', args: [args[0]] }, { kind: 'not', args: [args[1]] }] }, false);
+          return simplify(
+            {
+              kind: 'and',
+              args: [
+                { kind: 'not', args: [args[0]] },
+                { kind: 'not', args: [args[1]] },
+              ],
+            },
+            false,
+          );
         case 'xor':
           return simplify(
             {
@@ -323,14 +339,26 @@ function distributeOrOverAnd(f: Formula): Formula {
     const l = distributeOrOverAnd(f.args[0]);
     const r = distributeOrOverAnd(f.args[1]);
     if (l.kind === 'and' && l.args?.[0] && l.args?.[1]) {
-      return { kind: 'and', args: [ distributeOrOverAnd({ kind: 'or', args: [l.args[0], r] }), distributeOrOverAnd({ kind: 'or', args: [l.args[1], r] }) ] };
+      return {
+        kind: 'and',
+        args: [
+          distributeOrOverAnd({ kind: 'or', args: [l.args[0], r] }),
+          distributeOrOverAnd({ kind: 'or', args: [l.args[1], r] }),
+        ],
+      };
     }
     if (r.kind === 'and' && r.args?.[0] && r.args?.[1]) {
-      return { kind: 'and', args: [ distributeOrOverAnd({ kind: 'or', args: [l, r.args[0]] }), distributeOrOverAnd({ kind: 'or', args: [l, r.args[1]] }) ] };
+      return {
+        kind: 'and',
+        args: [
+          distributeOrOverAnd({ kind: 'or', args: [l, r.args[0]] }),
+          distributeOrOverAnd({ kind: 'or', args: [l, r.args[1]] }),
+        ],
+      };
     }
     return { kind: 'or', args: [l, r] };
   }
-  if (f.args) return { ...f, args: f.args.map(a => a ? distributeOrOverAnd(a) : a) };
+  if (f.args) return { ...f, args: f.args.map((a) => (a ? distributeOrOverAnd(a) : a)) };
   return f;
 }
 export function toCNF(f: Formula): Formula {
@@ -342,14 +370,26 @@ function distributeAndOverOr(f: Formula): Formula {
     const l = distributeAndOverOr(f.args[0]);
     const r = distributeAndOverOr(f.args[1]);
     if (l.kind === 'or' && l.args?.[0] && l.args?.[1]) {
-      return { kind: 'or', args: [ distributeAndOverOr({ kind: 'and', args: [l.args[0], r] }), distributeAndOverOr({ kind: 'and', args: [l.args[1], r] }) ] };
+      return {
+        kind: 'or',
+        args: [
+          distributeAndOverOr({ kind: 'and', args: [l.args[0], r] }),
+          distributeAndOverOr({ kind: 'and', args: [l.args[1], r] }),
+        ],
+      };
     }
     if (r.kind === 'or' && r.args?.[0] && r.args?.[1]) {
-      return { kind: 'or', args: [ distributeAndOverOr({ kind: 'and', args: [l, r.args[0]] }), distributeAndOverOr({ kind: 'and', args: [l, r.args[1]] }) ] };
+      return {
+        kind: 'or',
+        args: [
+          distributeAndOverOr({ kind: 'and', args: [l, r.args[0]] }),
+          distributeAndOverOr({ kind: 'and', args: [l, r.args[1]] }),
+        ],
+      };
     }
     return { kind: 'and', args: [l, r] };
   }
-  if (f.args) return { ...f, args: f.args.map(a => a ? distributeAndOverOr(a) : a) };
+  if (f.args) return { ...f, args: f.args.map((a) => (a ? distributeAndOverOr(a) : a)) };
   return f;
 }
 export function toDNF(f: Formula): Formula {
@@ -360,7 +400,10 @@ function getSubFormulas(f: Formula): Formula[] {
   const result: Formula[] = [];
   const seen = new Set<string>();
   function walk(node: Formula) {
-    if (node.args) node.args.forEach(a => { if(a) walk(a); });
+    if (node.args)
+      node.args.forEach((a) => {
+        if (a) walk(a);
+      });
     const hash = formulaToString(node);
     if (!seen.has(hash)) {
       seen.add(hash);
@@ -369,7 +412,7 @@ function getSubFormulas(f: Formula): Formula[] {
   }
   walk(f);
   // Remove atoms and the full formula itself
-  return result.filter(n => n.kind !== 'atom' && formulaToString(n) !== formulaToString(f));
+  return result.filter((n) => n.kind !== 'atom' && formulaToString(n) !== formulaToString(f));
 }
 
 function formulasEqual(a: Formula, b: Formula): boolean {
@@ -387,17 +430,6 @@ function formulasEqual(a: Formula, b: Formula): boolean {
 
 /** Límite duro de fórmulas derivadas para evitar explosión combinatoria */
 const MAX_KNOWN = 5000;
-
-/** Cuenta niveles de negación anidados en la raíz de una fórmula */
-function negationDepth(f: Formula): number {
-  let d = 0;
-  let cur = f;
-  while (cur.kind === 'not' && cur.args?.[0]) {
-    d++;
-    cur = cur.args[0];
-  }
-  return d;
-}
 
 /** Profundidad máxima de negación en cualquier sub-fórmula */
 function maxNegationDepth(f: Formula): number {
@@ -495,8 +527,7 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           const conclusion = f2.args[1];
           const s1 = findStep(state.steps, f1);
           const s2 = findStep(state.steps, f2);
-          changed =
-            addDerivedFormula(state, conclusion, 'Modus Ponens', [s1, s2]) || changed;
+          changed = addDerivedFormula(state, conclusion, 'Modus Ponens', [s1, s2]) || changed;
         }
 
         // Modus Ponens inverso: de (A -> B) y A, derivar B
@@ -509,8 +540,7 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           const conclusion = f1.args[1];
           const s1 = findStep(state.steps, f1);
           const s2 = findStep(state.steps, f2);
-          changed =
-            addDerivedFormula(state, conclusion, 'Modus Ponens', [s1, s2]) || changed;
+          changed = addDerivedFormula(state, conclusion, 'Modus Ponens', [s1, s2]) || changed;
         }
 
         // Modus Tollens: de !B y (A -> B), derivar !A
@@ -602,39 +632,96 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
 
         // Dilema Constructivo: de (P->Q)&(R->S) y P|R derivar Q|S
         if (
-          f1.kind === 'and' && f1.args?.[0]?.kind === 'implies' && f1.args?.[1]?.kind === 'implies' &&
-          f2.kind === 'or' && f2.args?.[0] && f2.args?.[1] &&
-          formulasEqual(f1.args[0].args![0], f2.args[0]) && formulasEqual(f1.args[1].args![0], f2.args[1])
+          f1.kind === 'and' &&
+          f1.args?.[0]?.kind === 'implies' &&
+          f1.args?.[1]?.kind === 'implies' &&
+          f2.kind === 'or' &&
+          f2.args?.[0] &&
+          f2.args?.[1] &&
+          formulasEqual(f1.args[0].args![0], f2.args[0]) &&
+          formulasEqual(f1.args[1].args![0], f2.args[1])
         ) {
           const qs: Formula = { kind: 'or', args: [f1.args[0].args![1], f1.args[1].args![1]] };
-          changed = addDerivedFormula(state, qs, 'Dilema Constructivo', [findStep(state.steps, f1), findStep(state.steps, f2)]) || changed;
+          changed =
+            addDerivedFormula(state, qs, 'Dilema Constructivo', [
+              findStep(state.steps, f1),
+              findStep(state.steps, f2),
+            ]) || changed;
         }
 
         // Dilema Destructivo: de (P->Q)&(R->S) y !Q|!S derivar !P|!R
         if (
-          f1.kind === 'and' && f1.args?.[0]?.kind === 'implies' && f1.args?.[1]?.kind === 'implies' &&
-          f2.kind === 'or' && f2.args?.[0]?.kind === 'not' && f2.args?.[1]?.kind === 'not' &&
-          formulasEqual(f1.args[0].args![1], f2.args[0].args![0]) && formulasEqual(f1.args[1].args![1], f2.args[1].args![0])
+          f1.kind === 'and' &&
+          f1.args?.[0]?.kind === 'implies' &&
+          f1.args?.[1]?.kind === 'implies' &&
+          f2.kind === 'or' &&
+          f2.args?.[0]?.kind === 'not' &&
+          f2.args?.[1]?.kind === 'not' &&
+          formulasEqual(f1.args[0].args![1], f2.args[0].args![0]) &&
+          formulasEqual(f1.args[1].args![1], f2.args[1].args![0])
         ) {
-          const npnr: Formula = { kind: 'or', args: [{ kind: 'not', args: [f1.args[0].args![0]] }, { kind: 'not', args: [f1.args[1].args![0]] }] };
-          changed = addDerivedFormula(state, npnr, 'Dilema Destructivo', [findStep(state.steps, f1), findStep(state.steps, f2)]) || changed;
+          const npnr: Formula = {
+            kind: 'or',
+            args: [
+              { kind: 'not', args: [f1.args[0].args![0]] },
+              { kind: 'not', args: [f1.args[1].args![0]] },
+            ],
+          };
+          changed =
+            addDerivedFormula(state, npnr, 'Dilema Destructivo', [
+              findStep(state.steps, f1),
+              findStep(state.steps, f2),
+            ]) || changed;
         }
 
         // Dilema simple: P|Q, P->R, Q->R derivar R
-        if (f1.kind === 'or' && f1.args?.[0] && f1.args?.[1] && f2.kind === 'implies' && f2.args?.[0] && formulasEqual(f1.args[0], f2.args[0])) {
+        if (
+          f1.kind === 'or' &&
+          f1.args?.[0] &&
+          f1.args?.[1] &&
+          f2.kind === 'implies' &&
+          f2.args?.[0] &&
+          formulasEqual(f1.args[0], f2.args[0])
+        ) {
           for (const f3 of currentFormulas) {
-            if (f3.kind === 'implies' && f3.args?.[0] && f3.args?.[1] && formulasEqual(f1.args[1], f3.args[0]) && formulasEqual(f2.args![1], f3.args[1])) {
-              changed = addDerivedFormula(state, f2.args![1], 'Dilema Simple', [findStep(state.steps, f1), findStep(state.steps, f2), findStep(state.steps, f3)]) || changed;
+            if (
+              f3.kind === 'implies' &&
+              f3.args?.[0] &&
+              f3.args?.[1] &&
+              formulasEqual(f1.args[1], f3.args[0]) &&
+              formulasEqual(f2.args[1], f3.args[1])
+            ) {
+              changed =
+                addDerivedFormula(state, f2.args[1], 'Dilema Simple', [
+                  findStep(state.steps, f1),
+                  findStep(state.steps, f2),
+                  findStep(state.steps, f3),
+                ]) || changed;
               break; // solo una vez por par f1,f2
             }
           }
         }
 
         // Resolución: P|Q, !P|R derivar Q|R
-        if (f1.kind === 'or' && f1.args?.[0] && f1.args?.[1] && f2.kind === 'or' && f2.args?.[0] && f2.args?.[1]) {
-          if (f2.args[0].kind === 'not' && f2.args[0].args?.[0] && formulasEqual(f1.args[0], f2.args[0].args[0])) {
+        if (
+          f1.kind === 'or' &&
+          f1.args?.[0] &&
+          f1.args?.[1] &&
+          f2.kind === 'or' &&
+          f2.args?.[0] &&
+          f2.args?.[1]
+        ) {
+          if (
+            f2.args[0].kind === 'not' &&
+            f2.args[0].args?.[0] &&
+            formulasEqual(f1.args[0], f2.args[0].args[0])
+          ) {
             const qr: Formula = { kind: 'or', args: [f1.args[1], f2.args[1]] };
-            changed = addDerivedFormula(state, qr, 'Resolucion', [findStep(state.steps, f1), findStep(state.steps, f2)]) || changed;
+            changed =
+              addDerivedFormula(state, qr, 'Resolucion', [
+                findStep(state.steps, f1),
+                findStep(state.steps, f2),
+              ]) || changed;
           }
         }
 
@@ -676,8 +763,7 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
       if (f1.kind === 'not' && f1.args?.[0]?.kind === 'not' && f1.args[0].args?.[0]) {
         const inner = f1.args[0].args[0];
         changed =
-          addDerivedFormula(state, inner, 'Doble negacion', [findStep(state.steps, f1)]) ||
-          changed;
+          addDerivedFormula(state, inner, 'Doble negacion', [findStep(state.steps, f1)]) || changed;
       }
 
       // Double Negation Introduction: de A, derivar !!A solo si es la meta
@@ -738,32 +824,80 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
 
       // Absorción: P->Q ⊢ P->(P&Q)
       if (f1.kind === 'implies' && f1.args?.[0] && f1.args?.[1]) {
-        const abs: Formula = { kind: 'implies', args: [f1.args[0], { kind: 'and', args: [f1.args[0], f1.args[1]] }] };
-        changed = addDerivedFormula(state, abs, 'Absorcion', [findStep(state.steps, f1)]) || changed;
+        const abs: Formula = {
+          kind: 'implies',
+          args: [f1.args[0], { kind: 'and', args: [f1.args[0], f1.args[1]] }],
+        };
+        changed =
+          addDerivedFormula(state, abs, 'Absorcion', [findStep(state.steps, f1)]) || changed;
       }
 
       // Exportación: (P&Q)->R ⊢ P->(Q->R)
-      if (f1.kind === 'implies' && f1.args?.[0]?.kind === 'and' && f1.args[0].args?.[0] && f1.args[0].args?.[1] && f1.args?.[1]) {
-        const exp: Formula = { kind: 'implies', args: [f1.args[0].args[0], { kind: 'implies', args: [f1.args[0].args[1], f1.args[1]] }] };
-        changed = addDerivedFormula(state, exp, 'Exportacion', [findStep(state.steps, f1)]) || changed;
+      if (
+        f1.kind === 'implies' &&
+        f1.args?.[0]?.kind === 'and' &&
+        f1.args[0].args?.[0] &&
+        f1.args[0].args?.[1] &&
+        f1.args?.[1]
+      ) {
+        const exp: Formula = {
+          kind: 'implies',
+          args: [f1.args[0].args[0], { kind: 'implies', args: [f1.args[0].args[1], f1.args[1]] }],
+        };
+        changed =
+          addDerivedFormula(state, exp, 'Exportacion', [findStep(state.steps, f1)]) || changed;
       }
 
       // Importación: P->(Q->R) ⊢ (P&Q)->R
-      if (f1.kind === 'implies' && f1.args?.[0] && f1.args?.[1]?.kind === 'implies' && f1.args[1].args?.[0] && f1.args[1].args?.[1]) {
-        const imp: Formula = { kind: 'implies', args: [{ kind: 'and', args: [f1.args[0], f1.args[1].args[0]] }, f1.args[1].args[1]] };
-        changed = addDerivedFormula(state, imp, 'Importacion', [findStep(state.steps, f1)]) || changed;
+      if (
+        f1.kind === 'implies' &&
+        f1.args?.[0] &&
+        f1.args?.[1]?.kind === 'implies' &&
+        f1.args[1].args?.[0] &&
+        f1.args[1].args?.[1]
+      ) {
+        const imp: Formula = {
+          kind: 'implies',
+          args: [{ kind: 'and', args: [f1.args[0], f1.args[1].args[0]] }, f1.args[1].args[1]],
+        };
+        changed =
+          addDerivedFormula(state, imp, 'Importacion', [findStep(state.steps, f1)]) || changed;
       }
 
       // De Morgan 1: !(P&Q) ⊢ !P|!Q
-      if (f1.kind === 'not' && f1.args?.[0]?.kind === 'and' && f1.args[0].args?.[0] && f1.args[0].args?.[1]) {
-        const dm1: Formula = { kind: 'or', args: [{ kind: 'not', args: [f1.args[0].args[0]] }, { kind: 'not', args: [f1.args[0].args[1]] }] };
-        changed = addDerivedFormula(state, dm1, 'De Morgan (AND)', [findStep(state.steps, f1)]) || changed;
+      if (
+        f1.kind === 'not' &&
+        f1.args?.[0]?.kind === 'and' &&
+        f1.args[0].args?.[0] &&
+        f1.args[0].args?.[1]
+      ) {
+        const dm1: Formula = {
+          kind: 'or',
+          args: [
+            { kind: 'not', args: [f1.args[0].args[0]] },
+            { kind: 'not', args: [f1.args[0].args[1]] },
+          ],
+        };
+        changed =
+          addDerivedFormula(state, dm1, 'De Morgan (AND)', [findStep(state.steps, f1)]) || changed;
       }
 
       // De Morgan 2: !(P|Q) ⊢ !P&!Q
-      if (f1.kind === 'not' && f1.args?.[0]?.kind === 'or' && f1.args[0].args?.[0] && f1.args[0].args?.[1]) {
-        const dm2: Formula = { kind: 'and', args: [{ kind: 'not', args: [f1.args[0].args[0]] }, { kind: 'not', args: [f1.args[0].args[1]] }] };
-        changed = addDerivedFormula(state, dm2, 'De Morgan (OR)', [findStep(state.steps, f1)]) || changed;
+      if (
+        f1.kind === 'not' &&
+        f1.args?.[0]?.kind === 'or' &&
+        f1.args[0].args?.[0] &&
+        f1.args[0].args?.[1]
+      ) {
+        const dm2: Formula = {
+          kind: 'and',
+          args: [
+            { kind: 'not', args: [f1.args[0].args[0]] },
+            { kind: 'not', args: [f1.args[0].args[1]] },
+          ],
+        };
+        changed =
+          addDerivedFormula(state, dm2, 'De Morgan (OR)', [findStep(state.steps, f1)]) || changed;
       }
     }
   }
@@ -1093,8 +1227,8 @@ export class ClassicalPropositional implements LogicProfile {
       normalForms: {
         nnf: formulaToString(nnf),
         cnf: formulaToString(cnf),
-        dnf: formulaToString(dnf)
-      }
+        dnf: formulaToString(dnf),
+      },
     };
   }
 
@@ -1108,10 +1242,10 @@ export class ClassicalPropositional implements LogicProfile {
       result: evaluate(formula, v),
     }));
 
-    const subFormulasInfo = subForms.map(sf => ({ formula: sf, label: formulaToString(sf) }));
+    const subFormulasInfo = subForms.map((sf) => ({ formula: sf, label: formulaToString(sf) }));
     const subFormulaValues = valuations.map((v) => {
       const vals: Record<string, boolean> = {};
-      subForms.forEach(sf => {
+      subForms.forEach((sf) => {
         vals[formulaToString(sf)] = evaluate(sf, v);
       });
       return vals;
@@ -1125,8 +1259,8 @@ export class ClassicalPropositional implements LogicProfile {
       isSatisfiable: rows.some((r) => r.result),
       subFormulas: subFormulasInfo,
       subFormulaValues: subFormulaValues,
-      satisfyingCount: rows.filter(r => r.result).length,
-      totalCount: rows.length
+      satisfyingCount: rows.filter((r) => r.result).length,
+      totalCount: rows.length,
     };
   }
 

@@ -10,24 +10,11 @@
 // pero el intérprete no puede evaluar las expresiones numéricas.
 // ============================================================
 
-import {
-  Formula,
-  Diagnostic,
-  RunResult,
-  Theory,
-  LogicProfile,
-} from '../../types';
+import { Formula, Diagnostic, RunResult, Theory, LogicProfile } from '../../types';
 
 // --- Tipos aritméticos ---
 
-const ARITHMETIC_KINDS = new Set([
-  'number', 'add', 'subtract', 'multiply', 'divide', 'modulo',
-  'less', 'greater', 'less_eq', 'greater_eq',
-]);
-
-const COMPARISON_KINDS = new Set([
-  'less', 'greater', 'less_eq', 'greater_eq',
-]);
+const COMPARISON_KINDS = new Set(['less', 'greater', 'less_eq', 'greater_eq']);
 
 // --- Evaluación numérica ---
 
@@ -37,71 +24,71 @@ export function evalNumeric(f: Formula, vars?: Map<string, number>, trace?: stri
       return f.value ?? 0;
     case 'atom': {
       if (f.name && vars?.has(f.name)) {
-        return vars.get(f.name)!;
+        return vars.get(f.name) as number;
       }
       return NaN;
     }
     case 'add': {
-      const l = evalNumeric(f.args![0], vars, trace);
-      const r = evalNumeric(f.args![1], vars, trace);
+      const l = evalNumeric((f.args as Formula[])[0], vars, trace);
+      const r = evalNumeric((f.args as Formula[])[1], vars, trace);
       const res = l + r;
       if (trace) trace.push(`  ${l} + ${r} = ${res} [suma]`);
       return res;
     }
     case 'subtract': {
-      const l = evalNumeric(f.args![0], vars, trace);
-      const r = evalNumeric(f.args![1], vars, trace);
+      const l = evalNumeric((f.args as Formula[])[0], vars, trace);
+      const r = evalNumeric((f.args as Formula[])[1], vars, trace);
       const res = l - r;
       if (trace) trace.push(`  ${l} - ${r} = ${res} [resta]`);
       return res;
     }
     case 'multiply': {
-      const l = evalNumeric(f.args![0], vars, trace);
-      const r = evalNumeric(f.args![1], vars, trace);
+      const l = evalNumeric((f.args as Formula[])[0], vars, trace);
+      const r = evalNumeric((f.args as Formula[])[1], vars, trace);
       const res = l * r;
       if (trace) trace.push(`  ${l} * ${r} = ${res} [multiplicación]`);
       return res;
     }
     case 'divide': {
-      const l = evalNumeric(f.args![0], vars, trace);
-      const r = evalNumeric(f.args![1], vars, trace);
+      const l = evalNumeric((f.args as Formula[])[0], vars, trace);
+      const r = evalNumeric((f.args as Formula[])[1], vars, trace);
       if (r === 0) return NaN;
       const res = l / r;
       if (trace) trace.push(`  ${l} / ${r} = ${res} [división]`);
       return res;
     }
     case 'modulo': {
-      const l = evalNumeric(f.args![0], vars, trace);
-      const r = evalNumeric(f.args![1], vars, trace);
+      const l = evalNumeric((f.args as Formula[])[0], vars, trace);
+      const r = evalNumeric((f.args as Formula[])[1], vars, trace);
       if (r === 0) return NaN;
       const res = l % r;
       if (trace) trace.push(`  ${l} % ${r} = ${res} [módulo]`);
       return res;
     }
     case 'less': {
-      const l = evalNumeric(f.args![0], vars, trace);
-      const r = evalNumeric(f.args![1], vars, trace);
+      const l = evalNumeric((f.args as Formula[])[0], vars, trace);
+      const r = evalNumeric((f.args as Formula[])[1], vars, trace);
       const res = l < r;
       if (trace) trace.push(`  ${l} < ${r} = ${res ? 'verdadero' : 'falso'} [comparación]`);
       return res ? 1 : 0;
     }
     case 'greater': {
-      const l = evalNumeric(f.args![0], vars, trace);
-      const r = evalNumeric(f.args![1], vars, trace);
+      const l = evalNumeric((f.args as Formula[])[0], vars, trace);
+      const r = evalNumeric((f.args as Formula[])[1], vars, trace);
       const res = l > r;
       if (trace) trace.push(`  ${l} > ${r} = ${res ? 'verdadero' : 'falso'} [comparación]`);
       return res ? 1 : 0;
     }
     case 'less_eq': {
-      const l = evalNumeric(f.args![0], vars, trace);
-      const r = evalNumeric(f.args![1], vars, trace);
+      const l = evalNumeric((f.args as Formula[])[0], vars, trace);
+      const r = evalNumeric((f.args as Formula[])[1], vars, trace);
       const res = l <= r;
       if (trace) trace.push(`  ${l} <= ${r} = ${res ? 'verdadero' : 'falso'} [comparación]`);
       return res ? 1 : 0;
     }
     case 'greater_eq': {
-      const l = evalNumeric(f.args![0], vars, trace);
-      const r = evalNumeric(f.args![1], vars, trace);
+      const l = evalNumeric((f.args as Formula[])[0], vars, trace);
+      const r = evalNumeric((f.args as Formula[])[1], vars, trace);
       const res = l >= r;
       if (trace) trace.push(`  ${l} >= ${r} = ${res ? 'verdadero' : 'falso'} [comparación]`);
       return res ? 1 : 0;
@@ -128,15 +115,6 @@ function collectAtoms(f: Formula): Set<string> {
   }
   walk(f);
   return atoms;
-}
-
-/**
- * Verifica si una fórmula es puramente aritmética (no contiene conectivos lógicos).
- */
-function isArithmeticFormula(f: Formula): boolean {
-  if (ARITHMETIC_KINDS.has(f.kind) || f.kind === 'atom') return true;
-  if (f.args) return f.args.every(isArithmeticFormula);
-  return false;
 }
 
 // --- Perfil ---
@@ -181,11 +159,8 @@ export class ArithmeticProfile implements LogicProfile {
       const result = evalComparison(formula, undefined, trace);
       let output = `Evaluación paso a paso:\n${trace.join('\n')}\n`;
       output += `  → Resultado: ${result ? '✓ verdadero' : '✗ falso'}`;
-      
-      return this.result(
-        result ? 'valid' : 'invalid',
-        output
-      );
+
+      return this.result(result ? 'valid' : 'invalid', output);
     }
 
     // Con variables: no podemos determinar validez universal fácilmente
@@ -277,77 +252,74 @@ export class ArithmeticProfile implements LogicProfile {
       const val = evalNumeric(formula, undefined, trace);
       output += `Evaluación paso a paso:\n${trace.join('\n')}\n`;
       if (COMPARISON_KINDS.has(formula.kind)) {
-         const result = evalComparison(formula);
-         output += `  → Resultado: ${result ? '✓ verdadero' : '✗ falso'}\n\n`;
+        const result = evalComparison(formula);
+        output += `  → Resultado: ${result ? '✓ verdadero' : '✗ falso'}\n\n`;
       } else {
-         output += `  → Resultado: ${isNaN(val) ? 'indefinido' : val}\n\n`;
+        output += `  → Resultado: ${isNaN(val) ? 'indefinido' : val}\n\n`;
       }
     } else {
       output += `Expresión aritmética con variables: ${[...atoms].join(', ')}.\n\n`;
     }
-    
-    // Simplification 
+
+    // Simplification
     const simpTrace: string[] = [];
     simplifyArithmetic(formula, simpTrace);
     if (simpTrace.length > 0) {
       output += `Simplificación detectada:\n${simpTrace.join('\n')}\n\n`;
     }
-    
+
     // Properties
     if (formula.kind === 'add') {
-       output += `Propiedades de la suma (+):\n`;
-       output += `  ✓ Conmutativa: a + b = b + a\n`;
-       output += `  ✓ Asociativa: (a + b) + c = a + (b + c)\n`;
-       output += `  ✓ Identidad: a + 0 = a\n`;
-       output += `  ✓ Inverso: a + (−a) = 0\n`;
+      output += `Propiedades de la suma (+):\n`;
+      output += `  ✓ Conmutativa: a + b = b + a\n`;
+      output += `  ✓ Asociativa: (a + b) + c = a + (b + c)\n`;
+      output += `  ✓ Identidad: a + 0 = a\n`;
+      output += `  ✓ Inverso: a + (−a) = 0\n`;
     } else if (formula.kind === 'multiply') {
-       output += `Propiedades de la multiplicación (*):\n`;
-       output += `  ✓ Conmutativa: a * b = b * a\n`;
-       output += `  ✓ Asociativa: (a * b) * c = a * (b * c)\n`;
-       output += `  ✓ Identidad: a * 1 = a\n`;
-       output += `  ✓ Absorción: a * 0 = 0\n`;
+      output += `Propiedades de la multiplicación (*):\n`;
+      output += `  ✓ Conmutativa: a * b = b * a\n`;
+      output += `  ✓ Asociativa: (a * b) * c = a * (b * c)\n`;
+      output += `  ✓ Identidad: a * 1 = a\n`;
+      output += `  ✓ Absorción: a * 0 = 0\n`;
     }
 
-    return this.result(
-      'unknown',
-      output.trim() || `Expresión aritmética: ${formula.kind}`
-    );
+    return this.result('unknown', output.trim() || `Expresión aritmética: ${formula.kind}`);
   }
 }
 
 function simplifyArithmetic(f: Formula, trace: string[]): Formula {
-   if (f.kind === 'add' && f.args?.length === 2) {
-       const l = simplifyArithmetic(f.args[0], trace);
-       const r = simplifyArithmetic(f.args[1], trace);
-       if (l.kind === 'number' && l.value === 0) {
-           trace.push(`  0 + x = x  [identidad aditiva]`);
-           return r;
-       }
-       if (r.kind === 'number' && r.value === 0) {
-           trace.push(`  x + 0 = x  [identidad aditiva]`);
-           return l;
-       }
-       return { ...f, args: [l, r] };
-   }
-   if (f.kind === 'multiply' && f.args?.length === 2) {
-       const l = simplifyArithmetic(f.args[0], trace);
-       const r = simplifyArithmetic(f.args[1], trace);
-       if ((l.kind === 'number' && l.value === 0) || (r.kind === 'number' && r.value === 0)) {
-           trace.push(`  x * 0 = 0  [absorción multiplicativa]`);
-           return { kind: 'number', value: 0 };
-       }
-       if (l.kind === 'number' && l.value === 1) {
-           trace.push(`  1 * x = x  [identidad multiplicativa]`);
-           return r;
-       }
-       if (r.kind === 'number' && r.value === 1) {
-           trace.push(`  x * 1 = x  [identidad multiplicativa]`);
-           return l;
-       }
-       return { ...f, args: [l, r] };
-   }
-   if (f.args) {
-       f = { ...f, args: f.args.map(a => simplifyArithmetic(a, trace)) };
-   }
-   return f;
+  if (f.kind === 'add' && f.args?.length === 2) {
+    const l = simplifyArithmetic(f.args[0], trace);
+    const r = simplifyArithmetic(f.args[1], trace);
+    if (l.kind === 'number' && l.value === 0) {
+      trace.push(`  0 + x = x  [identidad aditiva]`);
+      return r;
+    }
+    if (r.kind === 'number' && r.value === 0) {
+      trace.push(`  x + 0 = x  [identidad aditiva]`);
+      return l;
+    }
+    return { ...f, args: [l, r] };
+  }
+  if (f.kind === 'multiply' && f.args?.length === 2) {
+    const l = simplifyArithmetic(f.args[0], trace);
+    const r = simplifyArithmetic(f.args[1], trace);
+    if ((l.kind === 'number' && l.value === 0) || (r.kind === 'number' && r.value === 0)) {
+      trace.push(`  x * 0 = 0  [absorción multiplicativa]`);
+      return { kind: 'number', value: 0 };
+    }
+    if (l.kind === 'number' && l.value === 1) {
+      trace.push(`  1 * x = x  [identidad multiplicativa]`);
+      return r;
+    }
+    if (r.kind === 'number' && r.value === 1) {
+      trace.push(`  x * 1 = x  [identidad multiplicativa]`);
+      return l;
+    }
+    return { ...f, args: [l, r] };
+  }
+  if (f.args) {
+    f = { ...f, args: f.args.map((a) => simplifyArithmetic(a, trace)) };
+  }
+  return f;
 }

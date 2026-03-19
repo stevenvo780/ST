@@ -296,7 +296,7 @@ export class ProbabilisticBasic implements LogicProfile {
       const bayes = (cond * pA) / pB;
       explanation += `Probabilidad condicional (asumiendo independencia y uniformidad):\n`;
       explanation += `  P(${atoms[1]} | ${atoms[0]}) = P(${atoms[0]} ∧ ${atoms[1]}) / P(${atoms[0]}) = ${pAandB} / ${pA} = ${cond}\n\n`;
-      
+
       explanation += `Teorema de Bayes:\n`;
       explanation += `  P(${atoms[0]} | ${atoms[1]}) = P(${atoms[1]} | ${atoms[0]}) × P(${atoms[0]}) / P(${atoms[1]})\n`;
       explanation += `             = ${cond} × ${pA} / ${pB}\n`;
@@ -348,11 +348,11 @@ export class ProbabilisticBasic implements LogicProfile {
     const subFormulas: { formula: Formula; label: string }[] = [];
     const args = formula.args || [];
     for (const arg of args) {
-       if (arg.kind !== 'atom') {
-           subFormulas.push({ formula: arg, label: formulaToString(arg) });
-       }
+      if (arg.kind !== 'atom') {
+        subFormulas.push({ formula: arg, label: formulaToString(arg) });
+      }
     }
-    
+
     const subFormulaValues: Record<string, string | boolean>[] = [];
 
     for (let i = 0; i < total; i++) {
@@ -361,11 +361,11 @@ export class ProbabilisticBasic implements LogicProfile {
         v[atoms[j]] = (i >> (n - 1 - j)) & 1;
       }
       const prob = evalProb(formula, v);
-      
+
       const subVals: Record<string, string> = {};
       for (const sf of subFormulas) {
-         const subProb = evalProb(sf.formula, v);
-         subVals[sf.label] = subProb.toFixed(4);
+        const subProb = evalProb(sf.formula, v);
+        subVals[sf.label] = subProb.toFixed(4);
       }
       subFormulaValues.push(subVals);
 

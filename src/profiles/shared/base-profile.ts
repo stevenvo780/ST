@@ -39,7 +39,12 @@ export abstract class BaseTableauProfile implements LogicProfile {
     return diags;
   }
 
-  protected extractKripkeModel(branch: Branch): any {
+  protected extractKripkeModel(branch: Branch): {
+    type: string;
+    worlds: string[];
+    accessibility: Record<string, string[]>;
+    valuation: Record<string, Record<string, boolean>>;
+  } {
     const valuation: Record<string, Record<string, boolean>> = {};
     for (const world of branch.worlds) {
       valuation[world] = {};
@@ -47,16 +52,20 @@ export abstract class BaseTableauProfile implements LogicProfile {
     for (const lit of branch.literals) {
       if (lit.formula.kind === 'atom' && lit.formula.name) {
         valuation[lit.world][lit.formula.name] = true;
-      } else if (lit.formula.kind === 'not' && lit.formula.args?.[0]?.kind === 'atom' && lit.formula.args[0].name) {
+      } else if (
+        lit.formula.kind === 'not' &&
+        lit.formula.args?.[0]?.kind === 'atom' &&
+        lit.formula.args[0].name
+      ) {
         valuation[lit.world][lit.formula.args[0].name] = false;
       }
     }
-    
+
     const accessibility: Record<string, string[]> = {};
     for (const [k, v] of branch.accessibility.entries()) {
       accessibility[k] = Array.from(v);
     }
-    
+
     return { type: 'kripke', worlds: Array.from(branch.worlds), accessibility, valuation };
   }
 
@@ -81,7 +90,7 @@ export abstract class BaseTableauProfile implements LogicProfile {
       status: valid ? 'valid' : 'invalid',
       output: valid ? `${fStr} es VÁLIDA en ${this.name}` : `${fStr} NO es válida en ${this.name}`,
       tableauTrace: res.trace,
-      model: valid ? undefined : this.extractKripkeModel(res.openBranch!),
+      model: valid || !res.openBranch ? undefined : this.extractKripkeModel(res.openBranch),
       diagnostics: [],
       formula,
     });
@@ -97,7 +106,7 @@ export abstract class BaseTableauProfile implements LogicProfile {
         ? `${fStr} es SATISFACIBLE en ${this.name}`
         : `${fStr} es INSATISFACIBLE en ${this.name}`,
       tableauTrace: res.trace,
-      model: sat ? this.extractKripkeModel(res.openBranch!) : undefined,
+      model: sat && res.openBranch ? this.extractKripkeModel(res.openBranch) : undefined,
       diagnostics: [],
       formula,
     };
@@ -117,7 +126,7 @@ export abstract class BaseTableauProfile implements LogicProfile {
         ? `${fStr} es DEMOSTRABLE desde los axiomas`
         : `${fStr} NO es demostrable desde los axiomas`,
       tableauTrace: res.trace,
-      model: valid ? undefined : this.extractKripkeModel(res.openBranch!),
+      model: valid || !res.openBranch ? undefined : this.extractKripkeModel(res.openBranch),
       diagnostics: [],
       formula: goal,
     };
@@ -149,7 +158,7 @@ export abstract class BaseTableauProfile implements LogicProfile {
         ? `${fStr} es DERIVABLE desde {${premises.join(', ')}}`
         : `${fStr} NO es derivable desde {${premises.join(', ')}}`,
       tableauTrace: res.trace,
-      model: valid ? undefined : this.extractKripkeModel(res.openBranch!),
+      model: valid || !res.openBranch ? undefined : this.extractKripkeModel(res.openBranch),
       diagnostics: [],
       formula: goal,
     };
@@ -165,7 +174,7 @@ export abstract class BaseTableauProfile implements LogicProfile {
         ? `Existe un contramodelo para ${fStr}`
         : `No existe contramodelo — ${fStr} es válida en ${this.name}`,
       tableauTrace: res.trace,
-      model: sat ? this.extractKripkeModel(res.openBranch!) : undefined,
+      model: sat && res.openBranch ? this.extractKripkeModel(res.openBranch) : undefined,
       diagnostics: [],
       formula,
     };
@@ -182,7 +191,7 @@ export abstract class BaseTableauProfile implements LogicProfile {
       status: valid ? 'valid' : 'invalid',
       output: explanation,
       tableauTrace: res.trace,
-      model: valid ? undefined : this.extractKripkeModel(res.openBranch!),
+      model: valid || !res.openBranch ? undefined : this.extractKripkeModel(res.openBranch),
       diagnostics: [],
       formula,
     });
@@ -200,7 +209,7 @@ export abstract class BaseTableauProfile implements LogicProfile {
         ? `${fA} y ${fB} son EQUIVALENTES en ${this.name}`
         : `${fA} y ${fB} NO son equivalentes en ${this.name}`,
       tableauTrace: res.trace,
-      model: valid ? undefined : this.extractKripkeModel(res.openBranch!),
+      model: valid || !res.openBranch ? undefined : this.extractKripkeModel(res.openBranch),
       diagnostics: [],
     };
   }

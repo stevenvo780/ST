@@ -24,14 +24,7 @@ function parseFormula(source: string): Formula {
   expect(parser.diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
   const axiomStmt = program.statements.find((s) => s.kind === 'axiom_decl');
   expect(axiomStmt).toBeDefined();
-  return (axiomStmt as any).formula;
-}
-
-function parseOk(source: string) {
-  const parser = new Parser('<test>');
-  const program = parser.parse(source);
-  expect(parser.diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
-  return program;
+  return (axiomStmt as unknown as { formula: Formula }).formula;
 }
 
 // ── Profile registration ─────────────────────────────────────
@@ -182,7 +175,10 @@ describe('arithmetic: evalNumeric', () => {
   it('evaluates addition', () => {
     const f: Formula = {
       kind: 'add',
-      args: [{ kind: 'number', value: 2 }, { kind: 'number', value: 3 }],
+      args: [
+        { kind: 'number', value: 2 },
+        { kind: 'number', value: 3 },
+      ],
     };
     expect(evalNumeric(f)).toBe(5);
   });
@@ -190,7 +186,10 @@ describe('arithmetic: evalNumeric', () => {
   it('evaluates subtraction', () => {
     const f: Formula = {
       kind: 'subtract',
-      args: [{ kind: 'number', value: 10 }, { kind: 'number', value: 4 }],
+      args: [
+        { kind: 'number', value: 10 },
+        { kind: 'number', value: 4 },
+      ],
     };
     expect(evalNumeric(f)).toBe(6);
   });
@@ -198,7 +197,10 @@ describe('arithmetic: evalNumeric', () => {
   it('evaluates multiplication', () => {
     const f: Formula = {
       kind: 'multiply',
-      args: [{ kind: 'number', value: 3 }, { kind: 'number', value: 5 }],
+      args: [
+        { kind: 'number', value: 3 },
+        { kind: 'number', value: 5 },
+      ],
     };
     expect(evalNumeric(f)).toBe(15);
   });
@@ -206,7 +208,10 @@ describe('arithmetic: evalNumeric', () => {
   it('evaluates division', () => {
     const f: Formula = {
       kind: 'divide',
-      args: [{ kind: 'number', value: 10 }, { kind: 'number', value: 2 }],
+      args: [
+        { kind: 'number', value: 10 },
+        { kind: 'number', value: 2 },
+      ],
     };
     expect(evalNumeric(f)).toBe(5);
   });
@@ -214,7 +219,10 @@ describe('arithmetic: evalNumeric', () => {
   it('evaluates modulo', () => {
     const f: Formula = {
       kind: 'modulo',
-      args: [{ kind: 'number', value: 10 }, { kind: 'number', value: 3 }],
+      args: [
+        { kind: 'number', value: 10 },
+        { kind: 'number', value: 3 },
+      ],
     };
     expect(evalNumeric(f)).toBe(1);
   });
@@ -222,7 +230,10 @@ describe('arithmetic: evalNumeric', () => {
   it('evaluates division by zero as NaN', () => {
     const f: Formula = {
       kind: 'divide',
-      args: [{ kind: 'number', value: 10 }, { kind: 'number', value: 0 }],
+      args: [
+        { kind: 'number', value: 10 },
+        { kind: 'number', value: 0 },
+      ],
     };
     expect(evalNumeric(f)).toBeNaN();
   });
@@ -230,7 +241,10 @@ describe('arithmetic: evalNumeric', () => {
   it('evaluates comparison: less', () => {
     const f: Formula = {
       kind: 'less',
-      args: [{ kind: 'number', value: 1 }, { kind: 'number', value: 2 }],
+      args: [
+        { kind: 'number', value: 1 },
+        { kind: 'number', value: 2 },
+      ],
     };
     expect(evalNumeric(f)).toBe(1); // true
   });
@@ -238,7 +252,10 @@ describe('arithmetic: evalNumeric', () => {
   it('evaluates comparison: greater (false)', () => {
     const f: Formula = {
       kind: 'greater',
-      args: [{ kind: 'number', value: 1 }, { kind: 'number', value: 2 }],
+      args: [
+        { kind: 'number', value: 1 },
+        { kind: 'number', value: 2 },
+      ],
     };
     expect(evalNumeric(f)).toBe(0); // false
   });
@@ -247,7 +264,13 @@ describe('arithmetic: evalNumeric', () => {
     const f: Formula = {
       kind: 'multiply',
       args: [
-        { kind: 'add', args: [{ kind: 'number', value: 2 }, { kind: 'number', value: 3 }] },
+        {
+          kind: 'add',
+          args: [
+            { kind: 'number', value: 2 },
+            { kind: 'number', value: 3 },
+          ],
+        },
         { kind: 'number', value: 4 },
       ],
     };
@@ -257,7 +280,10 @@ describe('arithmetic: evalNumeric', () => {
   it('evaluates with variables', () => {
     const f: Formula = {
       kind: 'add',
-      args: [{ kind: 'atom', name: 'x' }, { kind: 'number', value: 3 }],
+      args: [
+        { kind: 'atom', name: 'x' },
+        { kind: 'number', value: 3 },
+      ],
     };
     const vars = new Map([['x', 10]]);
     expect(evalNumeric(f, vars)).toBe(13);
@@ -266,7 +292,10 @@ describe('arithmetic: evalNumeric', () => {
   it('unknown variable returns NaN', () => {
     const f: Formula = {
       kind: 'add',
-      args: [{ kind: 'atom', name: 'x' }, { kind: 'number', value: 3 }],
+      args: [
+        { kind: 'atom', name: 'x' },
+        { kind: 'number', value: 3 },
+      ],
     };
     expect(evalNumeric(f)).toBeNaN();
   });
@@ -286,7 +315,10 @@ describe('arithmetic: formatting', () => {
   it('addition Unicode', () => {
     const f: Formula = {
       kind: 'add',
-      args: [{ kind: 'number', value: 2 }, { kind: 'number', value: 3 }],
+      args: [
+        { kind: 'number', value: 2 },
+        { kind: 'number', value: 3 },
+      ],
     };
     expect(formulaToUnicode(f)).toBe('(2 + 3)');
   });
@@ -294,7 +326,10 @@ describe('arithmetic: formatting', () => {
   it('multiplication Unicode uses ×', () => {
     const f: Formula = {
       kind: 'multiply',
-      args: [{ kind: 'number', value: 2 }, { kind: 'number', value: 3 }],
+      args: [
+        { kind: 'number', value: 2 },
+        { kind: 'number', value: 3 },
+      ],
     };
     expect(formulaToUnicode(f)).toBe('(2 × 3)');
   });
@@ -302,7 +337,10 @@ describe('arithmetic: formatting', () => {
   it('division Unicode uses ÷', () => {
     const f: Formula = {
       kind: 'divide',
-      args: [{ kind: 'number', value: 10 }, { kind: 'number', value: 2 }],
+      args: [
+        { kind: 'number', value: 10 },
+        { kind: 'number', value: 2 },
+      ],
     };
     expect(formulaToUnicode(f)).toBe('(10 ÷ 2)');
   });
@@ -310,7 +348,10 @@ describe('arithmetic: formatting', () => {
   it('less_eq Unicode uses ≤', () => {
     const f: Formula = {
       kind: 'less_eq',
-      args: [{ kind: 'number', value: 1 }, { kind: 'number', value: 2 }],
+      args: [
+        { kind: 'number', value: 1 },
+        { kind: 'number', value: 2 },
+      ],
     };
     expect(formulaToUnicode(f)).toBe('(1 ≤ 2)');
   });
@@ -318,7 +359,10 @@ describe('arithmetic: formatting', () => {
   it('greater_eq Unicode uses ≥', () => {
     const f: Formula = {
       kind: 'greater_eq',
-      args: [{ kind: 'number', value: 5 }, { kind: 'number', value: 5 }],
+      args: [
+        { kind: 'number', value: 5 },
+        { kind: 'number', value: 5 },
+      ],
     };
     expect(formulaToUnicode(f)).toBe('(5 ≥ 5)');
   });
@@ -326,7 +370,10 @@ describe('arithmetic: formatting', () => {
   it('division LaTeX uses \\frac', () => {
     const f: Formula = {
       kind: 'divide',
-      args: [{ kind: 'number', value: 10 }, { kind: 'number', value: 2 }],
+      args: [
+        { kind: 'number', value: 10 },
+        { kind: 'number', value: 2 },
+      ],
     };
     expect(formulaToLaTeX(f)).toBe('\\frac{10}{2}');
   });
@@ -334,7 +381,10 @@ describe('arithmetic: formatting', () => {
   it('multiplication LaTeX uses \\times', () => {
     const f: Formula = {
       kind: 'multiply',
-      args: [{ kind: 'number', value: 2 }, { kind: 'number', value: 3 }],
+      args: [
+        { kind: 'number', value: 2 },
+        { kind: 'number', value: 3 },
+      ],
     };
     expect(formulaToLaTeX(f)).toBe('(2 \\times 3)');
   });
@@ -342,7 +392,10 @@ describe('arithmetic: formatting', () => {
   it('less_eq LaTeX uses \\leq', () => {
     const f: Formula = {
       kind: 'less_eq',
-      args: [{ kind: 'number', value: 1 }, { kind: 'number', value: 2 }],
+      args: [
+        { kind: 'number', value: 1 },
+        { kind: 'number', value: 2 },
+      ],
     };
     expect(formulaToLaTeX(f)).toBe('(1 \\leq 2)');
   });

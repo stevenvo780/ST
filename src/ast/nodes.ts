@@ -149,7 +149,7 @@ export interface TheoryDeclNode extends ASTNode {
 export interface PrintCmdNode extends ASTNode {
   kind: 'print_cmd';
   value: string | null; // string literal (null si es fórmula)
-  formula?: Formula;    // fórmula a imprimir
+  formula?: Formula; // fórmula a imprimir
 }
 
 export interface SetCmdNode extends ASTNode {
@@ -166,14 +166,14 @@ export interface IfBranch {
 
 export interface IfStmtNode extends ASTNode {
   kind: 'if_stmt';
-  branches: IfBranch[];        // if + else if branches
-  elseBranch?: Statement[];    // else branch
+  branches: IfBranch[]; // if + else if branches
+  elseBranch?: Statement[]; // else branch
 }
 
 export interface ForStmtNode extends ASTNode {
   kind: 'for_stmt';
   variable: string;
-  items: Formula[];  // {A, B, C}
+  items: Formula[]; // {A, B, C}
   body: Statement[];
 }
 

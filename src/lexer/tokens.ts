@@ -32,9 +32,9 @@ export enum TokenType {
   REFUTE = 'REFUTE',
   NEXT = 'NEXT', // X (temporal next)
   UNTIL = 'UNTIL', // U (temporal until)
-  IMPORT = 'IMPORT',   // import file
-  EXPORT = 'EXPORT',   // export keyword
-  ASSUME = 'ASSUME',   // assume (natural deduction)
+  IMPORT = 'IMPORT', // import file
+  EXPORT = 'EXPORT', // export keyword
+  ASSUME = 'ASSUME', // assume (natural deduction)
   SHOW = 'SHOW', // show goal
   QED = 'QED', // end proof block
   THEORY = 'THEORY', // theory block (OOP)
