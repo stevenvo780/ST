@@ -855,23 +855,23 @@ describe('Probabilistic Basic — Exhaustive', () => {
 // ============================================================
 describe('Arithmetic — Exhaustive', () => {
   it('addition', () => {
-    expectOutput(`logic arithmetic\ncheck valid (2 + 3) >= 5`, 'verdadera');
+    expectOutput(`logic arithmetic\ncheck valid (2 + 3) >= 5`, 'verdadero');
   });
 
   it('subtraction', () => {
-    expectOutput(`logic arithmetic\ncheck valid (10 - 3) >= 7`, 'verdadera');
+    expectOutput(`logic arithmetic\ncheck valid (10 - 3) >= 7`, 'verdadero');
   });
 
   it('multiplication', () => {
-    expectOutput(`logic arithmetic\ncheck valid (4 * 3) >= 12`, 'verdadera');
+    expectOutput(`logic arithmetic\ncheck valid (4 * 3) >= 12`, 'verdadero');
   });
 
   it('division', () => {
-    expectOutput(`logic arithmetic\ncheck valid (10 / 2) >= 5`, 'verdadera');
+    expectOutput(`logic arithmetic\ncheck valid (10 / 2) >= 5`, 'verdadero');
   });
 
   it('modulo', () => {
-    expectOutput(`logic arithmetic\ncheck valid (10 % 3) >= 1`, 'verdadera');
+    expectOutput(`logic arithmetic\ncheck valid (10 % 3) >= 1`, 'verdadero');
   });
 
   it('comparison operators', () => {

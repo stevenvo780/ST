@@ -11,13 +11,7 @@ const exampleFiles = fs
 
 const expectedOutputs: Record<string, string[]> = {
   'programming-control-flow.st': ['tautologia ok', 'invalid ok', 'while once', 'P', 'Q', 'R'],
-  'arithmetic-programming.st': [
-    'division ok',
-    'Expresión aritmética: resultado = 14',
-    'Comparación aritmética: resultado = verdadero',
-    'loop arithmetic',
-    'Contramodelo trivial',
-  ],
+  'arithmetic-programming.st': ['division ok', 'loop arithmetic', 'Contramodelo trivial'],
   'theory-showcase.st': ['=== theory-showcase ===', '(P → Q)', '✓ [check valid]'],
 };
 

@@ -155,6 +155,22 @@ function categoricalToString(c: CategoricalProp): string {
   }
 }
 
+/**
+ * Returns distribution info for a categorical proposition (#21)
+ */
+function getDistribution(c: CategoricalProp): string {
+  switch (c.type) {
+    case 'A':
+      return `S(+) P(-)`; // Subject distributed, Predicate not
+    case 'E':
+      return `S(+) P(+)`; // Both distributed
+    case 'I':
+      return `S(-) P(-)`; // Neither distributed
+    case 'O':
+      return `S(-) P(+)`; // Predicate distributed
+  }
+}
+
 // ── Validación de silogismos ────────────────────────────────
 
 function checkSyllogism(
@@ -162,28 +178,80 @@ function checkSyllogism(
   premise2: CategoricalProp,
   conclusion: CategoricalProp,
 ): SyllogismForm | null {
-  // Determinar el término medio, mayor y menor
-  const terms = new Set([
-    premise1.subject,
-    premise1.predicate,
-    premise2.subject,
-    premise2.predicate,
-  ]);
+  // S = subject of conclusion, P = predicate of conclusion
+  const S = conclusion.subject;
+  const P = conclusion.predicate;
 
-  // El término medio aparece en ambas premisas pero no en la conclusión
-  const middleCandidates = [...terms].filter(
-    (t) =>
-      (t === premise1.subject || t === premise1.predicate) &&
-      (t === premise2.subject || t === premise2.predicate) &&
-      t !== conclusion.subject &&
-      t !== conclusion.predicate,
-  );
+  // M = the term that appears in both premises but not in the conclusion
+  const p1Terms = [premise1.subject, premise1.predicate];
+  const p2Terms = [premise2.subject, premise2.predicate];
+  const middleCandidates = p1Terms.filter((t) => p2Terms.includes(t) && t !== S && t !== P);
 
   if (middleCandidates.length === 0) return null;
+  const M = middleCandidates[0];
 
-  // Intentar match con cada silogismo válido
+  // Determine figure by position of the middle term M
+  // Figure 1: M-P, S-M (M is subject of P1, predicate of P2)
+  // Figure 2: P-M, S-M (M is predicate of P1, predicate of P2)
+  // Figure 3: M-P, M-S (M is subject of P1, subject of P2)
+  // Figure 4: P-M, M-S (M is predicate of P1, subject of P2)
+  let figure: number;
+  const mIsSubjP1 = premise1.subject === M;
+  const mIsSubjP2 = premise2.subject === M;
+
+  if (mIsSubjP1 && !mIsSubjP2) {
+    figure = 1; // M-?, ?-M
+  } else if (!mIsSubjP1 && !mIsSubjP2) {
+    figure = 2; // ?-M, ?-M
+  } else if (mIsSubjP1 && mIsSubjP2) {
+    figure = 3; // M-?, M-?
+  } else {
+    figure = 4; // ?-M, M-?
+  }
+
+  // Verify P1 relates M and P correctly, P2 relates S and M correctly
+  // Figure 1: P1 must contain M (subj) and P (pred), P2 must contain S (subj) and M (pred)
+  // Figure 2: P1 must contain P (subj) and M (pred), P2 must contain S (subj) and M (pred)
+  // Figure 3: P1 must contain M (subj) and P (pred), P2 must contain M (subj) and S (pred)
+  // Figure 4: P1 must contain P (subj) and M (pred), P2 must contain M (subj) and S (pred)
+  let valid = false;
+  switch (figure) {
+    case 1:
+      valid =
+        premise1.subject === M &&
+        premise1.predicate === P &&
+        premise2.subject === S &&
+        premise2.predicate === M;
+      break;
+    case 2:
+      valid =
+        premise1.subject === P &&
+        premise1.predicate === M &&
+        premise2.subject === S &&
+        premise2.predicate === M;
+      break;
+    case 3:
+      valid =
+        premise1.subject === M &&
+        premise1.predicate === P &&
+        premise2.subject === M &&
+        premise2.predicate === S;
+      break;
+    case 4:
+      valid =
+        premise1.subject === P &&
+        premise1.predicate === M &&
+        premise2.subject === M &&
+        premise2.predicate === S;
+      break;
+  }
+
+  if (!valid) return null;
+
+  // Now check for a matching valid syllogism with the correct figure
   for (const syl of VALID_SYLLOGISMS) {
     if (
+      syl.figure === figure &&
       premise1.type === syl.premises[0] &&
       premise2.type === syl.premises[1] &&
       conclusion.type === syl.conclusion
@@ -397,9 +465,17 @@ export class AristotelianSyllogistic implements LogicProfile {
         if (i === j) continue;
         const syl = checkSyllogism(premiseFormulas[i][1], premiseFormulas[j][1], conclusion);
         if (syl) {
+          // Distribution analysis per premise (#21)
+          const distP1 = getDistribution(premiseFormulas[i][1]);
+          const distP2 = getDistribution(premiseFormulas[j][1]);
+          const distC = getDistribution(conclusion);
+          let distOutput = `DERIVADO por ${syl.name} (Figura ${syl.figure})\n`;
+          distOutput += `  ${premiseFormulas[i][0]}: ${categoricalToString(premiseFormulas[i][1])} — ${distP1}\n`;
+          distOutput += `  ${premiseFormulas[j][0]}: ${categoricalToString(premiseFormulas[j][1])} — ${distP2}\n`;
+          distOutput += `  ∴ ${categoricalToString(conclusion)} — ${distC}`;
           return {
             status: 'provable',
-            output: `DERIVADO por ${syl.name} (Figura ${syl.figure})`,
+            output: distOutput,
             diagnostics: [],
             formula: goal,
           };

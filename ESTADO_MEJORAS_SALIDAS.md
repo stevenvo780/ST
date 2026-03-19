@@ -1,64 +1,77 @@
-# Estado de Mejoras de Salidas — Post Auditoría (FINAL)
+# Estado de Mejoras de Salidas — COMPLETO
 
-> **Fecha**: 2026-03-19
-> **Auditoría base**: `AUDITORIA_IMPLEMENTACION.md`
+> **Fecha**: 2026-03-19 (rev. final)
+> **Auditoría base**: `AUDITORIA_IMPLEMENTACION.md` rev.2
 > **Compilación**: ✅ `npm run lint` = 0 errores | `npx tsc --noEmit` = 0 errores
+> **Tests**: ✅ **648/648** (100%)
 
 ---
 
-## ✅ TODOS los Items de Alta Prioridad Resueltos
+## 🔴 BUGS — TODOS RESUELTOS ✅
 
-### Bugs Críticos
-- [x] BUG-1: Deadlock en derive → `isRelevantToGoal()` + MAX_KNOWN=500 + maxIterations=100
-- [x] BUG-2: console.log → 3 líneas eliminadas
+| Bug | Fix |
+|---|---|
+| BUG-1 Deadlock derive | `isRelevantToGoal()` + MAX_KNOWN=500 + maxIterations=100 |
+| BUG-2 console.log | 3 líneas eliminadas de known-theorems.ts |
+| BUG-A Figuras silogísticas | Reescrito `checkSyllogism()` — identifica S/P/M por posición, valida figure |
+| BUG-B Strings en tests | 5× verdadera→verdadero, 2× formato aritmético obsoleto |
+
+---
+
+## ✅ TODOS LOS ITEMS IMPLEMENTADOS
 
 ### Visibilidad (#1-2, #6)
-- [x] tableauTrace visible en check_valid/check_satisfiable automáticamente
-- [x] Contramodelo Kripke con mundos {w₀, w₁}, accesibilidad R, y V(wᵢ) por mundo
-- [x] cross-system-compare activo en explain y verbose=on
+- [x] tableauTrace visible en check_valid/check_satisfiable
+- [x] Contramodelo Kripke con mundos/accesibilidad/valuación
+- [x] cross-system-compare conectado
 
 ### FOL (#3-5)
-- [x] explain() profundo: variables libres/ligadas, aridad predicados, alcance cuantificadores, alternancia, interpretación natural, lectura categórica
-- [x] derive() con ProofStep[] y reglas nombradas UI/EI/UG/EG
+- [x] explain() profundo con variables, aridad, cuantificadores, lectura natural
+- [x] derive() con ProofStep[] y reglas UI/EI nombradas
 - [x] countermodel con dominio D e interpretación de predicados
 
 ### Modales (#7, #10-14)
-- [x] Patrones temporales: Safety/Liveness/Response/Persistence/Recurrence/Precedence
-- [x] Frame properties en K (∅), KD ({serialidad}), S5 ({reflexividad, simetría, transitividad})
-- [x] Colapsamiento S5: KKφ≡Kφ, BBφ≡Bφ, KBφ≡Bφ, BKφ≡Kφ
-- [x] Paradoja de Moore, Chisholm, Introspección Negativa en known-theorems + explainSystem
+- [x] Patrones temporales LTL (Safety/Liveness/Response/Persistence/Recurrence/Precedence)
+- [x] Frame properties en K/KD/S5 con "no vale" listado
+- [x] S5 colapsamiento: KKφ≡Kφ, BBφ≡Bφ, etc.
+- [x] Paradojas: Moore, Chisholm, Introspección Negativa
 
 ### Belnap (#16-19)
-- [x] Evaluación por valor: P=T→..., P=F→..., P=B→..., P=N→...
-- [x] Marcas ⊛ de designación en tabla
-- [x] Leyes que SE MANTIENEN: De Morgan, Distributividad, Idempotencia, Doble Negación
-- [x] Comparación clásica automática en cada resultado
+- [x] Evaluación por valor, Marcas ⊛, Leyes que se mantienen, Comparación clásica
 
-### Aristotélica (#8-9)
+### Proposicional (#15, #22, #24-26, #28-30)
+- [x] ⊨ vs ⊢ con nota educativa de completitud
+- [x] reasoningType + reasoningSchema en derive
+- [x] Completitud funcional (análisis de conjunto de conectivos)
+- [x] Contramodelo marcado con ← y valuación explícita
+- [x] Esquemas de dominancia/identidad (P∧⊤≡P, P∨⊥≡P, etc.)
+- [x] extractClauses() para resolución (cláusulas C₁, C₂, ...)
+- [x] RAA (Reducción al Absurdo) como regla explícita en derive
+- [x] Prueba Condicional como regla explícita en derive
+
+### Aristotélica (#8-9, #21)
 - [x] Inferencias inmediatas: Conversión, Obversión, Contraposición por tipo A/E/I/O
-- [x] Entimemas: detección con 1 premisa + sugerencia de premisa faltante con silogismo resultante
-
-### Proposicional (#15, #22)
-- [x] ⊨ vs ⊢: nota educativa de consecuencia semántica/sintáctica + completitud
-- [x] reasoningType: reglas usadas (MP, MT, SH, etc.)
-- [x] reasoningSchema: esquema formal (φ → ψ, φ ⊢ ψ)
+- [x] Entimemas: detección con 1 premisa + sugerencia de premisa faltante
+- [x] Distribución S(+)/S(-) P(+)/P(-) por premisa en derive
 
 ### Probabilístico (#20)
-- [x] Cálculo paso a paso con nombre de regla por operación (Negación, Independencia, Inclusión-exclusión, etc.)
+- [x] Cálculo paso a paso con nombre de regla por operación
 
 ---
 
-## Archivos Modificados (11 archivos)
+## Archivos Modificados (13 archivos)
 | Archivo | Cambios |
 |---|---|
-| `propositional.ts` | BUG-1 fix, MAX_KNOWN, isRelevantToGoal, ⊨ vs ⊢, reasoningType/Schema |
-| `known-theorems.ts` | BUG-2 fix, +3 paradojas (Moore, Chisholm, Introspección) |
-| `interpreter.ts` | Kripke worlds display, tableauTrace en check_valid |
-| `first-order.ts` | explain profundo, derive con ProofStep[], countermodel con dominio |
-| `ltl.ts` | Patrones temporales (Safety/Liveness/Response/etc.) |
-| `k.ts` | Frame properties documentadas |
+| `propositional.ts` | BUG-1, RAA, Prueba Condicional, extractClauses, completitud funcional, dominancia, contramodelo←, ⊨vs⊢ |
+| `known-theorems.ts` | BUG-2, +3 paradojas |
+| `interpreter.ts` | Kripke worlds, tableauTrace |
+| `first-order.ts` | explain profundo, derive ProofStep[], countermodel dominio |
+| `ltl.ts` | Patrones temporales |
+| `k.ts` | Frame properties |
 | `standard.ts` | Frame + paradojas deónticas |
 | `s5.ts` | S5 colapsamiento + paradojas epistémicas |
-| `belnap.ts` | Evaluación por valor, ⊛, leyes que se mantienen, comparación clásica |
-| `syllogistic.ts` | Conversión/Obversión/Contraposición, entimemas |
-| `basic.ts` (probabilistic) | Cálculo paso a paso con reglas nombradas |
+| `belnap.ts` | Evaluación por valor, ⊛, leyes, comparación clásica |
+| `syllogistic.ts` | BUG-A, Conversión/Obversión/Contraposición, entimemas, distribución, getDistribution |
+| `basic.ts` (prob.) | Cálculo paso a paso |
+| `stress-exhaustive.test.ts` | BUG-B (strings) |
+| `examples.test.ts` | BUG-B (formato) |

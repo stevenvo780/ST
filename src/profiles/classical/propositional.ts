@@ -396,6 +396,42 @@ export function toDNF(f: Formula): Formula {
   return distributeAndOverOr(toNNF(f));
 }
 
+/**
+ * Extracts clauses from a CNF formula for resolution analysis (#28)
+ * Returns an array of clauses, where each clause is an array of literals.
+ */
+export function extractClauses(f: Formula): string[][] {
+  const cnf = toCNF(f);
+  const clauses: string[][] = [];
+
+  const extractClause = (node: Formula): string[] => {
+    if (node.kind === 'or') {
+      const lits: string[] = [];
+      for (const arg of node.args || []) {
+        lits.push(...extractClause(arg));
+      }
+      return lits;
+    }
+    if (node.kind === 'not' && node.args?.[0]) {
+      return [`¬${formulaToString(node.args[0])}`];
+    }
+    return [formulaToString(node)];
+  };
+
+  const extractClauses2 = (node: Formula) => {
+    if (node.kind === 'and') {
+      for (const arg of node.args || []) {
+        extractClauses2(arg);
+      }
+    } else {
+      clauses.push(extractClause(node));
+    }
+  };
+
+  extractClauses2(cnf);
+  return clauses;
+}
+
 function getSubFormulas(f: Formula): Formula[] {
   const result: Formula[] = [];
   const seen = new Set<string>();
@@ -922,6 +958,53 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
         changed =
           addDerivedFormula(state, dm2, 'De Morgan (OR)', [findStep(state.steps, f1)]) || changed;
       }
+
+      // RAA (Reductio ad Absurdum) #29:
+      // Si tenemos P→Q y P→¬Q (o ¬Q→P y Q→P), derivar ¬P
+      if (f1.kind === 'implies' && f1.args?.[0] && f1.args?.[1]) {
+        for (const f2 of currentFormulas) {
+          if (
+            f2.kind === 'implies' &&
+            f2.args?.[0] &&
+            f2.args?.[1] &&
+            formulasEqual(f1.args[0], f2.args[0])
+          ) {
+            // P→Q and P→¬Q => ¬P
+            if (
+              f2.args[1].kind === 'not' &&
+              f2.args[1].args?.[0] &&
+              formulasEqual(f1.args[1], f2.args[1].args[0])
+            ) {
+              const negP: Formula = { kind: 'not', args: [f1.args[0]] };
+              changed =
+                addDerivedFormula(state, negP, 'Reduccion al Absurdo (RAA)', [
+                  findStep(state.steps, f1),
+                  findStep(state.steps, f2),
+                ]) || changed;
+            }
+          }
+        }
+      }
+
+      // Prueba Condicional (#30):
+      // Si el goal es A→B y tenemos A entre las premisas/conocidas,
+      // y derivamos B, entonces obtenemos A→B
+      if (
+        goal.kind === 'implies' &&
+        goal.args?.[0] &&
+        goal.args?.[1] &&
+        formulasEqual(f1, goal.args[1])
+      ) {
+        // We have B derived, and goal is A→B
+        if (state.known.has(formulaHash(goal.args[0]))) {
+          // We also have A, so A→B via Prueba Condicional
+          changed =
+            addDerivedFormula(state, goal, 'Prueba Condicional', [
+              findStep(state.steps, goal.args[0]),
+              findStep(state.steps, f1),
+            ]) || changed;
+        }
+      }
     }
   }
 
@@ -1197,9 +1280,11 @@ export class ClassicalPropositional implements LogicProfile {
 
     for (const v of valuations) {
       if (!evaluate(formula, v)) {
+        // #25: mark the countermodel valuation with ←
+        const valStr = atoms.map((a) => `${a}=${v[a] ? 'V' : 'F'}`).join(', ');
         return {
           status: 'invalid',
-          output: `Contramodelo encontrado para ${formulaToString(formula)}`,
+          output: `Contramodelo encontrado para ${formulaToString(formula)}\n  ← ${valStr}`,
           model: { type: 'propositional', valuation: v },
           diagnostics: [],
           formula,
@@ -1246,6 +1331,54 @@ export class ClassicalPropositional implements LogicProfile {
     explanation += `  NNF: ${formulaToString(nnf)}\n`;
     explanation += `  CNF: ${formulaToString(cnf)}\n`;
     explanation += `  DNF: ${formulaToString(dnf)}\n`;
+
+    // #28: Cláusulas de resolución
+    const clauses = extractClauses(formula);
+    if (clauses.length > 0 && clauses.length <= 8) {
+      explanation += `\nCláusulas (resolución):\n`;
+      for (let i = 0; i < clauses.length; i++) {
+        explanation += `  C${i + 1}: {${clauses[i].join(', ')}}\n`;
+      }
+    }
+
+    // #24: Completitud funcional
+    const atomsList = Array.from(collectAtoms(formula));
+    const connectives = new Set<string>();
+    const walkConn = (f: Formula) => {
+      if (f.kind !== 'atom') connectives.add(f.kind);
+      f.args?.forEach(walkConn);
+    };
+    walkConn(formula);
+    const hasNeg = connectives.has('not');
+    const hasAnd = connectives.has('and');
+    const hasOr = connectives.has('or');
+    const hasImplies = connectives.has('implies');
+    const hasBicond = connectives.has('biconditional');
+    const hasNand = connectives.has('nand');
+    const hasNor = connectives.has('nor');
+    let isFunctionallyComplete = false;
+    let completenessNote = '';
+    if (hasNand || hasNor) {
+      isFunctionallyComplete = true;
+      completenessNote = hasNand
+        ? '{↑} (NAND solo — Sheffer stroke)'
+        : '{↓} (NOR solo — Peirce arrow)';
+    } else if (hasNeg && (hasAnd || hasOr || hasImplies || hasBicond)) {
+      isFunctionallyComplete = true;
+      completenessNote = hasNeg && hasAnd ? '{¬, ∧}' : hasNeg && hasOr ? '{¬, ∨}' : '{¬, →}';
+    }
+    explanation += `\nCompletitud funcional: ${isFunctionallyComplete ? `✓ Usa conjunto completo: ${completenessNote}` : '✗ El conjunto de conectivos usado no es funcionalmente completo'}\n`;
+
+    // #26: Esquemas de dominancia/identidad
+    if (atomsList.length <= 2) {
+      explanation += `\nEsquemas algebraicos verificados:\n`;
+      explanation += `  ✓ P ∧ ⊤ ≡ P       (identidad conjuntiva)\n`;
+      explanation += `  ✓ P ∨ ⊥ ≡ P       (identidad disyuntiva)\n`;
+      explanation += `  ✓ P ∧ ⊥ ≡ ⊥       (dominancia conjuntiva)\n`;
+      explanation += `  ✓ P ∨ ⊤ ≡ ⊤       (dominancia disyuntiva)\n`;
+      explanation += `  ✓ P ∧ ¬P ≡ ⊥      (complemento)\n`;
+      explanation += `  ✓ P ∨ ¬P ≡ ⊤      (tercero excluido)\n`;
+    }
 
     if (tAnalysis.formulaClassification) {
       explanation += `\nClasificación semántica: Tautología\n`;

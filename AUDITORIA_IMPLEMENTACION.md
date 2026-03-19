@@ -1,25 +1,31 @@
 # Auditoría de Implementación — PLAN_MEJORA_SALIDAS.md v2
 
-> **Fecha**: 2026-03-19
-> **Método**: Revisión línea a línea del código fuente + ejecución real de todos los examples
+> **Fecha**: 2026-03-19 (rev. 2)
+> **Método**: Revisión línea a línea del código fuente + ejecución real de todos los examples + vitest run
 > **Compilación**: ✅ `npx tsc` sin errores
-> **Tests**: 9/11 archivos pasan (2 timeout por bug de derive)
+> **Examples**: ✅ 15/15 pasan (0 timeouts)
+> **Tests**: 641/648 pasan (9/11 archivos OK) — 7 fallos en 2 archivos
 
 ---
 
-## 🔴 BUGS CRÍTICOS (requieren fix inmediato)
+## 🔴 BUGS ACTIVOS
 
-### BUG-1: Deadlock en `derive` proposicional
-- **Archivo**: `src/profiles/classical/propositional.ts` (línea 508)
-- **Causa**: Las reglas Absorción, Exportación e Importación generan fórmulas exponencialmente sin verificar primero si son útiles para la meta. Con premisas `P→Q` y `Q`, Absorción genera `P→(P∧Q)`, luego Exportación genera `P→(P∧(P∧Q))`, etc. en cascada infinita.
-- **Impacto**: `contramodel.st` y `stress-all-profiles.st` entran en timeout (>10s). Los tests `examples.test.ts` y `stress-exhaustive.test.ts` se cuelgan.
-- **Fix**: Aplicar estas reglas (Absorción, Exportación, Importación) **solo cuando el resultado sea sub-fórmula del goal** o limitar `MAX_KNOWN` a un valor razonable (~200) y reducir `maxIterations`.
+### BUG-A: Validación de figuras en silogística aristotélica
+- **Archivo**: `src/profiles/aristotelian/syllogistic.ts` → `checkSyllogism()`
+- **Causa**: Solo compara los **tipos** de premisas (A/E/I/O) sin verificar la **figura** (posición del término medio). Cualquier silogismo AAA se detecta como Barbara, aunque el término medio no esté distribuido correctamente.
+- **Ejemplo**: `(∀x(M→P)) ∧ (∀x(S→P)) → (∀x(S→M))` ("Affirming consequent") se detecta erróneamente como Barbara.
+- **Impacto**: 1 test falla en `stress-exhaustive.test.ts`.
+- **Fix**: `checkSyllogism()` debe identificar S, P, M por posición en premisas y conclusión, y luego verificar que correspondan a la figura correcta.
 
-### BUG-2: `console.log` de debug en producción
-- **Archivo**: `src/runtime/known-theorems.ts` (líneas ~100-110)
-- **Causa**: `console.log('Loading known theorems...')`, `console.log('Parsing theorem:', ...)`, `console.log('Finished loading known theorems.')` se ejecutan cada vez que se identifica un teorema modal.
-- **Impacto**: Contamina stdout en toda ejecución modal. Visible en la salida de `modal-family.st`.
-- **Fix**: Eliminar los 3 `console.log`.
+### BUG-B: Discordancia de strings en tests aritméticos
+- **Archivo**: `src/tests/stress-exhaustive.test.ts` + `src/tests/examples.test.ts`
+- **Causa**: Los tests esperan `"verdadera"` pero la salida actual dice `"verdadero"`. También `examples.test.ts` busca `"Expresión aritmética: resultado = 14"` que ya no es el formato de salida.
+- **Impacto**: 5 tests aritméticos + 1 test de regression de examples fallan (6 tests total).
+- **Fix**: Actualizar los strings esperados en los tests para coincidir con la salida actual.
+
+### BUGS PREVIOS RESUELTOS ✅
+- ~~BUG-1 (Deadlock derive)~~: Arreglado con guardia `isRelevantToGoal()` en Absorción/Exportación/Importación.
+- ~~BUG-2 (console.log en producción)~~: Eliminados los `console.log` de `known-theorems.ts`.
 
 ---
 
@@ -28,78 +34,83 @@
 ### Archivos nuevos creados (5/5 del plan)
 | Archivo | Líneas | Estado | Notas |
 |---|---|---|---|
-| `src/runtime/formula-classifier.ts` | 192 | ✅ | 27 esquemas, unificador, classifyFormula() |
-| `src/runtime/known-theorems.ts` | 133 | ✅ (con BUG-2) | Axiomas K/T/D/4/5/B + paradojas Ross/Samaritano/Omnisciencia |
-| `src/runtime/cross-system-compare.ts` | 54 | ✅ pero NO SE USA | compareAcrossSystems() nunca es invocado |
-| `src/runtime/format.ts` | 281 | ✅ | formulaToUnicode(), formulaToLaTeX(), proofToLaTeX() |
-| `src/runtime/fallacies.ts` | 399 | ✅ | 10 detectores (5 originales + 5 nuevos) |
+| `src/runtime/formula-classifier.ts` | 197 | ✅ | 27 esquemas, unificador, classifyFormula() |
+| `src/runtime/known-theorems.ts` | 161 | ✅ | K/T/D/4/5/B + Ross/Samaritano/Omnisciencia + Moore/Chisholm/Introspección |
+| `src/runtime/cross-system-compare.ts` | 54 | ✅ | Invocado desde interpreter.ts línea 1461 |
+| `src/runtime/format.ts` | 280 | ✅ | formulaToUnicode(), formulaToLaTeX(), proofToLaTeX() |
+| `src/runtime/fallacies.ts` | 398 | ✅ | 10 detectores (5 originales + 5 nuevos) |
 
 ### Tipos enriquecidos (`src/types/index.ts`)
-| Campo RunResult | Implementado | Se usa |
+| Campo RunResult | Implementado | Se usa en interpreter |
 |---|---|---|
-| `reasoningType` | ✅ | ✅ en interpreter |
-| `reasoningSchema` | ✅ | ✅ en interpreter |
-| `formulaClassification` | ✅ | ✅ en interpreter |
-| `normalForms` (nnf/cnf/dnf/pnf/skolem) | ✅ | ✅ en verbose |
-| `formulaAnalysis` | ✅ | ✅ en verbose |
-| `crossSystemComparison` | ✅ | ❌ nunca se popula |
-| `tableauTrace` | ✅ | ⚠️ se almacena pero no se muestra |
-| `educationalNote` | ✅ | ✅ en verbose |
+| `reasoningType` | ✅ | ✅ |
+| `reasoningSchema` | ✅ | ✅ |
+| `formulaClassification` | ✅ | ✅ |
+| `normalForms` (nnf/cnf/dnf/pnf/skolem) | ✅ | ✅ verbose |
+| `formulaAnalysis` | ✅ | ✅ verbose |
+| `crossSystemComparison` | ✅ | ✅ verbose + explain |
+| `tableauTrace` | ✅ | ✅ verbose + proof |
+| `educationalNote` | ✅ | ✅ verbose |
 | `paradoxWarning` | ✅ | ✅ siempre |
-| `TruthTableResult.subFormulas` | ✅ | ✅ en verbose |
+| `TruthTableResult.subFormulas` | ✅ | ✅ verbose |
 | `TruthTableResult.satisfyingCount/totalCount` | ✅ | ✅ |
 
-### Proposicional — Reglas de derivación nuevas (8/10)
-| Regla | Estado | Línea en propositional.ts |
-|---|---|---|
-| Dilema Constructivo | ✅ | 644 |
-| Dilema Destructivo | ✅ | 663 |
-| Absorción | ✅ (causa BUG-1) | 836 |
-| Exportación | ✅ (causa BUG-1) | 846 |
-| Importación | ✅ (causa BUG-1) | 862 |
-| Resolución | ✅ | 716 |
-| De Morgan (AND) | ✅ | 878 |
-| De Morgan (OR) | ✅ | 896 |
-| Dilema Simple | ✅ | 688 |
-| Reducción al absurdo (RAA) | ❌ | — |
-| Prueba condicional | ❌ | — |
+### Proposicional — Reglas de derivación (9/11)
+| Regla | Estado |
+|---|---|
+| Dilema Constructivo | ✅ |
+| Dilema Destructivo | ✅ |
+| Absorción (con guardia) | ✅ |
+| Exportación (con guardia) | ✅ |
+| Importación (con guardia) | ✅ |
+| Resolución | ✅ |
+| De Morgan (AND) | ✅ |
+| De Morgan (OR) | ✅ |
+| Dilema Simple | ✅ |
+| Reducción al absurdo (RAA) | ❌ |
+| Prueba condicional | ❌ |
 
 ### Proposicional — Formas normales
 | Función | Estado |
 |---|---|
-| `toNNF()` | ✅ (ya existía) |
-| `toCNF()` | ✅ (línea 364) |
-| `toDNF()` | ✅ (línea 395) |
+| `toNNF()` | ✅ |
+| `toCNF()` | ✅ |
+| `toDNF()` | ✅ |
 | `extractClauses()` | ❌ |
 
 ### Proposicional — explain() mejorado
-- Conectivo principal: ✅
-- Profundidad: ✅
-- Complejidad: ✅
-- Sub-fórmulas: ✅
-- NNF/CNF/DNF: ✅
-- Clasificación semántica: ✅
-- Nombre conocido: ✅
+- Conectivo principal, profundidad, complejidad: ✅
+- Sub-fórmulas, NNF/CNF/DNF: ✅
+- Clasificación semántica + nombre conocido: ✅
 - Tabla de verdad con conteo: ✅
 
-### FOL — Funciones correctas
+### FOL — Motor v2 completo (759 líneas)
 | Función | Estado |
 |---|---|
 | `toPrenex()` | ✅ |
 | `skolemize()` | ✅ |
-| Tableau recursivo con trace | ✅ |
-| UI/EI nombrados en trace | ✅ |
+| Tableau recursivo con trace (α/β/γ/δ labels) | ✅ |
+| `derive()` con ProofStep[] + reasoningSchema | ✅ |
+| `countermodel()` con dominio + interpretación + aridad | ✅ |
+| `explain()` con variables lib/lig, aridad, alcance, alternancia, interpretación natural, lectura categórica | ✅ |
+| `checkEquivalent()` | ✅ |
 
-### Modales — BaseTableauProfile
+### Modales — BaseTableauProfile + Perfiles
 | Funcionalidad | Estado |
 |---|---|
 | `extractKripkeModel()` | ✅ |
 | `enrichResult()` con identifyTheorem | ✅ |
-| Tableau trace instrumental | ✅ |
-| Paradojas Ross/Samaritano | ✅ |
-| Paradoja Omnisciencia | ✅ |
+| Tableau trace visible en interpreter | ✅ |
+| Contramodelo Kripke visible en interpreter | ✅ |
+| Propiedades del frame en explain (reflexividad, serialidad, etc.) | ✅ |
+| Simplificación modalidades iteradas S5 | ✅ |
+| Paradojas: Ross, Samaritano, Omnisciencia | ✅ |
+| Paradoja de Moore (epistémica) | ✅ |
+| Paradoja de Chisholm (deóntica) | ✅ |
+| Introspección negativa | ✅ |
+| Patrones temporales LTL (Safety/Liveness/Response/Persistence/Recurrence/Precedence) | ✅ |
 
-### Intuicionista — MEJOR PERFIL IMPLEMENTADO
+### Intuicionista — MEJOR PERFIL
 | Funcionalidad | Estado |
 |---|---|
 | `traceForcing()` completo | ✅ |
@@ -114,29 +125,34 @@
 | Cuadro de oposición en explain() | ✅ |
 | Distribución de términos | ✅ |
 | Relaciones (contrariedad, etc.) | ✅ |
-| 24 silogismos válidos | ✅ |
+| 24 silogismos válidos | ✅ (con BUG-A en validación de figuras) |
+
+### Belnap — COMPLETO
+| Funcionalidad | Estado |
+|---|---|
+| Retículo A4 en explain() | ✅ |
+| Evaluación detallada por valor | ✅ |
+| Marcas ⊛ de designación | ✅ |
+| Leyes que fallan (4) | ✅ |
+| Leyes que se mantienen (De Morgan, Distributividad, Idempotencia, Doble negación) | ✅ |
+| Comparación con lógica clásica | ✅ |
+| Nota educativa | ✅ |
+| Semántica 4-valorada correcta | ✅ |
 
 ### Probabilística
 | Funcionalidad | Estado |
 |---|---|
 | Axiomas de Kolmogorov | ✅ |
 | Análisis de sensibilidad | ✅ |
-| Bayes (2 variables) | ✅ |
+| Bayes (2 variables, P=0.5) | ✅ |
+| Reglas nombradas (¬A, A∧B, A∨B, A→B) | ✅ |
 | truthTable con sub-fórmulas | ✅ |
-
-### Belnap
-| Funcionalidad | Estado |
-|---|---|
-| Retículo A4 en explain() | ✅ |
-| Leyes que fallan (3) | ✅ |
-| Nota educativa | ✅ |
-| Semántica 4-valorada correcta | ✅ |
 
 ### Aritmética
 | Funcionalidad | Estado |
 |---|---|
 | Evaluación paso a paso | ✅ |
-| Propiedades matemáticas (suma, mult.) | ✅ |
+| Propiedades matemáticas | ✅ |
 | Simplificación básica | ✅ |
 
 ### Transversales
@@ -145,106 +161,122 @@
 | `set verbose on/off/proof/model` | ✅ |
 | `formulaToLaTeX()` | ✅ |
 | `proofToLaTeX()` | ✅ |
+| cross-system-compare integrado | ✅ |
+| Tableau trace en emitResult | ✅ |
+| Kripke model en emitResult | ✅ |
 
 ---
 
-## ❌ NO IMPLEMENTADO (27 items)
+## ❌ NO IMPLEMENTADO (12 items restantes)
 
-### 🔴 Prioridad Alta (impacto pedagógico directo)
+### 🔴 Prioridad Alta
 
-| # | Item | Fase del plan | Dificultad | Líneas est. |
-|---|---|---|---|---|
-| 1 | **Tableau trace NO se muestra al usuario** — `tableauTrace` se almacena en RunResult pero el interpreter nunca lo imprime. Es la mejora más visible que falta para modales. | F3 §3.1 | Media | ~40 |
-| 2 | **Contramodelo Kripke NO se muestra** para modales — `model` se genera pero interpreter no lo imprime (solo para proposicional). | F3 §3.2 | Media | ~30 |
-| 3 | **FOL explain() demasiado básico** — Falta: variables libres/ligadas, aridad predicados, alcance cuantificadores, interpretación natural, lectura categórica | F2 §2.1 | Alta | ~100 |
-| 4 | **FOL derive() sin ProofStep[]** — Solo devuelve texto plano, no la prueba paso a paso nombrada (UI/EG/UG/EI) | F2 §2.2 | Alta | ~80 |
-| 5 | **FOL countermodel sin dominio/interpretación** — Solo dice "Existe al menos un modelo" pero no lo muestra | F2 §2.3 | Alta | ~60 |
-| 6 | **cross-system-compare.ts nunca se invoca** — El módulo existe (54 líneas) pero nadie lo llama ni lo conecta al explain() o emitResult() | F9 T3 | Baja | ~15 |
-| 7 | **Patrones temporales (Safety/Liveness/Response)** — No se detectan ni clasifican | F3 §3.8 | Media | ~60 |
-| 8 | **Inferencias inmediatas aristotélicas** — Conversión, Obversión, Contraposición no implementadas | F7 §7.3 | Media | ~50 |
-| 9 | **Entimemas aristotélicos** — Detección de silogismos incompletos con premisa faltante | F7 §7.4 | Media | ~60 |
+| # | Item | Fase del plan | Dificultad |
+|---|---|---|---|
+| 8 | **Inferencias inmediatas aristotélicas** — Conversión, Obversión, Contraposición | F7 §7.3 | Media |
+| 9 | **Entimemas aristotélicos** — Detección de silogismos incompletos | F7 §7.4 | Media |
 
-### 🟡 Prioridad Media (completitud del plan)
+### 🟡 Prioridad Media
 
-| # | Item | Fase del plan | Dificultad | Líneas est. |
-|---|---|---|---|---|
-| 10 | Propiedades del frame en check valid modal | F3 §3.4 | Baja | ~20 |
-| 11 | Modalidades iteradas / simplificación S5 | F3 §3.5 | Media | ~40 |
-| 12 | Paradoja de Moore (epistémica) | F3 §3.7 | Baja | ~15 |
-| 13 | Paradoja de Chisholm (deóntica) | F3 §3.6 | Media | ~30 |
-| 14 | Introspección negativa (epistémica) | F3 §3.7 | Baja | ~10 |
-| 15 | Consecuencia ⊨ vs ⊢ explícita en derive | F1 §1.5 | Media | ~30 |
-| 16 | Evaluación detallada por valor en Belnap explain | F4 §4.1 | Baja | ~25 |
-| 17 | Marcas ⊛ de designación en tabla Belnap | F4 §4.2 | Baja | ~15 |
-| 18 | Leyes que se MANTIENEN en Belnap | F4 §4.4 | Baja | ~10 |
-| 19 | Comparación clásica en CADA resultado Belnap | F4 §4.3 | Baja | ~20 |
-| 20 | Cálculo paso a paso con nombre de regla en probabilístico | F5 §5.1 | Media | ~40 |
-| 21 | Distribución por premisa en derive aristotélico | F7 §7.2 | Baja | ~20 |
-| 22 | Esquema/instanciación detallada en derive proposicional | F1 §1.1 | Media | ~30 |
-| 23 | Análisis de variables/cuantificadores FOL | F2 §2.4 | Media | ~50 |
+| # | Item | Fase del plan | Dificultad |
+|---|---|---|---|
+| 15 | Consecuencia ⊨ vs ⊢ explícita en derive proposicional | F1 §1.5 | Media |
+| 21 | Distribución por premisa en derive aristotélico | F7 §7.2 | Baja |
+| 22 | Esquema/instanciación detallada en derive proposicional (solo FOL lo tiene) | F1 §1.1 | Media |
+| 29 | RAA (Reducción al absurdo) como regla explícita en derive | F1 §1.1 | Media |
+| 30 | Prueba condicional como regla explícita en derive | F1 §1.1 | Media |
 
 ### 🟢 Prioridad Baja (nice-to-have)
 
-| # | Item | Fase del plan | Dificultad | Líneas est. |
-|---|---|---|---|---|
-| 24 | Completitud funcional en análisis de fórmula | F1 §1.4 | Baja | ~15 |
-| 25 | Contramodelo marcado con ← en tabla de verdad | F1 §1.6 | Baja | ~10 |
-| 26 | Esquemas de dominancia/identidad (P∧⊤↔P, etc.) | F1 §1.2 | Baja | ~10 |
-| 27 | Falacia de anfibología | F1 §1.7 | Baja | ~20 |
-| 28 | `extractClauses()` para análisis de resolución | F1 §1.3 | Baja | ~20 |
-| 29 | RAA (Reducción al absurdo) como regla explícita | F1 §1.1 | Media | ~40 |
-| 30 | Prueba condicional como regla explícita | F1 §1.1 | Media | ~40 |
+| # | Item | Fase del plan | Dificultad |
+|---|---|---|---|
+| 24 | Completitud funcional en análisis de fórmula | F1 §1.4 | Baja |
+| 25 | Contramodelo marcado con ← en tabla de verdad | F1 §1.6 | Baja |
+| 26 | Esquemas de dominancia/identidad (P∧⊤↔P, P∨⊥↔P, etc.) | F1 §1.2 | Baja |
+| 27 | Falacia de anfibología | F1 §1.7 | Baja |
+| 28 | `extractClauses()` para análisis de resolución | F1 §1.3 | Baja |
 
 ---
 
-## ⚠️ PARCIALMENTE IMPLEMENTADO (requiere ajuste)
+## ⚠️ PARCIALMENTE IMPLEMENTADO
 
 | # | Item | Lo que hay | Lo que falta |
 |---|---|---|---|
-| P1 | Bayes en probabilístico | Funciona solo con 2 variables, hardcoded P=0.5 | Generalizar a N variables con probabilidades reales |
-| P2 | Notas pedagógicas | Solo en Belnap y modales (paradojas) | Faltan en derive (MP, MT, etc.), check valid (tautología), contradicción |
-| P3 | known-theorems.ts | Axiomas K/T/D/4/5/B + 3 paradojas | Faltan Moore, Chisholm, introspección, patrones LTL |
-| P4 | Belnap explain | Retículo + 3 leyes que fallan | Falta evaluación por valor, leyes que se mantienen |
+| P1 | Bayes en probabilístico | Funciona con 2 variables, hardcoded P=0.5 | Generalizar a N variables con probabilidades reales |
+| P2 | Notas pedagógicas | En Belnap, modales (paradojas), intuicionista | Faltan en derive proposicional (MP, MT, etc.), check valid (por qué es tautología) |
 
 ---
 
 ## Resumen cuantitativo
 
-| Categoría | Items | % del plan |
+| Categoría | Items | % del plan | Δ vs rev.1 |
+|---|---|---|---|
+| ✅ Implementado correctamente | ~63 funcionalidades | **~82%** | +22% |
+| ⚠️ Parcialmente implementado | 2 items | **~3%** | -2% |
+| ❌ No implementado | 12 items | **~15%** | -20% |
+| 🔴 Bugs activos | 2 (menores) | — | -2 críticos, +2 menores |
+
+### Tests: 641/648 (98.9%)
+| Archivo | Estado | Fallos |
 |---|---|---|
-| ✅ Implementado correctamente | ~45 funcionalidades | **~60%** |
-| ⚠️ Parcialmente implementado | 4 items | **~5%** |
-| ❌ No implementado | 30 items | **~35%** |
-| 🔴 Bugs críticos | 2 bugs | — |
+| parser.test.ts | ✅ 23/23 | — |
+| core.test.ts | ✅ 31/31 | — |
+| profiles.test.ts | ✅ 27/27 | — |
+| engines.test.ts | ✅ 8/8 | — |
+| v1-features.test.ts | ✅ 106/106 | — |
+| philosophy.test.ts | ✅ 46/46 | — |
+| arithmetic.test.ts | ✅ 63/63 | — |
+| cli.test.ts | ✅ 14/14 | — |
+| exhaustive-matrix.test.ts | ✅ 12/12 | — |
+| examples.test.ts | ⚠️ | 1 fallo (string obsoleto en regression `arithmetic-programming.st`) |
+| stress-exhaustive.test.ts | ⚠️ | 6 fallos (5× "verdadera"→"verdadero" + 1× Affirming Consequent) |
 
 ### Estimación de trabajo restante
-- **Líneas nuevas/modificadas**: ~1,000–1,200
-- **Archivos a tocar**: 8-10
-- **Esfuerzo**: ~2-3 sprints adicionales
+- **Líneas nuevas/modificadas**: ~300–400
+- **Archivos a tocar**: 3-5
+- **Esfuerzo**: ~1 sprint adicional
 
 ---
 
 ## Prioridad de ejecución recomendada
 
-### Sprint A — Fixes + Visibilidad (mayor impacto)
-1. **Fix BUG-1**: Guardia en Absorción/Exportación/Importación (propositional.ts)
-2. **Fix BUG-2**: Eliminar console.log (known-theorems.ts)
-3. **#1**: Imprimir tableauTrace en interpreter (emitResult)
-4. **#2**: Imprimir contramodelo Kripke para modales en interpreter
-5. **#6**: Conectar cross-system-compare al explain/emitResult
+### Sprint Único — Completar + Fix tests
+1. **Fix BUG-A**: Validación de figuras en syllogistic.ts (verificar posición del término medio)
+2. **Fix BUG-B**: Actualizar strings en tests (6 assertions)
+3. **#8-9**: Inferencias inmediatas + entimemas (aristotélica)
+4. **#29-30**: RAA + Prueba condicional (proposicional derive)
+5. **#15**: ⊨ vs ⊢ en derive
 6. **#22**: Esquema/instanciación en derive proposicional
-
-### Sprint B — FOL + Modales
-7. **#3**: FOL explain profundo
-8. **#4**: FOL derive con ProofStep
-9. **#5**: FOL countermodel con dominio
-10. **#7**: Patrones temporales
-11. **#10-14**: Propiedades frame, paradojas faltantes, S5
-
-### Sprint C — Aristotélica + Belnap + Polish
-12. **#8-9**: Inferencias inmediatas + entimemas
-13. **#15-21**: Belnap completo, ⊨ vs ⊢, distribución
-14. **#23-30**: Nice-to-have y pulido final
+7. **#24-28**: Nice-to-have si queda tiempo
 
 ---
-*Generado por auditoría automatizada contra PLAN_MEJORA_SALIDAS.md v2*
+
+## Cambios entre rev.1 → rev.2 (lo que se arregló)
+
+| Item | rev.1 | rev.2 |
+|---|---|---|
+| BUG-1 Deadlock derive | 🔴 CRÍTICO | ✅ Arreglado (isRelevantToGoal) |
+| BUG-2 console.log | 🔴 CRÍTICO | ✅ Arreglado (eliminados) |
+| #1 Tableau trace mostrado | ❌ | ✅ interpreter.ts:1545 |
+| #2 Kripke model mostrado | ❌ | ✅ interpreter.ts:1510 |
+| #3 FOL explain profundo | ❌ | ✅ vars/aridad/alcance/lectura categórica |
+| #4 FOL derive ProofStep[] | ❌ | ✅ con UI/EI + reasoningSchema |
+| #5 FOL countermodel dominio | ❌ | ✅ dominio + interpretación |
+| #6 cross-system-compare | ❌ Dead code | ✅ Conectado en interpreter |
+| #7 Patrones temporales | ❌ | ✅ classifyTemporalPattern() en ltl.ts |
+| #10 Frame properties | ❌ | ✅ en modal explain |
+| #11 S5 simplificación | ❌ | ✅ colapsamiento mostrado |
+| #12 Moore | ❌ | ✅ en known-theorems.ts |
+| #13 Chisholm | ❌ | ✅ en known-theorems.ts |
+| #14 Introspección negativa | ❌ | ✅ en known-theorems.ts |
+| #16 Belnap per-value | ❌ | ✅ en explain() |
+| #17 Belnap ⊛ | ❌ | ✅ en explain() |
+| #18 Belnap leyes que se mantienen | ❌ | ✅ De Morgan, Dist., Idemp., ¬¬ |
+| #19 Belnap comparación clásica | ❌ | ✅ en explain() |
+| #20 Prob. reglas nombradas | ❌ | ✅ sección "Reglas" |
+| #23 FOL análisis variables | ❌ | ✅ en explain() |
+| P3 known-theorems paradojas | ⚠️ 3 paradojas | ✅ 6 paradojas (+ Moore, Chisholm, Intro.Neg.) |
+| P4 Belnap explain | ⚠️ parcial | ✅ completo |
+
+---
+*Generado por auditoría automatizada contra PLAN_MEJORA_SALIDAS.md v2 — Revisión 2*
