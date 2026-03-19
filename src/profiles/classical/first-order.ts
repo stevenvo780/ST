@@ -227,7 +227,7 @@ export class ClassicalFirstOrder implements LogicProfile {
       proof.status = 'complete';
     }
 
-    let output = res.closed
+    const output = res.closed
       ? `Derivado con éxito mediante tableau de primer orden.\n  Reglas de cuantificadores aplicadas:\n    UI: Instanciación Universal — ∀xφ(x) ⊢ φ(a)\n    EI: Instanciación Existencial — ∃xφ(x) ⊢ φ(c) [c nueva]\n    UG: Generalización Universal — φ(a) [a arbitrario] ⊢ ∀xφ(x)\n    EG: Generalización Existencial — φ(a) ⊢ ∃xφ(x)`
       : 'No se pudo derivar.';
 
