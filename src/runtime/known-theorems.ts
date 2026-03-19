@@ -112,7 +112,7 @@ function getSchemas() {
       const parser = new Parser();
       const prog = parser.parse(`claim P = ${schema.pattern}`);
       if (prog.statements[0] && prog.statements[0].kind === 'claim_decl') {
-        const ast = prog.statements[0].formula!;
+        const ast = prog.statements[0].formula as Formula;
         schemasAST.push({ tag: schema, ast });
       }
     }

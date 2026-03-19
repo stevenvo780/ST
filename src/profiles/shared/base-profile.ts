@@ -9,7 +9,7 @@
 //   - explainSystem() (descripción de axiomas del sistema)
 // ============================================================
 
-import { Formula, RunResult, Theory, LogicProfile, Diagnostic } from '../../types';
+import { Formula, RunResult, Theory, LogicProfile, Diagnostic, Model } from '../../types';
 import { formulaToString } from '../classical/propositional';
 import { FrameRules, checkTableau, Branch } from './tableau-engine';
 import { identifyTheorem } from '../../runtime/known-theorems';
@@ -39,12 +39,7 @@ export abstract class BaseTableauProfile implements LogicProfile {
     return diags;
   }
 
-  protected extractKripkeModel(branch: Branch): {
-    type: string;
-    worlds: string[];
-    accessibility: Record<string, string[]>;
-    valuation: Record<string, Record<string, boolean>>;
-  } {
+  protected extractKripkeModel(branch: Branch): Model {
     const valuation: Record<string, Record<string, boolean>> = {};
     for (const world of branch.worlds) {
       valuation[world] = {};
@@ -66,7 +61,13 @@ export abstract class BaseTableauProfile implements LogicProfile {
       accessibility[k] = Array.from(v);
     }
 
-    return { type: 'kripke', worlds: Array.from(branch.worlds), accessibility, valuation };
+    const modelWorlds = Array.from(branch.worlds).map((w) => ({
+      name: w,
+      valuation: valuation[w] || {},
+      accessible: accessibility[w] || [],
+    }));
+
+    return { type: 'modal', worlds: modelWorlds };
   }
 
   protected enrichResult(formula: Formula, result: RunResult): RunResult {

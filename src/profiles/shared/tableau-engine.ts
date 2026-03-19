@@ -86,7 +86,7 @@ export const FRAME_KD: FrameRules = {
       if (!successors || successors.size === 0) {
         const newWorld = `w${branch.worldCounter++}`;
         if (!branch.accessibility.has(w)) branch.accessibility.set(w, new Set());
-        branch.accessibility.get(w)!.add(newWorld);
+        (branch.accessibility.get(w) as Set<string>).add(newWorld);
         branch.worlds.add(newWorld);
         for (const gw of branch.gammaWatchers) {
           if (gw.sourceWorld === w) {
@@ -134,7 +134,7 @@ export const FRAME_S4: FrameRules = {
     const visited = new Set<string>();
     const queue = [source];
     while (queue.length > 0) {
-      const w = queue.shift()!;
+      const w = queue.shift() as string;
       if (visited.has(w)) continue;
       visited.add(w);
       for (const next of branch.accessibility.get(w) || []) {
@@ -149,7 +149,7 @@ export const FRAME_S4: FrameRules = {
       const reachable = new Set<string>();
       const queue = [gw.sourceWorld];
       while (queue.length > 0) {
-        const w = queue.shift()!;
+        const w = queue.shift() as string;
         if (reachable.has(w)) continue;
         reachable.add(w);
         for (const next of branch.accessibility.get(w) || []) queue.push(next);
@@ -336,7 +336,9 @@ function closes(branch: Branch, node: LabeledNode): boolean {
   const f = node.formula;
   const w = node.world;
   if (f.kind === 'not' && f.args?.[0]) {
-    return branch.literals.some((l) => l.world === w && formulaEqual(l.formula, f.args![0]));
+    return branch.literals.some(
+      (l) => l.world === w && formulaEqual(l.formula, (f.args as Formula[])[0]),
+    );
   }
   return branch.literals.some(
     (l) =>
@@ -456,7 +458,7 @@ function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult 
           `[${depth}] Regla Delta (Posibilidad/Existe) en ${node.world}: ${formulaHash(node.formula)} ─> nuevo mundo ${newWorld}`,
         );
         if (!branch.accessibility.has(node.world)) branch.accessibility.set(node.world, new Set());
-        branch.accessibility.get(node.world)!.add(newWorld);
+        (branch.accessibility.get(node.world) as Set<string>).add(newWorld);
         branch.worlds.add(newWorld);
 
         branch.pending.push({ formula: inner, world: newWorld });

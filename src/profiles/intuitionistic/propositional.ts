@@ -141,7 +141,7 @@ function reachable(model: KripkeModel, w: number): number[] {
   const visited = new Set<number>();
   const queue = [w];
   while (queue.length > 0) {
-    const current = queue.shift()!;
+    const current = queue.shift() as number;
     if (visited.has(current)) continue;
     visited.add(current);
     for (const next of model.access.get(current) || []) {
@@ -184,7 +184,7 @@ function* generateModels(atoms: string[], maxWorlds: number): Generator<KripkeMo
 
       for (let b = 0; b < pairs.length; b++) {
         if (edgeMask & (1 << b)) {
-          access.get(pairs[b][0])!.add(pairs[b][1]);
+          (access.get(pairs[b][0]) as Set<number>).add(pairs[b][1]);
         }
       }
 
@@ -202,7 +202,7 @@ function transitiveClosure(access: Map<number, Set<number>>, worlds: number[]): 
   while (changed) {
     changed = false;
     for (const w of worlds) {
-      const acc = access.get(w)!;
+      const acc = access.get(w) as Set<number>;
       const toAdd: number[] = [];
       for (const v of acc) {
         for (const u of access.get(v) || []) {
@@ -238,7 +238,7 @@ function* generatePersistentValuations(
       idx = Math.floor(idx / upwardSets.length);
       const truthWorlds = upwardSets[setIdx];
       for (const w of truthWorlds) {
-        val.get(w)!.add(atoms[a]);
+        (val.get(w) as Set<string>).add(atoms[a]);
       }
     }
 

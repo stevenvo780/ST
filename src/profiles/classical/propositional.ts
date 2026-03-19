@@ -638,10 +638,13 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           f2.kind === 'or' &&
           f2.args?.[0] &&
           f2.args?.[1] &&
-          formulasEqual(f1.args[0].args![0], f2.args[0]) &&
-          formulasEqual(f1.args[1].args![0], f2.args[1])
+          formulasEqual((f1.args[0].args as Formula[])[0], f2.args[0]) &&
+          formulasEqual((f1.args[1].args as Formula[])[0], f2.args[1])
         ) {
-          const qs: Formula = { kind: 'or', args: [f1.args[0].args![1], f1.args[1].args![1]] };
+          const qs: Formula = {
+            kind: 'or',
+            args: [(f1.args[0].args as Formula[])[1], (f1.args[1].args as Formula[])[1]],
+          };
           changed =
             addDerivedFormula(state, qs, 'Dilema Constructivo', [
               findStep(state.steps, f1),
@@ -657,14 +660,14 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           f2.kind === 'or' &&
           f2.args?.[0]?.kind === 'not' &&
           f2.args?.[1]?.kind === 'not' &&
-          formulasEqual(f1.args[0].args![1], f2.args[0].args![0]) &&
-          formulasEqual(f1.args[1].args![1], f2.args[1].args![0])
+          formulasEqual((f1.args[0].args as Formula[])[1], (f2.args[0].args as Formula[])[0]) &&
+          formulasEqual((f1.args[1].args as Formula[])[1], (f2.args[1].args as Formula[])[0])
         ) {
           const npnr: Formula = {
             kind: 'or',
             args: [
-              { kind: 'not', args: [f1.args[0].args![0]] },
-              { kind: 'not', args: [f1.args[1].args![0]] },
+              { kind: 'not', args: [(f1.args[0].args as Formula[])[0]] },
+              { kind: 'not', args: [(f1.args[1].args as Formula[])[0]] },
             ],
           };
           changed =
@@ -1211,7 +1214,7 @@ export class ClassicalPropositional implements LogicProfile {
     }
 
     explanation += `\nTabla de verdad:\n`;
-    explanation += `  ${tt.totalCount} valuaciones, ${tt.satisfyingCount} verdaderas, ${tt.totalCount! - tt.satisfyingCount!} falsas\n`;
+    explanation += `  ${tt.totalCount} valuaciones, ${tt.satisfyingCount} verdaderas, ${(tt.totalCount as number) - (tt.satisfyingCount as number)} falsas\n`;
     if (tt.isTautology) explanation += `  → Tautología ✓\n`;
     else if (tt.isContradiction) explanation += `  → Contradicción ✗\n`;
     else explanation += `  → Contingente (satisfacible)\n`;

@@ -45,7 +45,6 @@ import {
   WhileStmtNode,
   FnDeclNode,
   ReturnStmtNode,
-  FnCallNode,
 } from '../ast/nodes';
 import { registry } from '../profiles/interface';
 import { formulaToString } from '../profiles/classical/propositional';
@@ -359,21 +358,21 @@ export class Interpreter {
     switch (s.kind) {
       case 'let_decl':
         if (s.letType === 'formula') {
-          this.exportedBindings.set(s.name, this.letBindings.get(s.name)!);
-          this.exportedAxioms.set(s.name, this.theory.axioms.get(s.name)!);
+          this.exportedBindings.set(s.name, this.letBindings.get(s.name) as Formula);
+          this.exportedAxioms.set(s.name, this.theory.axioms.get(s.name) as Formula);
         }
         break;
       case 'axiom_decl':
-        this.exportedAxioms.set(s.name, this.theory.axioms.get(s.name)!);
+        this.exportedAxioms.set(s.name, this.theory.axioms.get(s.name) as Formula);
         break;
       case 'theorem_decl':
-        this.exportedTheorems.set(s.name, this.theory.theorems.get(s.name)!);
+        this.exportedTheorems.set(s.name, this.theory.theorems.get(s.name) as Formula);
         break;
       case 'fn_decl':
-        this.exportedFunctions.set(s.name, this.functions.get(s.name)!);
+        this.exportedFunctions.set(s.name, this.functions.get(s.name) as FnDeclNode);
         break;
       case 'theory_decl':
-        this.exportedTheories.set(s.name, this.theories.get(s.name)!);
+        this.exportedTheories.set(s.name, this.theories.get(s.name) as TheoryScope);
         break;
     }
   }
@@ -403,7 +402,7 @@ export class Interpreter {
         // 1. Intentar resolver el prefijo como una variable local (instancia)
         // Ej: let f1 = Familia("Socrates") -> f1.amor
         if (this.letBindings.has(prefix)) {
-          const resolvedPrefix = this.letBindings.get(prefix)!;
+          const resolvedPrefix = this.letBindings.get(prefix) as Formula;
           if (resolvedPrefix.kind === 'atom' && resolvedPrefix.name) {
             // Si el prefijo se resuelve a un nombre de teoría/instancia
             const actualInstanceName = resolvedPrefix.name;
@@ -415,11 +414,20 @@ export class Interpreter {
               )
                 return f;
               if (scope.letBindings.has(memberName))
-                return this.resolveFormula(scope.letBindings.get(memberName)!, new Set(visited));
+                return this.resolveFormula(
+                  scope.letBindings.get(memberName) as Formula,
+                  new Set(visited),
+                );
               if (scope.axioms.has(memberName))
-                return this.resolveFormula(scope.axioms.get(memberName)!, new Set(visited));
+                return this.resolveFormula(
+                  scope.axioms.get(memberName) as Formula,
+                  new Set(visited),
+                );
               if (scope.theorems.has(memberName))
-                return this.resolveFormula(scope.theorems.get(memberName)!, new Set(visited));
+                return this.resolveFormula(
+                  scope.theorems.get(memberName) as Formula,
+                  new Set(visited),
+                );
             }
           }
         }
@@ -429,11 +437,14 @@ export class Interpreter {
         if (scope) {
           if (scope.privateMembers.has(memberName) && this.currentTheoryName !== prefix) return f;
           if (scope.letBindings.has(memberName))
-            return this.resolveFormula(scope.letBindings.get(memberName)!, new Set(visited));
+            return this.resolveFormula(
+              scope.letBindings.get(memberName) as Formula,
+              new Set(visited),
+            );
           if (scope.axioms.has(memberName))
-            return this.resolveFormula(scope.axioms.get(memberName)!, new Set(visited));
+            return this.resolveFormula(scope.axioms.get(memberName) as Formula, new Set(visited));
           if (scope.theorems.has(memberName))
-            return this.resolveFormula(scope.theorems.get(memberName)!, new Set(visited));
+            return this.resolveFormula(scope.theorems.get(memberName) as Formula, new Set(visited));
         }
         return f;
       }
@@ -444,19 +455,19 @@ export class Interpreter {
           return f;
         }
         visited.add(f.name);
-        return this.resolveFormula(this.letBindings.get(f.name)!, new Set(visited));
+        return this.resolveFormula(this.letBindings.get(f.name) as Formula, new Set(visited));
       }
 
       // También resolver axiomas/teoremas del theory actual por nombre
       if (this.theory.axioms.has(f.name)) {
         if (visited.has(f.name)) return f;
         visited.add(f.name);
-        return this.resolveFormula(this.theory.axioms.get(f.name)!, new Set(visited));
+        return this.resolveFormula(this.theory.axioms.get(f.name) as Formula, new Set(visited));
       }
       if (this.theory.theorems.has(f.name)) {
         if (visited.has(f.name)) return f;
         visited.add(f.name);
-        return this.resolveFormula(this.theory.theorems.get(f.name)!, new Set(visited));
+        return this.resolveFormula(this.theory.theorems.get(f.name) as Formula, new Set(visited));
       }
     }
 
@@ -469,7 +480,8 @@ export class Interpreter {
     // Recorrer hijos recursivamente
     if (f.args && f.args.length > 0) {
       const newArgs = f.args.map((a) => (a ? this.resolveFormula(a, new Set(visited)) : a));
-      const changed = newArgs.some((a, i) => a !== f.args![i]);
+      const oldArgs = f.args;
+      const changed = newArgs.some((a, i) => a !== oldArgs[i]);
       if (changed) {
         return { ...f, args: newArgs };
       }
@@ -832,7 +844,6 @@ export class Interpreter {
     args: Formula[] = [],
   ): string {
     const theoryName = instanceName || node.name;
-    const templateName = node.name;
 
     // Crear scope vacío
     const scope: TheoryScope = {
@@ -959,7 +970,7 @@ export class Interpreter {
 
     for (const branch of stmt.branches) {
       const resolved = this.resolveFormula(branch.formula);
-      let matched = false;
+      let matched: boolean;
 
       if (branch.condition === 'valid' || branch.condition === 'invalid') {
         const result = profile.checkValid(resolved);
@@ -1023,7 +1034,7 @@ export class Interpreter {
       iter++;
 
       const resolved = this.resolveFormula(stmt.formula);
-      let matched = false;
+      let matched: boolean;
 
       if (stmt.condition === 'valid' || stmt.condition === 'invalid') {
         const result = profile.checkValid(resolved);
@@ -1088,7 +1099,7 @@ export class Interpreter {
 
       // Intentar resolver prefijo si es una variable local
       if (this.letBindings.has(prefix)) {
-        const resolved = this.letBindings.get(prefix)!;
+        const resolved = this.letBindings.get(prefix) as Formula;
         if (resolved.kind === 'atom' && resolved.name) {
           actualInstanceName = resolved.name;
         }
@@ -1245,7 +1256,7 @@ export class Interpreter {
           name === 'is_valid' ? profile.checkValid(arg) : profile.checkSatisfiable(arg);
         const isTrue = result.status === 'valid' || result.status === 'satisfiable';
         return { kind: 'atom', name: `"${isTrue ? 'True' : 'False'}"`, source: arg.source };
-      } catch (e: unknown) {
+      } catch {
         return { kind: 'atom', name: '"Error"', source: arg.source };
       }
     }
@@ -1260,14 +1271,16 @@ export class Interpreter {
         arg.kind === 'atom' && arg.name?.startsWith('"')
           ? arg.name.replace(/(^"|"$)/g, '')
           : formulaToString(arg);
-      let inputStr = '';
+      let inputStr: string;
       try {
         process.stdout.write(prompt + ' ');
+        /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
         const fs = require('fs');
         const buf = Buffer.alloc(256);
         const bytesRead = fs.readSync(process.stdin.fd, buf, 0, 256, null);
         inputStr = buf.toString('utf8', 0, bytesRead).trim();
-      } catch (e) {
+        /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
+      } catch {
         inputStr = 'interactive_not_supported';
       }
       return { kind: 'atom', name: `"${inputStr}"`, source: arg.source };
@@ -1291,7 +1304,7 @@ export class Interpreter {
     // Intentar leer el archivo (solo funciona en Node.js / CLI)
     let source: string;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
       const fs = require('fs');
       const path = require('path');
       // Resolver relativo al archivo actual si no es absoluto
@@ -1299,6 +1312,7 @@ export class Interpreter {
         ? filePath
         : path.resolve(path.dirname(stmt.source.file || '.'), filePath);
       source = fs.readFileSync(resolved, 'utf-8');
+      /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
     } catch {
       throw new Error(`No se pudo importar '${filePath}': archivo no encontrado`);
     }
@@ -1443,12 +1457,14 @@ export class Interpreter {
     }
 
     if (result.formula && (verbosity === 'on' || cmd === 'explain')) {
+      /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
       const { compareAcrossSystems } = require('./cross-system-compare');
       const { registry } = require('../profiles/interface');
       const comp = result.crossSystemComparison || compareAcrossSystems(result.formula, registry);
-      if (Object.keys(comp).length > 0) {
+      /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
+      if (Object.keys(comp as Record<string, unknown>).length > 0) {
         this.emit(`  Comparación entre sistemas:`);
-        for (const [sys, val] of Object.entries(comp)) {
+        for (const [sys, val] of Object.entries(comp as Record<string, unknown>)) {
           this.emit(`    ${sys.padEnd(30)} ${val as string}`);
         }
       }
@@ -1466,9 +1482,11 @@ export class Interpreter {
       (verbosity === 'on' || verbosity === 'proof' || cmd === 'derive' || cmd === 'prove')
     ) {
       if (isLatex) {
+        /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
         const { proofToLaTeX } = require('./format');
         this.emit('  Prueba (LaTeX):');
-        this.emit(proofToLaTeX(proof));
+        this.emit(proofToLaTeX(proof) as string);
+        /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
       } else {
         this.emit('  Prueba:');
         for (const step of proof.steps) {

@@ -24,7 +24,7 @@ export function toPrenex(f: Formula): Formula {
   const nnf = toNNF(f);
   function rename(node: Formula, mapping: Map<string, string>): Formula {
     if (node.kind === 'forall' || node.kind === 'exists') {
-      const v = node.variable!;
+      const v = node.variable as string;
       const nv = getNewVar();
       const newMap = new Map(mapping).set(v, nv);
       return { ...node, variable: nv, args: [rename((node.args || [])[0], newMap)] };
@@ -42,7 +42,7 @@ export function toPrenex(f: Formula): Formula {
   const quantifiers: { kind: 'forall' | 'exists'; v: string }[] = [];
   function extract(node: Formula): Formula {
     if (node.kind === 'forall' || node.kind === 'exists') {
-      quantifiers.push({ kind: node.kind, v: node.variable! });
+      quantifiers.push({ kind: node.kind, v: node.variable as string });
       return extract((node.args || [])[0]);
     }
     if (node.args) {
@@ -64,13 +64,13 @@ export function skolemize(f: Formula): Formula {
   const foralls: string[] = [];
   function process(node: Formula): Formula {
     if (node.kind === 'forall') {
-      foralls.push(node.variable!);
+      foralls.push(node.variable as string);
       const inner = process((node.args || [])[0]);
       foralls.pop();
       return { ...node, args: [inner] };
     }
     if (node.kind === 'exists') {
-      const v = node.variable!;
+      const v = node.variable as string;
       const isFunc = foralls.length > 0;
       const skName = getSkolem(isFunc);
       const replaceStr = isFunc ? `${skName}(${foralls.join(',')})` : skName;
@@ -425,14 +425,14 @@ export class ClassicalFirstOrder implements LogicProfile {
               return (
                 (inner.args || []).length >= 2 &&
                 this.solveRecursive(
-                  [{ formula: { kind: 'not', args: [inner.args![0]] } }, ...rest],
+                  [{ formula: { kind: 'not', args: [(inner.args as Formula[])[0]] } }, ...rest],
                   constants,
                   nextProcessed,
                   depth + 1,
                   [...trace],
                 ) &&
                 this.solveRecursive(
-                  [{ formula: { kind: 'not', args: [inner.args![1]] } }, ...rest],
+                  [{ formula: { kind: 'not', args: [(inner.args as Formula[])[1]] } }, ...rest],
                   constants,
                   nextProcessed,
                   depth + 1,
@@ -479,7 +479,7 @@ export class ClassicalFirstOrder implements LogicProfile {
                   {
                     formula: {
                       kind: 'not',
-                      args: [this.substitute(inner.args![0], variable, newC)],
+                      args: [this.substitute((inner.args as Formula[])[0], variable, newC)],
                     },
                   },
                   ...rest,
@@ -496,7 +496,7 @@ export class ClassicalFirstOrder implements LogicProfile {
               const negForall: Formula = {
                 kind: 'forall',
                 variable,
-                args: [{ kind: 'not', args: [inner.args![0]] }],
+                args: [{ kind: 'not', args: [(inner.args as Formula[])[0]] }],
               };
               trace.push(
                 `[${depth}] Gamma (¬∃): ${formulaToString(f)} -> transformando a ∀¬ (UG/UI prep)`,
