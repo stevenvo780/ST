@@ -330,7 +330,17 @@ export interface ProtocolResponse {
 
 export interface SymbolInfo {
   name: string;
-  kind: 'axiom' | 'theorem' | 'claim' | 'passage' | 'variable' | 'formula';
+  kind:
+    | 'axiom'
+    | 'theorem'
+    | 'claim'
+    | 'passage'
+    | 'variable'
+    | 'formula'
+    | 'definition'
+    | 'source'
+    | 'interpretation'
+    | 'function';
   description?: string;
   detail?: string;
   location: SourceLocation;

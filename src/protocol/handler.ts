@@ -105,109 +105,80 @@ export class ProtocolHandler {
     const parser = new Parser(file);
     const program = parser.parse(source);
 
-    // Recopilar todas las definiciones let del programa
+    // Recopilar todas las definiciones del programa
     const letDefs: Map<string, { formula?: string; description?: string; line: number }> =
       new Map();
     const axiomDefs: Map<string, { formula: string; line: number }> = new Map();
     const theoremDefs: Map<string, { formula: string; line: number }> = new Map();
+    const defineDefs: Map<
+      string,
+      { formula: string; params?: string[]; description?: string; line: number }
+    > = new Map();
+    const sourceDefs: Map<string, { fields: string; line: number }> = new Map();
+    const fnDefs: Map<string, { params: string[]; line: number }> = new Map();
 
-    for (const stmt of program.statements) {
-      switch (stmt.kind) {
+    const registerHoverDefs = (s: Statement, prefix = '') => {
+      switch (s.kind) {
         case 'let_decl':
-          if (stmt.letType === 'description') {
-            letDefs.set(stmt.name, { description: stmt.description, line: stmt.source.line });
-          } else if (stmt.letType === 'formula') {
+          if (s.letType === 'description') {
+            letDefs.set(prefix + s.name, { description: s.description, line: s.source.line });
+          } else if (s.letType === 'formula') {
             const desc =
-              'description' in stmt ? (stmt as { description?: string }).description : undefined;
-            letDefs.set(stmt.name, {
-              formula: formulaToString(stmt.formula),
+              'description' in s ? (s as { description?: string }).description : undefined;
+            letDefs.set(prefix + s.name, {
+              formula: formulaToString(s.formula),
               description: desc,
-              line: stmt.source.line,
+              line: s.source.line,
             });
-          } else if (stmt.letType === 'passage') {
-            letDefs.set(stmt.name, {
-              description: `passage([[${stmt.anchorPath}]])`,
-              line: stmt.source.line,
+          } else if (s.letType === 'passage') {
+            letDefs.set(prefix + s.name, {
+              description: `passage([[${s.anchorPath}]])`,
+              line: s.source.line,
             });
           }
           break;
         case 'axiom_decl':
-          axiomDefs.set(stmt.name, {
-            formula: formulaToString(stmt.formula),
-            line: stmt.source.line,
+          axiomDefs.set(prefix + s.name, {
+            formula: formulaToString(s.formula),
+            line: s.source.line,
           });
           break;
         case 'theorem_decl':
-          theoremDefs.set(stmt.name, {
-            formula: formulaToString(stmt.formula),
-            line: stmt.source.line,
+          theoremDefs.set(prefix + s.name, {
+            formula: formulaToString(s.formula),
+            line: s.source.line,
           });
           break;
-        case 'export_decl': {
-          // Tratar la declaración interna como si estuviera en el scope global
-          const inner = stmt.statement;
-          if (inner.kind === 'let_decl') {
-            if (inner.letType === 'description') {
-              letDefs.set(inner.name, { description: inner.description, line: inner.source.line });
-            } else if (inner.letType === 'formula') {
-              const desc =
-                'description' in inner
-                  ? (inner as { description?: string }).description
-                  : undefined;
-              letDefs.set(inner.name, {
-                formula: formulaToString(inner.formula),
-                description: desc,
-                line: inner.source.line,
-              });
-            }
-          } else if (inner.kind === 'axiom_decl') {
-            axiomDefs.set(inner.name, {
-              formula: formulaToString(inner.formula),
-              line: inner.source.line,
-            });
-          } else if (inner.kind === 'theorem_decl') {
-            theoremDefs.set(inner.name, {
-              formula: formulaToString(inner.formula),
-              line: inner.source.line,
-            });
-          } else if (inner.kind === 'fn_decl') {
-            // Registrar función si fuera posible (habría que añadir functionDefs)
-          }
+        case 'define_decl':
+          defineDefs.set(prefix + s.name, {
+            formula: formulaToString(s.body),
+            params: s.params,
+            description: s.description,
+            line: s.source.line,
+          });
           break;
+        case 'source_decl':
+          sourceDefs.set(prefix + s.name, {
+            fields: s.fields.map((f) => `${f.key}: ${f.value}`).join(', '),
+            line: s.source.line,
+          });
+          break;
+        case 'fn_decl':
+          fnDefs.set(prefix + s.name, { params: s.params, line: s.source.line });
+          break;
+      }
+    };
+
+    for (const stmt of program.statements) {
+      registerHoverDefs(stmt);
+      if (stmt.kind === 'export_decl') {
+        registerHoverDefs(stmt.statement);
+      }
+      if (stmt.kind === 'theory_decl') {
+        const qPrefix = `${stmt.name}.`;
+        for (const member of stmt.members) {
+          registerHoverDefs(member.statement, qPrefix);
         }
-        case 'theory_decl':
-          // Registrar miembros de la teoría como defs prefijados
-          for (const member of stmt.members) {
-            const ms = member.statement;
-            const qPrefix = `${stmt.name}.`;
-            if (ms.kind === 'let_decl') {
-              if (ms.letType === 'description') {
-                letDefs.set(qPrefix + ms.name, {
-                  description: ms.description,
-                  line: ms.source.line,
-                });
-              } else if (ms.letType === 'formula') {
-                const desc =
-                  'description' in ms ? (ms as { description?: string }).description : undefined;
-                letDefs.set(qPrefix + ms.name, {
-                  formula: formulaToString(ms.formula),
-                  description: desc,
-                  line: ms.source.line,
-                });
-              }
-            } else if (ms.kind === 'axiom_decl') {
-              axiomDefs.set(qPrefix + ms.name, {
-                formula: formulaToString(ms.formula),
-                line: ms.source.line,
-              });
-            } else if (ms.kind === 'theorem_decl') {
-              theoremDefs.set(qPrefix + ms.name, {
-                formula: formulaToString(ms.formula),
-                line: ms.source.line,
-              });
-            }
-          }
-          break;
       }
     }
 
@@ -247,6 +218,42 @@ export class ProtocolHandler {
               id: request.id,
               result: {
                 content: `**Teorema** \`${word}\` = \`${theoremDef.formula}\``,
+                range: { line, column },
+              } as HoverInfo,
+            };
+          }
+
+          // Buscar en definitions (define)
+          const defineDef = defineDefs.get(word);
+          if (defineDef) {
+            let content = `**Define** \`${word}\``;
+            if (defineDef.params && defineDef.params.length > 0)
+              content += `(${defineDef.params.join(', ')})`;
+            content += ` := \`${defineDef.formula}\``;
+            if (defineDef.description) content += `\n\n📝 *"${defineDef.description}"*`;
+            return {
+              id: request.id,
+              result: { content, range: { line, column } } as HoverInfo,
+            };
+          }
+          // Buscar en sources
+          const sourceDef = sourceDefs.get(word);
+          if (sourceDef) {
+            return {
+              id: request.id,
+              result: {
+                content: `**Source** \`${word}\`\n\n📖 ${sourceDef.fields}`,
+                range: { line, column },
+              } as HoverInfo,
+            };
+          }
+          // Buscar en funciones
+          const fnDef = fnDefs.get(word);
+          if (fnDef) {
+            return {
+              id: request.id,
+              result: {
+                content: `**Función** \`${word}(${fnDef.params.join(', ')})\``,
                 range: { line, column },
               } as HoverInfo,
             };
@@ -328,6 +335,20 @@ export class ProtocolHandler {
       while: '**while**\n\nRepite un bloque mientras una condición siga siendo verdadera.',
       fn: '**fn**\n\nDeclara una función con parámetros y posible retorno.',
       return: '**return**\n\nDevuelve un valor desde una función.',
+      define:
+        '**define**\n\nDeclara una macro semántica que puede desplegarse con `unfold`.\n\nEjemplo: `define Mortal(x) := Humano(x) -> MuereAlgúnDía(x)`',
+      unfold:
+        '**unfold**\n\nExpande una definición `define` en una fórmula y verifica la expansión.\n\nEjemplo: `unfold Mortal(Sócrates)`',
+      fold:
+        '**fold**\n\nContrae una fórmula expandida de vuelta a su forma definida con `define`.\n\nEjemplo: `fold Humano(s) -> MuereAlgúnDía(s)`',
+      source:
+        '**source**\n\nDeclara una fuente bibliográfica o académica reutilizable.\n\nEjemplo: `source Kant2024 { author: "Immanuel Kant", year: 2024 }`',
+      interpret:
+        '**interpret**\n\nInterpreta un pasaje de texto bajo una fórmula lógica.\n\nEjemplo: `interpret "todo humano es mortal" as forall x (H(x) -> M(x))`',
+      glossary:
+        '**glossary**\n\nMuestra el glosario de todas las definiciones (`define`) activas.',
+      description:
+        '**description**\n\nAñade una descripción en lenguaje natural a una definición `define`.\n\nEjemplo: `define F(x) := P(x) @ "Propiedad fundamental"`',
       arithmetic:
         '**arithmetic**\n\nPerfil numérico para expresiones aritméticas, comparaciones y scripting ST.',
       '+': '**+**\n\nSuma dos expresiones numéricas.',
@@ -375,6 +396,13 @@ export class ProtocolHandler {
       mientras: keywordInfo.while,
       funcion: keywordInfo.fn,
       retornar: keywordInfo.return,
+      definir: keywordInfo.define,
+      desplegar: keywordInfo.unfold,
+      plegar: keywordInfo.fold,
+      fuente: keywordInfo.source,
+      interpretar: keywordInfo.interpret,
+      glosario: keywordInfo.glossary,
+      descripcion: keywordInfo.description,
     };
 
     const profileInfo: Record<string, string> = {
@@ -501,8 +529,83 @@ export class ProtocolHandler {
                   detail: `${vis}${ms.letType === 'formula' ? formulaToString(ms.formula) : ms.letType === 'description' ? `"${ms.description}"` : ''}`,
                   location: ms.source,
                 });
+              } else if (ms.kind === 'define_decl') {
+                symbols.push({
+                  name: memberName,
+                  kind: 'definition',
+                  description: ms.description,
+                  detail: `${vis}${ms.params ? `(${ms.params.join(', ')}) ` : ''}:= ${formulaToString(ms.body)}`,
+                  location: ms.source,
+                });
+              } else if (ms.kind === 'fn_decl') {
+                symbols.push({
+                  name: memberName,
+                  kind: 'function',
+                  detail: `${vis}(${ms.params.join(', ')})`,
+                  location: ms.source,
+                });
               }
             }
+          }
+          break;
+        }
+        case 'define_decl':
+          symbols.push({
+            name: stmt.name,
+            kind: 'definition',
+            description: stmt.description,
+            detail: `${stmt.params ? `(${stmt.params.join(', ')}) ` : ''}:= ${formulaToString(stmt.body)}`,
+            location: stmt.source,
+          });
+          break;
+        case 'source_decl':
+          symbols.push({
+            name: stmt.name,
+            kind: 'source',
+            detail: stmt.fields.map((f) => `${f.key}: ${f.value}`).join(', '),
+            location: stmt.source,
+          });
+          break;
+        case 'interpret_cmd':
+          symbols.push({
+            name: stmt.passageRef || stmt.text,
+            kind: 'interpretation',
+            detail: formulaToString(stmt.formula),
+            location: stmt.source,
+          });
+          break;
+        case 'fn_decl':
+          symbols.push({
+            name: stmt.name,
+            kind: 'function',
+            detail: `(${stmt.params.join(', ')})`,
+            location: stmt.source,
+          });
+          break;
+        case 'export_decl': {
+          const inner = stmt.statement;
+          if (inner.kind === 'define_decl') {
+            symbols.push({
+              name: inner.name,
+              kind: 'definition',
+              description: inner.description,
+              detail: `export ${inner.params ? `(${inner.params.join(', ')}) ` : ''}:= ${formulaToString(inner.body)}`,
+              location: inner.source,
+            });
+          } else if (inner.kind === 'source_decl') {
+            symbols.push({
+              name: inner.name,
+              kind: 'source',
+              detail: `export ${inner.fields.map((f) => `${f.key}: ${f.value}`).join(', ')}`,
+              location: inner.source,
+            });
+          } else if (inner.kind === 'fn_decl') {
+            symbols.push({
+              name: inner.name,
+              kind: 'function',
+              detail: `export (${inner.params.join(', ')})`,
+              location: inner.source,
+            });
           }
           break;
         }
@@ -522,6 +625,26 @@ export class ProtocolHandler {
     for (const stmt of program.statements) {
       if ('name' in stmt && (stmt as { name: string }).name === name) {
         return { id: request.id, result: stmt.source };
+      }
+      // Buscar dentro de export_decl
+      if (stmt.kind === 'export_decl') {
+        const inner = stmt.statement;
+        if ('name' in inner && (inner as { name: string }).name === name) {
+          return { id: request.id, result: inner.source };
+        }
+      }
+      // Buscar dentro de theory_decl (con y sin prefijo)
+      if (stmt.kind === 'theory_decl') {
+        for (const member of stmt.members) {
+          const ms = member.statement;
+          if ('name' in ms) {
+            const memberName = (ms as { name: string }).name;
+            const qualifiedName = `${stmt.name}.${memberName}`;
+            if (memberName === name || qualifiedName === name) {
+              return { id: request.id, result: ms.source };
+            }
+          }
+        }
       }
     }
 
@@ -904,6 +1027,108 @@ export class ProtocolHandler {
         detail: 'Renderizar salida en formato markdown/json',
         insertText: 'render',
       },
+      {
+        label: 'render glossary',
+        kind: 'keyword',
+        detail: 'Renderizar glosario de definiciones activas',
+        insertText: 'render glossary',
+      },
+      {
+        label: 'render analysis',
+        kind: 'keyword',
+        detail: 'Renderizar análisis completo del script',
+        insertText: 'render analysis',
+      },
+
+      // ── v3: Definitions, Sources, Interpretation ────────────────
+      {
+        label: 'define',
+        kind: 'keyword',
+        detail: 'Definir macro semántica expandible',
+        documentation:
+          'Define una abreviatura o macro que puede expandirse con `unfold` y contraerse con `fold`.',
+        insertText: 'define ${1:Name}(${2:x}) := ${3:formula}',
+      },
+      {
+        label: 'definir',
+        kind: 'keyword',
+        detail: 'Definir macro semántica (español)',
+        insertText: 'definir ${1:Nombre}(${2:x}) := ${3:formula}',
+      },
+      {
+        label: 'define @',
+        kind: 'keyword',
+        detail: 'Definir macro con descripción',
+        insertText: 'define ${1:Name}(${2:x}) := ${3:formula} @ "${4:descripción}"',
+      },
+      {
+        label: 'unfold',
+        kind: 'keyword',
+        detail: 'Expandir definición (despliega la macro)',
+        insertText: 'unfold ${1:formula}',
+      },
+      {
+        label: 'desplegar',
+        kind: 'keyword',
+        detail: 'Expandir definición (español)',
+        insertText: 'desplegar ${1:formula}',
+      },
+      {
+        label: 'fold',
+        kind: 'keyword',
+        detail: 'Contraer fórmula (pliega hacia la definición)',
+        insertText: 'fold ${1:formula}',
+      },
+      {
+        label: 'plegar',
+        kind: 'keyword',
+        detail: 'Contraer fórmula (español)',
+        insertText: 'plegar ${1:formula}',
+      },
+      {
+        label: 'source',
+        kind: 'keyword',
+        detail: 'Declarar fuente bibliográfica',
+        documentation: 'Registra una referencia académica con campos clave-valor.',
+        insertText: 'source ${1:Name} {\n  author: "${2:autor}",\n  year: ${3:2024}\n}',
+      },
+      {
+        label: 'fuente',
+        kind: 'keyword',
+        detail: 'Declarar fuente bibliográfica (español)',
+        insertText: 'fuente ${1:Nombre} {\n  author: "${2:autor}",\n  year: ${3:2024}\n}',
+      },
+      {
+        label: 'interpret',
+        kind: 'keyword',
+        detail: 'Interpretar texto como fórmula lógica',
+        documentation: 'Asigna una lectura formal a un fragmento de texto o pasaje.',
+        insertText: 'interpret "${1:texto}" as ${2:formula}',
+      },
+      {
+        label: 'interpretar',
+        kind: 'keyword',
+        detail: 'Interpretar texto como fórmula (español)',
+        insertText: 'interpretar "${1:texto}" como ${2:formula}',
+      },
+      {
+        label: 'glossary',
+        kind: 'keyword',
+        detail: 'Mostrar glosario de definiciones activas',
+        insertText: 'glossary',
+      },
+      {
+        label: 'glosario',
+        kind: 'keyword',
+        detail: 'Mostrar glosario (español)',
+        insertText: 'glosario',
+      },
+      {
+        label: 'description @',
+        kind: 'keyword',
+        detail: 'Añadir descripción a define con @',
+        insertText: '@ "${1:descripción del concepto}"',
+      },
 
       // ── Operadores deónticos (deontic.standard) ─────────────────
       {
@@ -1268,6 +1493,32 @@ export class ProtocolHandler {
         content += `📦 ${pubCount} miembros públicos`;
         if (privCount > 0) content += `, 🔒 ${privCount} privados`;
         return { content, range: stmt.source };
+      }
+      case 'define_decl': {
+        let content = `**Define** \`${stmt.name}\``;
+        if (stmt.params && stmt.params.length > 0) content += `(${stmt.params.join(', ')})`;
+        content += ` := \`${formulaToString(stmt.body)}\``;
+        if (stmt.description) content += `\n\n📝 *"${stmt.description}"*`;
+        return { content, range: stmt.source };
+      }
+      case 'source_decl': {
+        const fieldsStr = stmt.fields.map((f) => `${f.key}: ${f.value}`).join(', ');
+        return {
+          content: `**Source** \`${stmt.name}\`\n\n📖 ${fieldsStr}`,
+          range: stmt.source,
+        };
+      }
+      case 'interpret_cmd': {
+        return {
+          content: `**Interpret** "${stmt.text}"\n\n🔢 \`${formulaToString(stmt.formula)}\``,
+          range: stmt.source,
+        };
+      }
+      case 'fn_decl': {
+        return {
+          content: `**Función** \`${stmt.name}(${stmt.params.join(', ')})\`\n\n${stmt.body.length} statements`,
+          range: stmt.source,
+        };
       }
       default:
         return null;
