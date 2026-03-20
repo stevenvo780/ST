@@ -358,21 +358,54 @@ function closes(branch: Branch, node: LabeledNode): boolean {
   );
 }
 
+// ── Pool de Ramas (Object Pooling) ──────────────────────────
+
+const branchPool: Branch[] = [];
+const MAX_POOL_SIZE = 32;
+
+function acquireBranch(): Branch {
+  if (branchPool.length > 0) {
+    return branchPool.pop()!;
+  }
+  return {
+    literals: [],
+    pending: [],
+    accessibility: new Map(),
+    worlds: new Set(),
+    gammaWatchers: [],
+    processed: new Set(),
+    worldCounter: 0,
+    trace: [],
+  };
+}
+
+function releaseBranch(b: Branch): void {
+  if (branchPool.length < MAX_POOL_SIZE) {
+    b.literals.length = 0;
+    b.pending.length = 0;
+    b.accessibility.clear();
+    b.worlds.clear();
+    b.gammaWatchers.length = 0;
+    b.processed.clear();
+    b.worldCounter = 0;
+    b.trace.length = 0;
+    branchPool.push(b);
+  }
+}
+
 // ── Clonación ───────────────────────────────────────────────
 
 function cloneBranch(b: Branch): Branch {
-  const newAcc = new Map<string, Set<string>>();
-  for (const [k, v] of b.accessibility) newAcc.set(k, new Set(v));
-  return {
-    literals: [...b.literals],
-    pending: [...b.pending],
-    accessibility: newAcc,
-    worlds: new Set(b.worlds),
-    gammaWatchers: [...b.gammaWatchers],
-    processed: new Set(b.processed),
-    worldCounter: b.worldCounter,
-    trace: [...b.trace],
-  };
+  const clone = acquireBranch();
+  clone.literals.push(...b.literals);
+  clone.pending.push(...b.pending);
+  for (const [k, v] of b.accessibility) clone.accessibility.set(k, new Set(v));
+  for (const w of b.worlds) clone.worlds.add(w);
+  clone.gammaWatchers.push(...b.gammaWatchers);
+  for (const p of b.processed) clone.processed.add(p);
+  clone.worldCounter = b.worldCounter;
+  clone.trace.push(...b.trace);
+  return clone;
 }
 
 // ── Constantes ──────────────────────────────────────────────
@@ -579,16 +612,11 @@ function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult 
 // ── API pública ─────────────────────────────────────────────
 
 export function makeBranch(nodes: LabeledNode[]): Branch {
-  return {
-    literals: [],
-    pending: [...nodes],
-    accessibility: new Map(),
-    worlds: new Set(['w0']),
-    gammaWatchers: [],
-    processed: new Set(),
-    worldCounter: 1,
-    trace: [],
-  };
+  const branch = acquireBranch();
+  branch.pending.push(...nodes);
+  branch.worlds.add('w0');
+  branch.worldCounter = 1;
+  return branch;
 }
 
 export function checkTableau(

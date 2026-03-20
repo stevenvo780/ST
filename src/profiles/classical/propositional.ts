@@ -16,7 +16,7 @@ import {
 } from '../../types';
 import { classifyFormula } from '../../runtime/formula-classifier';
 import { formulaToUnicode } from '../../runtime/format';
-import { memoizeString, memoizeAtoms } from '../../utils/memo';
+import { memoizeString, memoizeAtoms, memoizeNNF, memoizeCNF, memoizeDNF } from '../../utils/memo';
 
 // --- Utilidades de fórmulas ---
 
@@ -40,39 +40,39 @@ function computeCollectAtoms(f: Formula): Set<string> {
   return atoms;
 }
 
-function evaluate(f: Formula, v: Valuation): boolean {
+export function evaluateClassical(f: Formula, v: Valuation): boolean {
   switch (f.kind) {
     case 'atom':
       return f.name ? (v[f.name] ?? false) : false;
     case 'not':
-      return f.args && f.args[0] ? !evaluate(f.args[0], v) : false;
+      return f.args && f.args[0] ? !evaluateClassical(f.args[0], v) : false;
     case 'and':
       return f.args && f.args[0] && f.args[1]
-        ? evaluate(f.args[0], v) && evaluate(f.args[1], v)
+        ? evaluateClassical(f.args[0], v) && evaluateClassical(f.args[1], v)
         : false;
     case 'or':
       return f.args && f.args[0] && f.args[1]
-        ? evaluate(f.args[0], v) || evaluate(f.args[1], v)
+        ? evaluateClassical(f.args[0], v) || evaluateClassical(f.args[1], v)
         : false;
     case 'implies':
       return f.args && f.args[0] && f.args[1]
-        ? !evaluate(f.args[0], v) || evaluate(f.args[1], v)
+        ? !evaluateClassical(f.args[0], v) || evaluateClassical(f.args[1], v)
         : false;
     case 'biconditional':
       return f.args && f.args[0] && f.args[1]
-        ? evaluate(f.args[0], v) === evaluate(f.args[1], v)
+        ? evaluateClassical(f.args[0], v) === evaluateClassical(f.args[1], v)
         : false;
     case 'nand':
       return f.args && f.args[0] && f.args[1]
-        ? !(evaluate(f.args[0], v) && evaluate(f.args[1], v))
+        ? !(evaluateClassical(f.args[0], v) && evaluateClassical(f.args[1], v))
         : false;
     case 'nor':
       return f.args && f.args[0] && f.args[1]
-        ? !(evaluate(f.args[0], v) || evaluate(f.args[1], v))
+        ? !(evaluateClassical(f.args[0], v) || evaluateClassical(f.args[1], v))
         : false;
     case 'xor':
       return f.args && f.args[0] && f.args[1]
-        ? evaluate(f.args[0], v) !== evaluate(f.args[1], v)
+        ? evaluateClassical(f.args[0], v) !== evaluateClassical(f.args[1], v)
         : false;
     default:
       throw new Error(`Operador lógico no soportado en evaluación clásica: ${f.kind}`);
@@ -100,6 +100,99 @@ function generateValuations(atoms: string[]): Valuation[] {
     valuations[i] = v;
   }
   return valuations;
+}
+
+/**
+ * Generador lazy de valuaciones para streaming (usado por el intérprete para truth_table masivas).
+ */
+export function* generateValuationsLazy(atoms: string[]): Generator<Valuation> {
+  const n = atoms.length;
+  if (n === 0) {
+    yield {};
+    return;
+  }
+  const total = 1 << n;
+  for (let i = 0; i < total; i++) {
+    const v: Valuation = {};
+    for (let j = 0; j < n; j++) {
+      v[atoms[j]] = Boolean((i >> (n - 1 - j)) & 1);
+    }
+    yield v;
+  }
+}
+
+// ── Evaluación vectorizada con Bitsets ──────────────────────
+
+interface BitsetResult {
+  result: bigint;
+  atomMasks: Map<string, bigint>;
+  total: number;
+  allOnes: bigint;
+}
+
+function evaluateBitset(formula: Formula, atoms: string[]): BitsetResult {
+  const n = atoms.length;
+  if (n > 26) throw new Error('Demasiadas variables para evaluación bitset (>26)');
+  const total = 1 << n;
+  const allOnes = (1n << BigInt(total)) - 1n;
+
+  const atomMasks = new Map<string, bigint>();
+  for (let j = 0; j < n; j++) {
+    let mask = 0n;
+    const blockSize = 1 << (n - 1 - j);
+    for (let i = 0; i < total; i++) {
+      if ((i >> (n - 1 - j)) & 1) {
+        mask |= 1n << BigInt(i);
+      }
+    }
+    atomMasks.set(atoms[j], mask);
+  }
+
+  function evalBits(f: Formula): bigint {
+    switch (f.kind) {
+      case 'atom':
+        return atomMasks.get(f.name!) ?? 0n;
+      case 'not':
+        return ~evalBits(f.args![0]) & allOnes;
+      case 'and':
+        return evalBits(f.args![0]) & evalBits(f.args![1]);
+      case 'or':
+        return evalBits(f.args![0]) | evalBits(f.args![1]);
+      case 'implies':
+        return (~evalBits(f.args![0]) & allOnes) | evalBits(f.args![1]);
+      case 'biconditional':
+        return ~(evalBits(f.args![0]) ^ evalBits(f.args![1])) & allOnes;
+      case 'xor':
+        return evalBits(f.args![0]) ^ evalBits(f.args![1]);
+      case 'nand':
+        return ~(evalBits(f.args![0]) & evalBits(f.args![1])) & allOnes;
+      case 'nor':
+        return ~(evalBits(f.args![0]) | evalBits(f.args![1])) & allOnes;
+      default:
+        throw new Error(`Operador no soportado en evaluación bitset: ${f.kind}`);
+    }
+  }
+
+  return { result: evalBits(formula), atomMasks, total, allOnes };
+}
+
+function bitsetPopcount(n: bigint): number {
+  let count = 0;
+  while (n > 0n) {
+    n &= n - 1n;
+    count++;
+  }
+  return count;
+}
+
+function isPurePropositional(f: Formula): boolean {
+  switch (f.kind) {
+    case 'atom': return true;
+    case 'not': case 'and': case 'or': case 'implies':
+    case 'biconditional': case 'xor': case 'nand': case 'nor':
+      return (f.args || []).every(isPurePropositional);
+    default: return false;
+  }
 }
 
 /**
@@ -227,6 +320,10 @@ function computeFormulaToString(f: Formula): string {
 }
 
 export function toNNF(f: Formula): Formula {
+  return memoizeNNF(f, computeNNF);
+}
+
+function computeNNF(f: Formula): Formula {
   const simplify = (node: Formula, negated: boolean): Formula => {
     const k = node.kind;
     const args = node.args || [];
@@ -371,7 +468,7 @@ function distributeOrOverAnd(f: Formula): Formula {
   return f;
 }
 export function toCNF(f: Formula): Formula {
-  return distributeOrOverAnd(toNNF(f));
+  return memoizeCNF(f, (formula) => distributeOrOverAnd(toNNF(formula)));
 }
 
 function distributeAndOverOr(f: Formula): Formula {
@@ -402,7 +499,7 @@ function distributeAndOverOr(f: Formula): Formula {
   return f;
 }
 export function toDNF(f: Formula): Formula {
-  return distributeAndOverOr(toNNF(f));
+  return memoizeDNF(f, (formula) => distributeAndOverOr(toNNF(formula)));
 }
 
 /**
@@ -1050,25 +1147,46 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
     for (const f of allAxiomFormulas) collectAtoms(f).forEach((a) => atoms.add(a));
     collectAtoms(goal).forEach((a) => atoms.add(a));
 
-    const atomList = Array.from(atoms);
-    const valuations = generateValuations(atomList);
+    const atomList = Array.from(atoms).sort();
 
-    let semanticallyValid = true;
-    for (const v of valuations) {
-      const premisesTrue = allAxiomFormulas.every((f) => evaluate(f, v));
-      if (premisesTrue && !evaluate(goal, v)) {
-        semanticallyValid = false;
-        break;
+    // Fast path: bitset semantic check
+    const allPure = allAxiomFormulas.every(isPurePropositional) && isPurePropositional(goal);
+    if (allPure && atomList.length <= 26) {
+      const premiseBits = allAxiomFormulas.map((f) => evaluateBitset(f, atomList).result);
+      const goalBits = evaluateBitset(goal, atomList).result;
+      const allOnes = (1n << BigInt(1 << atomList.length)) - 1n;
+      // Conjunction of all premises
+      let premisesConj = allOnes;
+      for (const pb of premiseBits) premisesConj &= pb;
+      // Valid if: wherever premises are true, goal is also true
+      // i.e., premisesConj & ~goalBits === 0
+      if ((premisesConj & (~goalBits & allOnes)) === 0n) {
+        return {
+          goal,
+          steps: state.steps,
+          status: 'complete',
+          derivedFrom: premiseNames,
+        };
       }
-    }
-
-    if (semanticallyValid) {
-      return {
-        goal,
-        steps: state.steps,
-        status: 'complete',
-        derivedFrom: premiseNames,
-      };
+    } else {
+      // Classic fallback
+      const valuations = generateValuations(atomList);
+      let semanticallyValid = true;
+      for (const v of valuations) {
+        const premisesTrue = allAxiomFormulas.every((f) => evaluateClassical(f, v));
+        if (premisesTrue && !evaluateClassical(goal, v)) {
+          semanticallyValid = false;
+          break;
+        }
+      }
+      if (semanticallyValid) {
+        return {
+          goal,
+          steps: state.steps,
+          status: 'complete',
+          derivedFrom: premiseNames,
+        };
+      }
     }
   }
 
@@ -1296,12 +1414,44 @@ export class ClassicalPropositional implements LogicProfile {
       return { status: 'error', diagnostics: wf, formula };
     }
 
-    const atoms = Array.from(collectAtoms(formula));
-    const valuations = generateValuations(atoms);
+    const atoms = Array.from(collectAtoms(formula)).sort();
+    const n = atoms.length;
 
+    // Fast path: bitset finds countermodel in one pass
+    if (isPurePropositional(formula) && n <= 26) {
+      const { result, allOnes } = evaluateBitset(formula, atoms);
+      if (result === allOnes) {
+        return {
+          status: 'valid',
+          output: `${formulaToString(formula)} es tautologia, no hay contramodelo`,
+          diagnostics: [],
+          formula,
+        };
+      }
+      // Find first 0 bit (first falsifying row)
+      const inverted = ~result & allOnes;
+      const firstFalse = inverted & (-inverted); // isolate lowest set bit
+      let idx = 0;
+      let tmp = firstFalse;
+      while (tmp > 1n) { tmp >>= 1n; idx++; }
+      const v: Valuation = {};
+      for (let j = 0; j < n; j++) {
+        v[atoms[j]] = Boolean((idx >> (n - 1 - j)) & 1);
+      }
+      const valStr = atoms.map((a) => `${a}=${v[a] ? 'V' : 'F'}`).join(', ');
+      return {
+        status: 'invalid',
+        output: `Contramodelo encontrado para ${formulaToString(formula)}\n  ← ${valStr}`,
+        model: { type: 'propositional', valuation: v },
+        diagnostics: [],
+        formula,
+      };
+    }
+
+    // Fallback: classic evaluation
+    const valuations = generateValuations(atoms);
     for (const v of valuations) {
-      if (!evaluate(formula, v)) {
-        // #25: mark the countermodel valuation with ←
+      if (!evaluateClassical(formula, v)) {
         const valStr = atoms.map((a) => `${a}=${v[a] ? 'V' : 'F'}`).join(', ');
         return {
           status: 'invalid',
@@ -1430,19 +1580,64 @@ export class ClassicalPropositional implements LogicProfile {
 
   truthTable(formula: Formula): TruthTableResult {
     const atoms = Array.from(collectAtoms(formula)).sort();
-    const valuations = generateValuations(atoms);
+    const n = atoms.length;
     const subForms = getSubFormulas(formula);
+    const subFormulasInfo = subForms.map((sf) => ({ formula: sf, label: formulaToString(sf) }));
 
+    // Fast path: bitset evaluation for pure propositional formulas
+    // Limit to n<=20 for row materialization (2^20 = ~1M rows)
+    if (isPurePropositional(formula) && n <= 20) {
+      const { result, atomMasks, total, allOnes } = evaluateBitset(formula, atoms);
+      const satisfyingCount = bitsetPopcount(result);
+
+      // Evaluate subformulas with bitsets too
+      const subBitsets: bigint[] = subForms.map((sf) =>
+        isPurePropositional(sf) ? evaluateBitset(sf, atoms).result : 0n,
+      );
+
+      // Materialize rows from bitset results
+      const rows: TruthTableRow[] = new Array(total);
+      for (let i = 0; i < total; i++) {
+        const bit = 1n << BigInt(i);
+        const v: Valuation = {};
+        for (let j = 0; j < n; j++) {
+          v[atoms[j]] = Boolean((atomMasks.get(atoms[j])! >> BigInt(i)) & 1n);
+        }
+        rows[i] = { valuation: v, result: Boolean((result >> BigInt(i)) & 1n) };
+      }
+
+      const subFormulaValues = rows.map((_, i) => {
+        const vals: Record<string, boolean> = {};
+        subForms.forEach((sf, si) => {
+          vals[formulaToString(sf)] = Boolean((subBitsets[si] >> BigInt(i)) & 1n);
+        });
+        return vals;
+      });
+
+      return {
+        variables: atoms,
+        rows,
+        isTautology: result === allOnes,
+        isContradiction: result === 0n,
+        isSatisfiable: result !== 0n,
+        subFormulas: subFormulasInfo,
+        subFormulaValues,
+        satisfyingCount,
+        totalCount: total,
+      };
+    }
+
+    // Fallback: classic evaluation
+    const valuations = generateValuations(atoms);
     const rows: TruthTableRow[] = valuations.map((v) => ({
       valuation: v,
-      result: evaluate(formula, v),
+      result: evaluateClassical(formula, v),
     }));
 
-    const subFormulasInfo = subForms.map((sf) => ({ formula: sf, label: formulaToString(sf) }));
     const subFormulaValues = valuations.map((v) => {
       const vals: Record<string, boolean> = {};
       subForms.forEach((sf) => {
-        vals[formulaToString(sf)] = evaluate(sf, v);
+        vals[formulaToString(sf)] = evaluateClassical(sf, v);
       });
       return vals;
     });
@@ -1454,7 +1649,7 @@ export class ClassicalPropositional implements LogicProfile {
       isContradiction: rows.every((r) => !r.result),
       isSatisfiable: rows.some((r) => r.result),
       subFormulas: subFormulasInfo,
-      subFormulaValues: subFormulaValues,
+      subFormulaValues,
       satisfyingCount: rows.filter((r) => r.result).length,
       totalCount: rows.length,
     };

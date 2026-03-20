@@ -10,6 +10,9 @@ import { Formula } from '../types';
 const stringCache = new WeakMap<Formula, string>();
 const hashCache = new WeakMap<Formula, string>();
 const atomsCache = new WeakMap<Formula, Set<string>>();
+const nnfCache = new WeakMap<Formula, Formula>();
+const cnfCache = new WeakMap<Formula, Formula>();
+const dnfCache = new WeakMap<Formula, Formula>();
 
 /**
  * Función genérica de memoización para operaciones que toman FormData y
@@ -36,5 +39,29 @@ export function memoizeAtoms(f: Formula, compute: (f: Formula) => Set<string>): 
   if (cached !== undefined) return cached;
   cached = compute(f);
   atomsCache.set(f, cached);
+  return cached;
+}
+
+export function memoizeNNF(f: Formula, compute: (f: Formula) => Formula): Formula {
+  let cached = nnfCache.get(f);
+  if (cached !== undefined) return cached;
+  cached = compute(f);
+  nnfCache.set(f, cached);
+  return cached;
+}
+
+export function memoizeCNF(f: Formula, compute: (f: Formula) => Formula): Formula {
+  let cached = cnfCache.get(f);
+  if (cached !== undefined) return cached;
+  cached = compute(f);
+  cnfCache.set(f, cached);
+  return cached;
+}
+
+export function memoizeDNF(f: Formula, compute: (f: Formula) => Formula): Formula {
+  let cached = dnfCache.get(f);
+  if (cached !== undefined) return cached;
+  cached = compute(f);
+  dnfCache.set(f, cached);
   return cached;
 }

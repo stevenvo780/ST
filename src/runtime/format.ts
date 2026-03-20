@@ -27,6 +27,8 @@ export function formulaToUnicode(f: Formula): string {
   switch (f.kind) {
     case 'atom':
       return f.name ?? '?';
+    case 'list':
+      return `[${(f.args ?? []).map(formulaToUnicode).join(', ')}]`;
     case 'not': {
       const inner = f.args?.[0];
       if (!inner) return '¬?';
@@ -137,6 +139,8 @@ export function formulaToLaTeX(f: Formula): string {
   switch (f.kind) {
     case 'atom':
       return f.name ?? '?';
+    case 'list':
+      return `\\left[${(f.args ?? []).map(formulaToLaTeX).join(', ')}\\right]`;
     case 'not': {
       const inner = f.args?.[0];
       if (!inner) return '\\neg ?';

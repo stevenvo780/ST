@@ -196,10 +196,37 @@ export class ClassicalFirstOrder implements LogicProfile {
     return this.checkValid(biconditional);
   }
 
+  private collectConstants(f: Formula, bound: Set<string>): Set<string> {
+    const result = new Set<string>();
+    if (f.kind === 'predicate' && f.params) {
+      for (const p of f.params) {
+        if (!bound.has(p)) result.add(p);
+      }
+    }
+    if (f.kind === 'atom' && f.name && !bound.has(f.name)) {
+      // atoms used as term-like references (e.g. P(a) where a is a constant)
+    }
+    if (f.kind === 'forall' || f.kind === 'exists') {
+      const inner = new Set(bound);
+      if (f.variable) inner.add(f.variable);
+      for (const s of this.collectConstants((f.args || [])[0], inner)) result.add(s);
+    } else if (f.args) {
+      for (const a of f.args) {
+        for (const s of this.collectConstants(a, bound)) result.add(s);
+      }
+    }
+    return result;
+  }
+
   private solve(initialNodes: FONode[]): SolveResult {
     varCounter = 0;
     skolemCounter = 0;
     const constants = new Set<string>(['c0']);
+    for (const node of initialNodes) {
+      for (const c of this.collectConstants(node.formula, new Set())) {
+        constants.add(c);
+      }
+    }
     const trace: string[] = [];
     const closed = this.solveRecursive(initialNodes, constants, new Set(), 0, trace);
     return { closed, trace };
@@ -298,6 +325,24 @@ export class ClassicalFirstOrder implements LogicProfile {
           return (
             this.solveRecursive(
               [{ formula: f.args![0] }, ...rest],
+              constants,
+              nextProcessed,
+              depth + 1,
+              trace,
+            ) &&
+            this.solveRecursive(
+              [{ formula: f.args![1] }, ...rest],
+              constants,
+              nextProcessed,
+              depth + 1,
+              trace,
+            )
+          );
+        case 'implies':
+          // A -> B branches into: ¬A or B
+          return (
+            this.solveRecursive(
+              [{ formula: { kind: 'not', args: [f.args![0]] } }, ...rest],
               constants,
               nextProcessed,
               depth + 1,

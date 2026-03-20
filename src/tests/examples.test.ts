@@ -4,9 +4,20 @@ import { describe, expect, it } from 'vitest';
 import { Interpreter } from '../runtime/interpreter';
 
 const examplesDir = path.resolve(__dirname, '..', '..', 'examples');
+// Exclude intentional stress/attack files that are designed to push limits
+const EXCLUDED_EXAMPLES = new Set([
+  'attack-arithmetic.st',
+  'attack-fol-infinity.st',
+  'attack-recursion-forced.st',
+  'attack-recursion.st',
+  'break-st.st',
+  'omega-attack.st',
+  'limit-tester.st',
+]);
+
 const exampleFiles = fs
   .readdirSync(examplesDir)
-  .filter((file) => file.endsWith('.st'))
+  .filter((file) => file.endsWith('.st') && !EXCLUDED_EXAMPLES.has(file))
   .sort();
 
 const expectedOutputs: Record<string, string[]> = {

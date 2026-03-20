@@ -197,7 +197,7 @@ ${setLines}
           let prev = N - 1
           return countdown(prev)
         }
-        let r = countdown(5000)
+        let r = countdown(15000)
         print r
       `;
       const out = run(source);

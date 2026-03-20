@@ -40,6 +40,7 @@ import {
   FnDeclNode,
   ReturnStmtNode,
   FnCallNode,
+  ActionExprNode,
 } from '../ast/nodes';
 
 // Modal aliases per profile: maps identifier names to modal formula types
@@ -63,6 +64,10 @@ export class Parser {
     'is_valid',
     'is_satisfiable',
     'get_atoms',
+    'atoms_of',
+    'len',
+    'at',
+    'formula_eq',
     'input',
   ]);
   private knownTheoryNames: Set<string> = new Set();
@@ -302,6 +307,11 @@ export class Parser {
     const name = this.expectIdent();
     this.expect(TokenType.EQUALS);
 
+    if (this.canStartActionExpr()) {
+      const action = this.parseActionExpr();
+      return { kind: 'let_decl', name, letType: 'action', action, source: src };
+    }
+
     if (this.match(TokenType.PASSAGE)) {
       this.expect(TokenType.LPAREN);
       this.expect(TokenType.LBRACKET_DOUBLE);
@@ -453,6 +463,77 @@ export class Parser {
     this.expect(TokenType.EXPLAIN);
     const formula = this.parseFormula();
     return { kind: 'explain_cmd', formula, source: src };
+  }
+
+  private canStartActionExpr(): boolean {
+    return (
+      this.checkType(TokenType.CHECK) ||
+      this.checkType(TokenType.DERIVE) ||
+      this.checkType(TokenType.PROVE) ||
+      this.checkType(TokenType.COUNTERMODEL) ||
+      this.checkType(TokenType.REFUTE) ||
+      this.checkType(TokenType.TRUTH_TABLE) ||
+      this.checkType(TokenType.EXPLAIN)
+    );
+  }
+
+  private parseActionExpr(): ActionExprNode {
+    const src = this.loc();
+
+    if (this.match(TokenType.CHECK)) {
+      if (this.match(TokenType.VALID)) {
+        const formula = this.parseFormula();
+        return { kind: 'action_expr', action: 'check_valid', formula, source: src };
+      }
+      if (this.match(TokenType.SATISFIABLE)) {
+        const formula = this.parseFormula();
+        return { kind: 'action_expr', action: 'check_satisfiable', formula, source: src };
+      }
+      if (this.match(TokenType.EQUIVALENT)) {
+        const left = this.parseFormula();
+        this.expect(TokenType.COMMA);
+        const right = this.parseFormula();
+        return { kind: 'action_expr', action: 'check_equivalent', left, right, source: src };
+      }
+      throw new Error(`Se esperaba 'valid', 'satisfiable' o 'equivalent' despues de 'check'`);
+    }
+
+    if (this.match(TokenType.DERIVE)) {
+      const goal = this.parseFormula();
+      this.expect(TokenType.FROM);
+      const premises = this.parseIdList();
+      return { kind: 'action_expr', action: 'derive', goal, premises, source: src };
+    }
+
+    if (this.match(TokenType.PROVE)) {
+      const goal = this.parseFormula();
+      this.expect(TokenType.FROM);
+      const premises = this.parseIdList();
+      return { kind: 'action_expr', action: 'prove', goal, premises, source: src };
+    }
+
+    if (this.checkType(TokenType.COUNTERMODEL)) {
+      this.advance();
+      const formula = this.parseFormula();
+      return { kind: 'action_expr', action: 'countermodel', formula, source: src };
+    }
+
+    if (this.match(TokenType.REFUTE)) {
+      const formula = this.parseFormula();
+      return { kind: 'action_expr', action: 'countermodel', formula, source: src };
+    }
+
+    if (this.match(TokenType.TRUTH_TABLE)) {
+      const formula = this.parseFormula();
+      return { kind: 'action_expr', action: 'truth_table', formula, source: src };
+    }
+
+    if (this.match(TokenType.EXPLAIN)) {
+      const formula = this.parseFormula();
+      return { kind: 'action_expr', action: 'explain', formula, source: src };
+    }
+
+    throw new Error(`Se esperaba una acción capturable, encontrado '${this.current().value}'`);
   }
 
   // import "path/to/file.st" | import path/to/file
@@ -988,6 +1069,22 @@ export class Parser {
         kind: 'number',
         value: parseFloat(tok.value),
         source: { line: tok.line, column: tok.column },
+      };
+    }
+
+    if (this.match(TokenType.LBRACKET)) {
+      const items: Formula[] = [];
+      if (!this.checkType(TokenType.RBRACKET)) {
+        items.push(this.parseFormula());
+        while (this.match(TokenType.COMMA)) {
+          items.push(this.parseFormula());
+        }
+      }
+      this.expect(TokenType.RBRACKET);
+      return {
+        kind: 'list',
+        args: items,
+        source: this.loc(),
       };
     }
 

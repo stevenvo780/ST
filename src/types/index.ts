@@ -36,6 +36,7 @@ export interface Diagnostic {
 
 export type FormulaKind =
   | 'atom'
+  | 'list'
   | 'not'
   | 'and'
   | 'or'

@@ -53,6 +53,99 @@ const BELNAP_OR: Record<BelnapValue, Record<BelnapValue, BelnapValue>> = {
   N: { T: 'T', F: 'N', B: 'T', N: 'N' },
 };
 
+// ── Evaluación vectorizada Belnap con Bitsets ──────────────
+// Codificación: T=(pos=1,neg=0), F=(pos=0,neg=1), B=(pos=1,neg=1), N=(pos=0,neg=0)
+// AND: pos = p1 & p2, neg = n1 | n2
+// OR:  pos = p1 | p2, neg = n1 & n2
+// NOT: swap pos <-> neg
+// Designado (T o B): pos bit está encendido
+
+interface BelnapBitset { pos: bigint; neg: bigint; }
+
+function evaluateBelnapBitset(
+  formula: Formula,
+  atoms: string[],
+): { pos: bigint; neg: bigint; total: number } {
+  const n = atoms.length;
+  if (n > 13) throw new Error('Demasiadas variables para tabla Belnap bitset (>13)');
+  const total = Math.pow(4, n);
+
+  const atomPos = new Map<string, bigint>();
+  const atomNeg = new Map<string, bigint>();
+
+  for (let j = 0; j < n; j++) {
+    let pos = 0n;
+    let neg = 0n;
+    const period = Math.pow(4, n - 1 - j);
+    for (let i = 0; i < total; i++) {
+      const val = Math.floor(i / period) % 4;
+      const bit = 1n << BigInt(i);
+      // 0=T(1,0), 1=F(0,1), 2=B(1,1), 3=N(0,0)
+      if (val === 0 || val === 2) pos |= bit;
+      if (val === 1 || val === 2) neg |= bit;
+    }
+    atomPos.set(atoms[j], pos);
+    atomNeg.set(atoms[j], neg);
+  }
+
+  function evalBelnap(f: Formula): BelnapBitset {
+    const args = f.args || [];
+    switch (f.kind) {
+      case 'atom':
+        return { pos: atomPos.get(f.name!) ?? 0n, neg: atomNeg.get(f.name!) ?? 0n };
+      case 'not': {
+        const inner = evalBelnap(args[0]);
+        return { pos: inner.neg, neg: inner.pos };
+      }
+      case 'and': {
+        const l = evalBelnap(args[0]);
+        const r = evalBelnap(args[1]);
+        return { pos: l.pos & r.pos, neg: l.neg | r.neg };
+      }
+      case 'or': {
+        const l = evalBelnap(args[0]);
+        const r = evalBelnap(args[1]);
+        return { pos: l.pos | r.pos, neg: l.neg & r.neg };
+      }
+      case 'implies': {
+        // !A | B
+        const l = evalBelnap(args[0]);
+        const r = evalBelnap(args[1]);
+        return { pos: l.neg | r.pos, neg: l.pos & r.neg };
+      }
+      case 'biconditional': {
+        // (A->B) & (B->A)
+        const l = evalBelnap(args[0]);
+        const r = evalBelnap(args[1]);
+        const aToB: BelnapBitset = { pos: l.neg | r.pos, neg: l.pos & r.neg };
+        const bToA: BelnapBitset = { pos: r.neg | l.pos, neg: r.pos & l.neg };
+        return { pos: aToB.pos & bToA.pos, neg: aToB.neg | bToA.neg };
+      }
+      default:
+        throw new Error(`Operador no soportado en evaluación Belnap bitset: ${f.kind}`);
+    }
+  }
+
+  const result = evalBelnap(formula);
+  return { pos: result.pos, neg: result.neg, total };
+}
+
+function isBelnapPure(f: Formula): boolean {
+  switch (f.kind) {
+    case 'atom': return true;
+    case 'not': case 'and': case 'or': case 'implies': case 'biconditional':
+      return (f.args || []).every(isBelnapPure);
+    default: return false;
+  }
+}
+
+function belnapValueFromBits(pos: boolean, neg: boolean): BelnapValue {
+  if (pos && !neg) return 'T';
+  if (!pos && neg) return 'F';
+  if (pos && neg) return 'B';
+  return 'N';
+}
+
 export class ParaconsistentBelnap implements LogicProfile {
   name = 'paraconsistent.belnap';
   description = 'Logica paraconsistente de Belnap (4-valued: T, F, Both, None)';
@@ -120,8 +213,6 @@ export class ParaconsistentBelnap implements LogicProfile {
   }
 
   prove(goal: Formula, theory: Theory): RunResult {
-    // Entailment correcto en Belnap: para toda valuación donde TODAS las premisas
-    // son designadas (T o B), el goal también es designado.
     const axioms = Array.from(theory.axioms.values());
     if (axioms.length === 0) return this.checkValid(goal);
 
@@ -131,9 +222,36 @@ export class ParaconsistentBelnap implements LogicProfile {
       for (const a of collectAtoms(f)) atoms.add(a);
     }
     const atomsArr = Array.from(atoms).sort();
+
+    // Fast path: bitset entailment check
+    const allPure = allFormulas.every(isBelnapPure);
+    if (allPure && atomsArr.length <= 13 && atomsArr.length > 0) {
+      const premiseBits = axioms.map((f) => evaluateBelnapBitset(f, atomsArr));
+      const goalBits = evaluateBelnapBitset(goal, atomsArr);
+      // Designated = pos bit set. Conjunction of all premises being designated:
+      let premisesDesig = (1n << BigInt(Math.pow(4, atomsArr.length))) - 1n;
+      for (const pb of premiseBits) premisesDesig &= pb.pos;
+      // Check: wherever premises designated, goal also designated
+      const goalNotDesig = ~goalBits.pos & ((1n << BigInt(Math.pow(4, atomsArr.length))) - 1n);
+      if ((premisesDesig & goalNotDesig) === 0n) {
+        return {
+          status: 'provable',
+          output: `${formulaToString(goal)} se sigue de la teoria en Belnap (preserva valores designados)`,
+          diagnostics: [],
+          formula: goal,
+        };
+      }
+      return {
+        status: 'refutable',
+        output: `${formulaToString(goal)} no es demostrable en Belnap (premisas designadas pero goal no)`,
+        diagnostics: [],
+        formula: goal,
+      };
+    }
+
+    // Fallback: classic evaluation
     const valuations = generateBelnapValuations(atomsArr);
     const designated = new Set<BelnapValue>(['T', 'B']);
-
     for (const v of valuations) {
       const bv = v as unknown as Record<string, BelnapValue>;
       const allPremisesDesignated = axioms.every((ax) =>
@@ -392,7 +510,49 @@ export class ParaconsistentBelnap implements LogicProfile {
 
   private generateBelnapTable(formula: Formula): TruthTableResult {
     const atoms = Array.from(collectAtoms(formula)).sort();
-    const rows = generateBelnapValuations(atoms).map((v) => ({
+    const n = atoms.length;
+
+    // Fast path: bitset evaluation for pure Belnap formulas
+    if (isBelnapPure(formula) && n <= 13 && n > 0) {
+      const { pos, neg, total } = evaluateBelnapBitset(formula, atoms);
+
+      // Materialize rows from bitset results
+      const rows: { valuation: Valuation; result: BelnapValue }[] = new Array(total);
+      const designated = new Set<BelnapValue>(['T', 'B']);
+      let tautCount = 0;
+      let satCount = 0;
+
+      for (let i = 0; i < total; i++) {
+        const bit = BigInt(i);
+        const resPos = Boolean((pos >> bit) & 1n);
+        const resNeg = Boolean((neg >> bit) & 1n);
+        const result = belnapValueFromBits(resPos, resNeg);
+
+        // Reconstruct valuation
+        const v: Record<string, string> = {};
+        for (let j = 0; j < n; j++) {
+          const period = Math.pow(4, n - 1 - j);
+          const val = Math.floor(i / period) % 4;
+          v[atoms[j]] = (['T', 'F', 'B', 'N'] as const)[val];
+        }
+
+        rows[i] = { valuation: v as unknown as Valuation, result };
+        if (designated.has(result)) satCount++;
+        if (designated.has(result)) tautCount++;
+      }
+
+      return {
+        variables: atoms,
+        rows: rows as unknown as TruthTableResult['rows'],
+        isTautology: tautCount === total,
+        isSatisfiable: satCount > 0,
+        isContradiction: satCount === 0,
+      };
+    }
+
+    // Fallback: classic evaluation
+    const valuations = generateBelnapValuations(atoms);
+    const rows = valuations.map((v) => ({
       valuation: v as unknown as Valuation,
       result: this.evaluateBelnap(formula, v as unknown as Record<string, BelnapValue>),
     }));

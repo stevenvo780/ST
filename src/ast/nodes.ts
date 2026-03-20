@@ -97,6 +97,27 @@ export interface CountermodelCmdNode extends ASTNode {
   formula: Formula;
 }
 
+export type ActionExprKind =
+  | 'check_valid'
+  | 'check_satisfiable'
+  | 'check_equivalent'
+  | 'derive'
+  | 'prove'
+  | 'countermodel'
+  | 'truth_table'
+  | 'explain';
+
+export interface ActionExprNode {
+  kind: 'action_expr';
+  action: ActionExprKind;
+  source: SourceLocation;
+  formula?: Formula;
+  left?: Formula;
+  right?: Formula;
+  goal?: Formula;
+  premises?: string[];
+}
+
 export interface TruthTableCmdNode extends ASTNode {
   kind: 'truth_table_cmd';
   formula: Formula;
@@ -240,7 +261,19 @@ export interface LetDescriptionNode extends ASTNode {
   description: string; // texto semántico: let P = "Socrates es un hombre"
 }
 
-export type LetDeclNode = LetPassageNode | LetFormalizeNode | LetFormulaNode | LetDescriptionNode;
+export interface LetActionNode extends ASTNode {
+  kind: 'let_decl';
+  name: string;
+  letType: 'action';
+  action: ActionExprNode;
+}
+
+export type LetDeclNode =
+  | LetPassageNode
+  | LetFormalizeNode
+  | LetFormulaNode
+  | LetDescriptionNode
+  | LetActionNode;
 
 export interface ClaimDeclNode extends ASTNode {
   kind: 'claim_decl';

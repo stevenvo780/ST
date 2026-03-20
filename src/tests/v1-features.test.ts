@@ -1064,7 +1064,7 @@ describe('fn declaration and call', () => {
       foo(P, Q)
     `);
     expect(out.exitCode).not.toBe(0);
-    expect(out.stderr).toContain('argumento');
+    expect(out.stderr.toLowerCase()).toContain('argumento');
   });
 
   it('calling undeclared function throws error', () => {

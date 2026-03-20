@@ -478,7 +478,8 @@ describe('arithmetic: interpreter integration', () => {
   it('set with arithmetic expression', () => {
     const out = run(`logic arithmetic\nlet X = 1\nset X = 2 * 5\nprint X`);
     expect(out.exitCode).toBe(0);
-    expect(out.stdout).toContain('(2 × 5)');
+    // set evaluates and constant-folds the arithmetic expression
+    expect(out.stdout).toContain('10');
   });
 
   it('checkWellFormed warns on division by zero literal', () => {
