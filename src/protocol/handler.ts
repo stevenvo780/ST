@@ -339,14 +339,12 @@ export class ProtocolHandler {
         '**define**\n\nDeclara una macro semántica que puede desplegarse con `unfold`.\n\nEjemplo: `define Mortal(x) := Humano(x) -> MuereAlgúnDía(x)`',
       unfold:
         '**unfold**\n\nExpande una definición `define` en una fórmula y verifica la expansión.\n\nEjemplo: `unfold Mortal(Sócrates)`',
-      fold:
-        '**fold**\n\nContrae una fórmula expandida de vuelta a su forma definida con `define`.\n\nEjemplo: `fold Humano(s) -> MuereAlgúnDía(s)`',
+      fold: '**fold**\n\nContrae una fórmula expandida de vuelta a su forma definida con `define`.\n\nEjemplo: `fold Humano(s) -> MuereAlgúnDía(s)`',
       source:
         '**source**\n\nDeclara una fuente bibliográfica o académica reutilizable.\n\nEjemplo: `source Kant2024 { author: "Immanuel Kant", year: 2024 }`',
       interpret:
         '**interpret**\n\nInterpreta un pasaje de texto bajo una fórmula lógica.\n\nEjemplo: `interpret "todo humano es mortal" as forall x (H(x) -> M(x))`',
-      glossary:
-        '**glossary**\n\nMuestra el glosario de todas las definiciones (`define`) activas.',
+      glossary: '**glossary**\n\nMuestra el glosario de todas las definiciones (`define`) activas.',
       description:
         '**description**\n\nAñade una descripción en lenguaje natural a una definición `define`.\n\nEjemplo: `define F(x) := P(x) @ "Propiedad fundamental"`',
       arithmetic:
