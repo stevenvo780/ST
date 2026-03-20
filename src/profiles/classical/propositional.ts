@@ -752,7 +752,9 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           f2.args?.[0] &&
           formulasEqual(f1.args[0], f2.args[0])
         ) {
-          for (const f3 of currentFormulas) {
+          for (let k = 0; k < currentFormulas.length; k++) {
+            if (i < prevProcessedIndex && j < prevProcessedIndex && k < prevProcessedIndex) continue;
+            const f3 = currentFormulas[k];
             if (
               f3.kind === 'implies' &&
               f3.args?.[0] &&
@@ -978,7 +980,9 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
       // RAA (Reductio ad Absurdum) #29:
       // Si tenemos P→Q y P→¬Q (o ¬Q→P y Q→P), derivar ¬P
       if (f1.kind === 'implies' && f1.args?.[0] && f1.args?.[1]) {
-        for (const f2 of currentFormulas) {
+        for (let j = 0; j < currentFormulas.length; j++) {
+          if (i < prevProcessedIndex && j < prevProcessedIndex) continue;
+          const f2 = currentFormulas[j];
           if (
             f2.kind === 'implies' &&
             f2.args?.[0] &&

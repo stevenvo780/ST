@@ -118,16 +118,43 @@ describe('ST Language Limits & Stress Tests', () => {
     });
   });
 
-  describe('First-Order Logic Complexity', () => {
-    it('handles many quantifiers', () => {
+  describe('Logical Sanity & Paradoxes', () => {
+    it('handles Moore Paradox (Epistemic Satisfiability)', () => {
       const source = `
-        logic classical.first_order
-        check valid (forall x (forall y (P(x,y) -> P(y,x)))) -> (forall a (forall b (P(a,b) -> P(b,a))))
+        logic epistemic.s5
+        check satisfiable P & !K(P)
       `;
       const out = run(source);
-      expect(out.exitCode).toBe(0);
-      expect(out.stdout.toLowerCase()).toMatch(/v[áa]lida/);
+      expect(out.stdout).toContain('SATISFACIBLE');
+    });
+
+    it('detects Russell-like contradictions in FOL', () => {
+      const source = `
+        logic classical.first_order
+        check satisfiable forall x (P(x) <-> !P(x))
+      `;
+      const out = run(source);
+      expect(out.stdout.toLowerCase()).toContain('insatisfacible');
+    });
+
+    it('verifies paraconsistent immunity to explosion (EFQ)', () => {
+      const source = `
+        logic paraconsistent.belnap
+        check valid (P & !P) -> Q
+      `;
+      const out = run(source);
+      // In Belnap, EFQ is NOT valid
+      expect(out.stdout.toLowerCase()).toContain('no es valida');
+    });
+
+    it('handles Deontic Conflict (Seriality Constraint)', () => {
+      const source = `
+        logic deontic.standard
+        check satisfiable O(A) & O(!A)
+      `;
+      const out = run(source);
+      // In SDL, []A & []!A is unsatisfiable due to seriality (w0 must have a successor w1 where A and !A are true)
+      expect(out.stdout.toLowerCase()).toContain('insatisfacible');
     });
   });
-
 });
