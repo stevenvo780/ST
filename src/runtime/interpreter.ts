@@ -286,8 +286,9 @@ export class Interpreter {
   private serializeFormulaKey(f: Formula): string {
     if (f.kind === 'number') return `N:${f.value}`;
     if (f.kind === 'atom') return `A:${f.name}`;
-    if (f.kind === 'list') return `L:[${f.args?.map(a => this.serializeFormulaKey(a)).join(',') ?? ''}]`;
-    return `${f.kind}(${f.args?.map(a => this.serializeFormulaKey(a)).join(',') ?? ''})`;
+    if (f.kind === 'list')
+      return `L:[${f.args?.map((a) => this.serializeFormulaKey(a)).join(',') ?? ''}]`;
+    return `${f.kind}(${f.args?.map((a) => this.serializeFormulaKey(a)).join(',') ?? ''})`;
   }
 
   /** Genera la clave de memoización: nombre_función(arg1,arg2,...) */
@@ -296,7 +297,7 @@ export class Interpreter {
     for (const arg of args) {
       if (arg.kind !== 'number' && arg.kind !== 'atom') return null;
     }
-    return `${name}(${args.map(a => this.serializeFormulaKey(a)).join(',')})`;
+    return `${name}(${args.map((a) => this.serializeFormulaKey(a)).join(',')})`;
   }
 
   /** Verifica si una función es pura (sin side effects como print, set, check, axiom) */
@@ -319,7 +320,7 @@ export class Interpreter {
           case 'logic_decl':
             return false;
           case 'if_stmt': {
-            const ifS = s as IfStmtNode;
+            const ifS = s;
             for (const branch of ifS.branches) {
               if (!check(branch.body)) return false;
             }
@@ -327,10 +328,10 @@ export class Interpreter {
             break;
           }
           case 'for_stmt':
-            if (!check((s as ForStmtNode).body)) return false;
+            if (!check(s.body)) return false;
             break;
           case 'while_stmt':
-            if (!check((s as WhileStmtNode).body)) return false;
+            if (!check(s.body)) return false;
             break;
           // let_decl, return_stmt, fn_call, fn_decl are considered pure
         }
@@ -1594,7 +1595,7 @@ export class Interpreter {
 
   private executeFnCall(stmt: { name: string; args: Formula[] }): Formula | undefined {
     // ── Memoización: verificar cache antes de ejecutar ──
-    const evaluatedArgs = stmt.args.map(a => this.evaluateFormulaValue(a));
+    const evaluatedArgs = stmt.args.map((a) => this.evaluateFormulaValue(a));
     const memoStmt = { name: stmt.name, args: evaluatedArgs };
     const fn = this.functions.get(stmt.name);
     let mKey: string | null = null;
@@ -1683,7 +1684,7 @@ export class Interpreter {
     // ── Memoización: comprobar cache antes de crear frame ──
     const fnDef = this.functions.get(stmt.name);
     if (fnDef && this.isPureFn(fnDef)) {
-      const evaluatedArgs = stmt.args.map(a => this.evaluateFormulaValue(a));
+      const evaluatedArgs = stmt.args.map((a) => this.evaluateFormulaValue(a));
       const mk = this.memoKey(stmt.name, evaluatedArgs);
       if (mk !== null && this.fnMemoCache.has(mk)) {
         return {

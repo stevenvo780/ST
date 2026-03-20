@@ -365,7 +365,8 @@ const MAX_POOL_SIZE = 32;
 
 function acquireBranch(): Branch {
   if (branchPool.length > 0) {
-    return branchPool.pop()!;
+    const branch = branchPool.pop();
+    if (branch) return branch;
   }
   return {
     literals: [],

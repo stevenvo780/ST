@@ -17,6 +17,7 @@ import { Interpreter } from '../runtime/interpreter';
 import { FormulaFactory } from '../runtime/formula-factory';
 import { cdcl } from '../profiles/classical/cdcl';
 import { dpll } from '../profiles/classical/dpll';
+import { Formula } from '../types';
 
 afterEach(() => {
   FormulaFactory.clear();
@@ -281,7 +282,7 @@ describe('CDCL Stress: Random 3-SAT', () => {
       while (vars.size < 3) {
         vars.add((rand() % numVars) + 1);
       }
-      const lits = Array.from(vars).map(v => {
+      const lits = Array.from(vars).map((v) => {
         const name = `V${v}`;
         return rand() % 2 === 0 ? name : `!${name}`;
       });
@@ -348,7 +349,7 @@ describe('CDCL Stress: Random 3-SAT', () => {
 describe('CDCL Stress: Tautology/Validity with Many Atoms', () => {
   it('100 atoms — tautology (each atom OR its negation)', () => {
     const atoms = Array.from({ length: 100 }, (_, i) => `T${i}`);
-    const tautology = atoms.map(a => `(${a} | !${a})`).join(' & ');
+    const tautology = atoms.map((a) => `(${a} | !${a})`).join(' & ');
     const source = `
       logic classical.propositional
       check valid ${tautology}
@@ -390,7 +391,9 @@ describe('CDCL Stress: Tautology/Validity with Many Atoms', () => {
     // (A & (B | C)) <-> ((A & B) | (A & C)) for 33 triples
     const parts = [];
     for (let i = 0; i < 99; i += 3) {
-      parts.push(`((X${i} & (X${i + 1} | X${i + 2})) <-> ((X${i} & X${i + 1}) | (X${i} & X${i + 2})))`);
+      parts.push(
+        `((X${i} & (X${i + 1} | X${i + 2})) <-> ((X${i} & X${i + 1}) | (X${i} & X${i + 2})))`,
+      );
     }
     const formula = parts.join(' & ');
     const source = `
@@ -409,40 +412,79 @@ describe('CDCL Stress: Tautology/Validity with Many Atoms', () => {
 describe('CDCL Direct API Tests', () => {
   it('cdcl() returns stats with conflict/propagation counts', () => {
     // A somewhat hard formula to force some conflicts
-    const formula: any = {
+    const formula: Formula = {
       kind: 'and',
       args: [
-        { kind: 'or', args: [{ kind: 'atom', name: 'A' }, { kind: 'atom', name: 'B' }] },
-        { kind: 'or', args: [{ kind: 'atom', name: 'A' }, { kind: 'not', args: [{ kind: 'atom', name: 'B' }] }] },
-        { kind: 'or', args: [{ kind: 'not', args: [{ kind: 'atom', name: 'A' }] }, { kind: 'atom', name: 'B' }] },
-        { kind: 'or', args: [{ kind: 'not', args: [{ kind: 'atom', name: 'A' }] }, { kind: 'not', args: [{ kind: 'atom', name: 'B' }] }] },
+        {
+          kind: 'or',
+          args: [
+            { kind: 'atom', name: 'A' },
+            { kind: 'atom', name: 'B' },
+          ],
+        },
+        {
+          kind: 'or',
+          args: [
+            { kind: 'atom', name: 'A' },
+            { kind: 'not', args: [{ kind: 'atom', name: 'B' }] },
+          ],
+        },
+        {
+          kind: 'or',
+          args: [
+            { kind: 'not', args: [{ kind: 'atom', name: 'A' }] },
+            { kind: 'atom', name: 'B' },
+          ],
+        },
+        {
+          kind: 'or',
+          args: [
+            { kind: 'not', args: [{ kind: 'atom', name: 'A' }] },
+            { kind: 'not', args: [{ kind: 'atom', name: 'B' }] },
+          ],
+        },
       ],
     };
     const result = cdcl(formula);
     expect(result.satisfiable).toBe(false);
     expect(result.stats).toBeDefined();
-    expect(result.stats!.solveTimeMs).toBeGreaterThanOrEqual(0);
+    expect(result.stats?.solveTimeMs).toBeGreaterThanOrEqual(0);
   });
 
   it('cdcl() returns satisfying model for SAT formula', () => {
-    const formula: any = {
+    const formula: Formula = {
       kind: 'and',
       args: [
-        { kind: 'or', args: [{ kind: 'atom', name: 'X' }, { kind: 'atom', name: 'Y' }] },
-        { kind: 'or', args: [{ kind: 'not', args: [{ kind: 'atom', name: 'X' }] }, { kind: 'atom', name: 'Y' }] },
+        {
+          kind: 'or',
+          args: [
+            { kind: 'atom', name: 'X' },
+            { kind: 'atom', name: 'Y' },
+          ],
+        },
+        {
+          kind: 'or',
+          args: [
+            { kind: 'not', args: [{ kind: 'atom', name: 'X' }] },
+            { kind: 'atom', name: 'Y' },
+          ],
+        },
       ],
     };
     const result = cdcl(formula);
     expect(result.satisfiable).toBe(true);
     expect(result.model).toBeDefined();
     // Y must be true in any model
-    expect(result.model!['Y']).toBe(true);
+    expect(result.model?.['Y']).toBe(true);
   });
 
   it('dpll() backward compatibility — uses CDCL internally', () => {
-    const formula: any = {
+    const formula: Formula = {
       kind: 'or',
-      args: [{ kind: 'atom', name: 'P' }, { kind: 'atom', name: 'Q' }],
+      args: [
+        { kind: 'atom', name: 'P' },
+        { kind: 'atom', name: 'Q' },
+      ],
     };
     const result = dpll(formula);
     expect(result.satisfiable).toBe(true);

@@ -244,23 +244,39 @@ function evaluateBitset(formula: Formula, atoms: string[]): BitsetResult {
   function evalBits(f: Formula): BitVec {
     switch (f.kind) {
       case 'atom':
-        return atomMasks.get(f.name!) ?? bvCreate(total);
-      case 'not':
-        return bvNot(evalBits(f.args![0]), allOnes);
-      case 'and':
-        return bvAnd(evalBits(f.args![0]), evalBits(f.args![1]));
-      case 'or':
-        return bvOr(evalBits(f.args![0]), evalBits(f.args![1]));
-      case 'implies':
-        return bvOr(bvNot(evalBits(f.args![0]), allOnes), evalBits(f.args![1]));
-      case 'biconditional':
-        return bvNot(bvXor(evalBits(f.args![0]), evalBits(f.args![1])), allOnes);
-      case 'xor':
-        return bvXor(evalBits(f.args![0]), evalBits(f.args![1]));
-      case 'nand':
-        return bvNot(bvAnd(evalBits(f.args![0]), evalBits(f.args![1])), allOnes);
-      case 'nor':
-        return bvNot(bvOr(evalBits(f.args![0]), evalBits(f.args![1])), allOnes);
+        return atomMasks.get(f.name ?? '') ?? bvCreate(total);
+      case 'not': {
+        const [inner] = f.args ?? [];
+        return bvNot(evalBits(inner), allOnes);
+      }
+      case 'and': {
+        const [left, right] = f.args ?? [];
+        return bvAnd(evalBits(left), evalBits(right));
+      }
+      case 'or': {
+        const [left, right] = f.args ?? [];
+        return bvOr(evalBits(left), evalBits(right));
+      }
+      case 'implies': {
+        const [left, right] = f.args ?? [];
+        return bvOr(bvNot(evalBits(left), allOnes), evalBits(right));
+      }
+      case 'biconditional': {
+        const [left, right] = f.args ?? [];
+        return bvNot(bvXor(evalBits(left), evalBits(right)), allOnes);
+      }
+      case 'xor': {
+        const [left, right] = f.args ?? [];
+        return bvXor(evalBits(left), evalBits(right));
+      }
+      case 'nand': {
+        const [left, right] = f.args ?? [];
+        return bvNot(bvAnd(evalBits(left), evalBits(right)), allOnes);
+      }
+      case 'nor': {
+        const [left, right] = f.args ?? [];
+        return bvNot(bvOr(evalBits(left), evalBits(right)), allOnes);
+      }
       default:
         throw new Error(`Operador no soportado en evaluación bitset: ${f.kind}`);
     }
@@ -1646,7 +1662,7 @@ export class ClassicalPropositional implements LogicProfile {
       const negated: Formula = { kind: 'not', args: [formula] };
       const result = dpll(negated);
       if (result.satisfiable && result.model) {
-        const valStr = atoms.map((a) => `${a}=${result.model![a] ? 'V' : 'F'}`).join(', ');
+        const valStr = atoms.map((a) => `${a}=${result.model?.[a] ? 'V' : 'F'}`).join(', ');
         return {
           status: 'invalid',
           output: `Contramodelo encontrado para ${formulaToString(formula)}\n  ← ${valStr}`,
@@ -1819,7 +1835,7 @@ export class ClassicalPropositional implements LogicProfile {
       for (let i = 0; i < total; i++) {
         const v: Valuation = {};
         for (let j = 0; j < n; j++) {
-          v[atoms[j]] = bvTestBit(atomMasks.get(atoms[j])!, i);
+          v[atoms[j]] = bvTestBit(atomMasks.get(atoms[j]) ?? new Uint32Array(0), i);
         }
         rows[i] = { valuation: v, result: bvTestBit(result, i) };
       }

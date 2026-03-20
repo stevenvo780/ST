@@ -11,9 +11,9 @@ type Clause = Int32Array;
  */
 export interface PreprocessResult {
   clauses: Clause[];
-  forcedLiterals: number[];  // literals that must be true
-  eliminated: boolean;       // true if clauses were reduced
-  trivialUnsat: boolean;     // true if empty clause found
+  forcedLiterals: number[]; // literals that must be true
+  eliminated: boolean; // true if clauses were reduced
+  trivialUnsat: boolean; // true if empty clause found
 }
 
 /**
@@ -132,9 +132,15 @@ function selfSubsumingResolution(clauses: Clause[]): Clause[] {
               // Check if this literal is also in ci
               let found = false;
               for (let lk = 0; lk < ci.length; lk++) {
-                if (ci[lk] === cj[lj]) { found = true; break; }
+                if (ci[lk] === cj[lj]) {
+                  found = true;
+                  break;
+                }
               }
-              if (!found) { allOthersInCi = false; break; }
+              if (!found) {
+                allOthersInCi = false;
+                break;
+              }
             }
           }
           if (hasNegLit && allOthersInCi) {
@@ -159,7 +165,10 @@ function selfSubsumingResolution(clauses: Clause[]): Clause[] {
  * If a variable appears few times, resolve all its positive clauses against
  * negative clauses and check if the result is smaller.
  */
-function boundedVariableElimination(clauses: Clause[], numVars: number): { clauses: Clause[]; eliminated: Set<number> } {
+function boundedVariableElimination(
+  clauses: Clause[],
+  numVars: number,
+): { clauses: Clause[]; eliminated: Set<number> } {
   const eliminated = new Set<number>();
   let current = clauses.slice();
   const MAX_GROWTH = 0; // Only eliminate if it doesn't increase clause count
@@ -169,19 +178,28 @@ function boundedVariableElimination(clauses: Clause[], numVars: number): { claus
     const negClauses: number[] = [];
     for (let ci = 0; ci < current.length; ci++) {
       for (let li = 0; li < current[ci].length; li++) {
-        if (current[ci][li] === v) { posClauses.push(ci); break; }
-        if (current[ci][li] === -v) { negClauses.push(ci); break; }
+        if (current[ci][li] === v) {
+          posClauses.push(ci);
+          break;
+        }
+        if (current[ci][li] === -v) {
+          negClauses.push(ci);
+          break;
+        }
       }
     }
 
     // Skip if too many resolvents would be created
-    if (posClauses.length * negClauses.length > posClauses.length + negClauses.length + MAX_GROWTH) {
+    if (
+      posClauses.length * negClauses.length >
+      posClauses.length + negClauses.length + MAX_GROWTH
+    ) {
       continue;
     }
 
     // Generate all resolvents
     const resolvents: Clause[] = [];
-    let tooLarge = false;
+    const tooLarge = false;
     for (const pi of posClauses) {
       for (const ni of negClauses) {
         const resolvent = resolve(current[pi], current[ni], v);
@@ -235,7 +253,7 @@ function resolve(a: Clause, b: Clause, v: number): Clause | null {
  */
 function failedLiteralProbing(
   clauses: Clause[],
-  numVars: number
+  numVars: number,
 ): { forcedLiterals: number[]; clauses: Clause[] } {
   const forced: number[] = [];
 
@@ -297,7 +315,10 @@ function applyLiteral(clauses: Clause[], lit: number): Clause[] {
     let satisfied = false;
     const remaining: number[] = [];
     for (let i = 0; i < c.length; i++) {
-      if (c[i] === lit) { satisfied = true; break; }
+      if (c[i] === lit) {
+        satisfied = true;
+        break;
+      }
       if (c[i] !== -lit) remaining.push(c[i]);
     }
     if (!satisfied) {

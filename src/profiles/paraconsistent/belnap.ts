@@ -94,8 +94,10 @@ function evaluateBelnapBitset(
   function evalBelnap(f: Formula): BelnapBitset {
     const args = f.args || [];
     switch (f.kind) {
-      case 'atom':
-        return { pos: atomPos.get(f.name!) ?? 0n, neg: atomNeg.get(f.name!) ?? 0n };
+      case 'atom': {
+        const name = f.name ?? '';
+        return { pos: atomPos.get(name) ?? 0n, neg: atomNeg.get(name) ?? 0n };
+      }
       case 'not': {
         const inner = evalBelnap(args[0]);
         return { pos: inner.neg, neg: inner.pos };

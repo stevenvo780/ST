@@ -281,19 +281,23 @@ export class ClassicalFirstOrder implements LogicProfile {
       if (p !== 'gamma' && p !== 'atom') nextProcessed.add(key);
 
       switch (f.kind) {
-        case 'and':
+        case 'and': {
+          const [left, right] = f.args ?? [];
           return this.solveRecursive(
-            [{ formula: f.args![0] }, { formula: f.args![1] }, ...rest],
+            [{ formula: left }, { formula: right }, ...rest],
             constants,
             nextProcessed,
             depth + 1,
             trace,
           );
+        }
         case 'exists': {
+          const [body] = f.args ?? [];
+          const variable = f.variable ?? '';
           const newC = `c${constants.size}`;
           const nextConstants = new Set(constants).add(newC);
           return this.solveRecursive(
-            [{ formula: this.substitute(f.args![0], f.variable!, newC) }, ...rest],
+            [{ formula: this.substitute(body, variable, newC) }, ...rest],
             nextConstants,
             nextProcessed,
             depth + 1,
@@ -310,8 +314,10 @@ export class ClassicalFirstOrder implements LogicProfile {
           }
           if (!proc.__gammaCounters) proc.__gammaCounters = new Map();
           proc.__gammaCounters.set(gammaKey, gammaCount + 1);
+          const [forallBody] = f.args ?? [];
+          const forallVar = f.variable ?? '';
           const newInsts = Array.from(constants).map((c) => ({
-            formula: this.substitute(f.args![0], f.variable!, c),
+            formula: this.substitute(forallBody, forallVar, c),
           }));
           return this.solveRecursive(
             [...newInsts, ...nodes],
@@ -321,41 +327,45 @@ export class ClassicalFirstOrder implements LogicProfile {
             trace,
           );
         }
-        case 'or':
+        case 'or': {
+          const [orLeft, orRight] = f.args ?? [];
           return (
             this.solveRecursive(
-              [{ formula: f.args![0] }, ...rest],
+              [{ formula: orLeft }, ...rest],
               constants,
               nextProcessed,
               depth + 1,
               trace,
             ) &&
             this.solveRecursive(
-              [{ formula: f.args![1] }, ...rest],
+              [{ formula: orRight }, ...rest],
               constants,
               nextProcessed,
               depth + 1,
               trace,
             )
           );
-        case 'implies':
+        }
+        case 'implies': {
           // A -> B branches into: ¬A or B
+          const [impLeft, impRight] = f.args ?? [];
           return (
             this.solveRecursive(
-              [{ formula: { kind: 'not', args: [f.args![0]] } }, ...rest],
+              [{ formula: { kind: 'not', args: [impLeft] } }, ...rest],
               constants,
               nextProcessed,
               depth + 1,
               trace,
             ) &&
             this.solveRecursive(
-              [{ formula: f.args![1] }, ...rest],
+              [{ formula: impRight }, ...rest],
               constants,
               nextProcessed,
               depth + 1,
               trace,
             )
           );
+        }
       }
     }
     return false;

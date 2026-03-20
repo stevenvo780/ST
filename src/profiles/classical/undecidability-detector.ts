@@ -25,10 +25,12 @@ export function detectUndecidable(formula: Formula): UndecidabilityWarning[] {
   if (altDepth >= 3) {
     warnings.push({
       pattern: 'quantifier_alternation',
-      description: `Alternación de cuantificadores de profundidad ${altDepth} (∀∃∀...) detectada. ` +
+      description:
+        `Alternación de cuantificadores de profundidad ${altDepth} (∀∃∀...) detectada. ` +
         `La satisfacibilidad de fórmulas con alternación profunda es computacionalmente extrema.`,
       severity: altDepth >= 4 ? 'critical' : 'warning',
-      suggestion: 'Considere reducir la alternación de cuantificadores o usar fragmentos decidibles (∃*, ∀∃*, Bernays-Schönfinkel).',
+      suggestion:
+        'Considere reducir la alternación de cuantificadores o usar fragmentos decidibles (∃*, ∀∃*, Bernays-Schönfinkel).',
     });
   }
 
@@ -37,7 +39,8 @@ export function detectUndecidable(formula: Formula): UndecidabilityWarning[] {
   if (nestDepth >= 5) {
     warnings.push({
       pattern: 'deep_quantifier_nesting',
-      description: `Anidamiento de cuantificadores de profundidad ${nestDepth}. ` +
+      description:
+        `Anidamiento de cuantificadores de profundidad ${nestDepth}. ` +
         `El tableau puede requerir tiempo exponencial.`,
       severity: nestDepth >= 8 ? 'critical' : 'warning',
       suggestion: 'Simplifique la fórmula reduciendo niveles de anidamiento cuantificado.',
@@ -48,10 +51,12 @@ export function detectUndecidable(formula: Formula): UndecidabilityWarning[] {
   if (hasSelfReference(formula)) {
     warnings.push({
       pattern: 'goedel_self_reference',
-      description: `Posible auto-referencia detectada (patrón similar a la sentencia de Gödel). ` +
+      description:
+        `Posible auto-referencia detectada (patrón similar a la sentencia de Gödel). ` +
         `No existe algoritmo que pueda decidir todas las fórmulas auto-referenciales (Gödel, 1931).`,
       severity: 'critical',
-      suggestion: 'Las fórmulas auto-referenciales son inherentemente indecidibles en aritmética formal.',
+      suggestion:
+        'Las fórmulas auto-referenciales son inherentemente indecidibles en aritmética formal.',
     });
   }
 
@@ -60,7 +65,8 @@ export function detectUndecidable(formula: Formula): UndecidabilityWarning[] {
   if (fnDepth >= 4) {
     warnings.push({
       pattern: 'deep_function_nesting',
-      description: `Funciones anidadas de profundidad ${fnDepth} con cuantificadores. ` +
+      description:
+        `Funciones anidadas de profundidad ${fnDepth} con cuantificadores. ` +
         `Esto puede generar infinitos términos durante la instanciación.`,
       severity: fnDepth >= 6 ? 'critical' : 'warning',
       suggestion: 'Limite la profundidad de términos funcionales o use skolemización temprana.',
@@ -69,14 +75,16 @@ export function detectUndecidable(formula: Formula): UndecidabilityWarning[] {
 
   // 5. Monadic vs polyadic predicates
   const predicateArities = collectPredicateArities(formula);
-  const hasPolyadic = Array.from(predicateArities.values()).some(a => a >= 3);
+  const hasPolyadic = Array.from(predicateArities.values()).some((a) => a >= 3);
   if (hasPolyadic && altDepth >= 2) {
     warnings.push({
       pattern: 'polyadic_with_alternation',
-      description: `Predicados con aridad ≥3 combinados con alternación de cuantificadores. ` +
+      description:
+        `Predicados con aridad ≥3 combinados con alternación de cuantificadores. ` +
         `Este fragmento es generalmente indecidible (Church, 1936).`,
       severity: 'warning',
-      suggestion: 'El fragmento monádico (aridad 1) de FOL es decidible. Considere reducir la aridad de predicados.',
+      suggestion:
+        'El fragmento monádico (aridad 1) de FOL es decidible. Considere reducir la aridad de predicados.',
     });
   }
 
@@ -84,10 +92,12 @@ export function detectUndecidable(formula: Formula): UndecidabilityWarning[] {
   if (requiresInfiniteDomain(formula)) {
     warnings.push({
       pattern: 'infinite_domain',
-      description: `La fórmula parece requerir un dominio infinito para ser satisfacible. ` +
+      description:
+        `La fórmula parece requerir un dominio infinito para ser satisfacible. ` +
         `Solo la búsqueda en dominios finitos es decidible.`,
       severity: 'info',
-      suggestion: 'ST buscará modelos en dominios finitos crecientes. Si es válida solo en dominios infinitos, el tableau puede no terminar.',
+      suggestion:
+        'ST buscará modelos en dominios finitos crecientes. Si es válida solo en dominios infinitos, el tableau puede no terminar.',
     });
   }
 
@@ -104,7 +114,7 @@ function quantifierAlternationDepth(f: Formula): number {
   function walk(node: Formula, lastQ: string, depth: number): void {
     if (node.kind === 'forall' || node.kind === 'exists') {
       const currentQ = node.kind;
-      const newDepth = (lastQ !== '' && lastQ !== currentQ) ? depth + 1 : depth;
+      const newDepth = lastQ !== '' && lastQ !== currentQ ? depth + 1 : depth;
       maxDepth = Math.max(maxDepth, newDepth);
       if (node.args) {
         for (const arg of node.args) {

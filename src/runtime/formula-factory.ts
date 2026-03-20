@@ -17,8 +17,9 @@ export class FormulaFactory {
     const hash = this.hash(f);
 
     // Si ya existe en caché, devolver la instancia existente
-    if (this.cache.has(hash)) {
-      return this.cache.get(hash)!;
+    const cached = this.cache.get(hash);
+    if (cached) {
+      return cached;
     }
 
     // Si no existe, congelar la nueva instancia y guardarla

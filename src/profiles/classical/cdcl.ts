@@ -124,11 +124,13 @@ class TseitinEncoder {
     switch (f.kind) {
       case 'atom':
         return f.name ? this.getVar(f.name) : this.freshVar();
-      case 'not':
-        if (f.args?.[0]?.kind === 'atom' && f.args[0].name) {
-          return -this.getVar(f.args[0].name);
+      case 'not': {
+        const args = f.args ?? [];
+        if (args[0]?.kind === 'atom' && args[0].name) {
+          return -this.getVar(args[0].name);
         }
-        return -this.encodeNode(f.args![0]);
+        return -this.encodeNode(args[0]);
+      }
       case 'and': {
         const children = this.flattenAssoc(f, 'and');
         if (children.length === 1) return this.encodeNode(children[0]);
@@ -148,8 +150,9 @@ class TseitinEncoder {
         return g;
       }
       case 'implies': {
-        const a = this.encodeNode(f.args![0]);
-        const b = this.encodeNode(f.args![1]);
+        const [left, right] = f.args ?? [];
+        const a = this.encodeNode(left);
+        const b = this.encodeNode(right);
         const g = this.freshVar();
         this.rawClauses.push([-g, -a, b]);
         this.rawClauses.push([a, g]);
@@ -157,8 +160,9 @@ class TseitinEncoder {
         return g;
       }
       case 'biconditional': {
-        const a = this.encodeNode(f.args![0]);
-        const b = this.encodeNode(f.args![1]);
+        const [left, right] = f.args ?? [];
+        const a = this.encodeNode(left);
+        const b = this.encodeNode(right);
         const g = this.freshVar();
         this.rawClauses.push([-g, -a, b]);
         this.rawClauses.push([-g, -b, a]);
@@ -167,8 +171,9 @@ class TseitinEncoder {
         return g;
       }
       case 'xor': {
-        const a = this.encodeNode(f.args![0]);
-        const b = this.encodeNode(f.args![1]);
+        const [left, right] = f.args ?? [];
+        const a = this.encodeNode(left);
+        const b = this.encodeNode(right);
         const g = this.freshVar();
         this.rawClauses.push([-g, a, b]);
         this.rawClauses.push([-g, -a, -b]);
@@ -177,8 +182,9 @@ class TseitinEncoder {
         return g;
       }
       case 'nand': {
-        const a = this.encodeNode(f.args![0]);
-        const b = this.encodeNode(f.args![1]);
+        const [left, right] = f.args ?? [];
+        const a = this.encodeNode(left);
+        const b = this.encodeNode(right);
         const g = this.freshVar();
         this.rawClauses.push([-g, -a, -b]);
         this.rawClauses.push([a, g]);
@@ -186,8 +192,9 @@ class TseitinEncoder {
         return g;
       }
       case 'nor': {
-        const a = this.encodeNode(f.args![0]);
-        const b = this.encodeNode(f.args![1]);
+        const [left, right] = f.args ?? [];
+        const a = this.encodeNode(left);
+        const b = this.encodeNode(right);
         const g = this.freshVar();
         this.rawClauses.push([-g, -a]);
         this.rawClauses.push([-g, -b]);

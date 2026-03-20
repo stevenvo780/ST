@@ -121,11 +121,13 @@ class TseitinEncoder {
       case 'atom':
         return f.name ? this.getVar(f.name) : this.freshVar();
 
-      case 'not':
-        if (f.args?.[0]?.kind === 'atom' && f.args[0].name) {
-          return -this.getVar(f.args[0].name);
+      case 'not': {
+        const args = f.args ?? [];
+        if (args[0]?.kind === 'atom' && args[0].name) {
+          return -this.getVar(args[0].name);
         }
-        return -this.encodeNode(f.args![0]);
+        return -this.encodeNode(args[0]);
+      }
 
       case 'and': {
         const children = this.flattenAssoc(f, 'and');
@@ -148,8 +150,9 @@ class TseitinEncoder {
       }
 
       case 'implies': {
-        const a = this.encodeNode(f.args![0]);
-        const b = this.encodeNode(f.args![1]);
+        const [left, right] = f.args ?? [];
+        const a = this.encodeNode(left);
+        const b = this.encodeNode(right);
         const g = this.freshVar();
         this.rawClauses.push([-g, -a, b]);
         this.rawClauses.push([a, g]);
@@ -158,8 +161,9 @@ class TseitinEncoder {
       }
 
       case 'biconditional': {
-        const a = this.encodeNode(f.args![0]);
-        const b = this.encodeNode(f.args![1]);
+        const [left, right] = f.args ?? [];
+        const a = this.encodeNode(left);
+        const b = this.encodeNode(right);
         const g = this.freshVar();
         this.rawClauses.push([-g, -a, b]);
         this.rawClauses.push([-g, -b, a]);
@@ -169,8 +173,9 @@ class TseitinEncoder {
       }
 
       case 'xor': {
-        const a = this.encodeNode(f.args![0]);
-        const b = this.encodeNode(f.args![1]);
+        const [left, right] = f.args ?? [];
+        const a = this.encodeNode(left);
+        const b = this.encodeNode(right);
         const g = this.freshVar();
         this.rawClauses.push([-g, a, b]);
         this.rawClauses.push([-g, -a, -b]);
@@ -180,8 +185,9 @@ class TseitinEncoder {
       }
 
       case 'nand': {
-        const a = this.encodeNode(f.args![0]);
-        const b = this.encodeNode(f.args![1]);
+        const [left, right] = f.args ?? [];
+        const a = this.encodeNode(left);
+        const b = this.encodeNode(right);
         const g = this.freshVar();
         this.rawClauses.push([-g, -a, -b]);
         this.rawClauses.push([a, g]);
@@ -190,8 +196,9 @@ class TseitinEncoder {
       }
 
       case 'nor': {
-        const a = this.encodeNode(f.args![0]);
-        const b = this.encodeNode(f.args![1]);
+        const [left, right] = f.args ?? [];
+        const a = this.encodeNode(left);
+        const b = this.encodeNode(right);
         const g = this.freshVar();
         this.rawClauses.push([-g, -a]);
         this.rawClauses.push([-g, -b]);
@@ -357,7 +364,8 @@ function dpllSolve(
 
   function unassignTrail(count: number): void {
     while (trail.length > count) {
-      const entry = trail.pop()!;
+      const entry = trail.pop();
+      if (!entry) break;
       assignment[entry.variable] = 0;
       for (const ci of entry.satisfiedClauses) {
         satisfied[ci] = 0;

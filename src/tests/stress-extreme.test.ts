@@ -22,8 +22,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { Interpreter } from '../runtime/interpreter';
 import { FormulaFactory } from '../runtime/formula-factory';
-import { cdcl, CDCLResult } from '../profiles/classical/cdcl';
-import { dpll } from '../profiles/classical/dpll';
+import { cdcl } from '../profiles/classical/cdcl';
+import { Formula } from '../types';
 
 afterEach(() => {
   FormulaFactory.clear();
@@ -54,11 +54,7 @@ function mulberry32(seed: number): () => number {
 // SECTION 1: MASSIVE RANDOM 3-SAT
 // ============================================================
 describe('Extreme: Random 3-SAT at Scale', () => {
-  function generateRandom3SAT(
-    numVars: number,
-    numClauses: number,
-    seed: number,
-  ): string {
+  function generateRandom3SAT(numVars: number, numClauses: number, seed: number): string {
     const rng = mulberry32(seed);
     const clauses: string[] = [];
     for (let i = 0; i < numClauses; i++) {
@@ -218,9 +214,7 @@ describe('Extreme: Tseitin Formulas', () => {
     // Each edge is a variable
     const parts: string[] = [];
     for (let n = 0; n < numNodes; n++) {
-      const nodeEdges = edges
-        .map((e, i) => ({ e, i }))
-        .filter(({ e }) => e[0] === n || e[1] === n);
+      const nodeEdges = edges.map((e, i) => ({ e, i })).filter(({ e }) => e[0] === n || e[1] === n);
 
       if (nodeEdges.length === 0) continue;
 
@@ -415,8 +409,12 @@ describe('Extreme: Graph Coloring as SAT', () => {
 
   it('K4 with 3 colors — UNSAT (chromatic number = 4)', () => {
     const K4edges: [number, number][] = [
-      [0, 1], [0, 2], [0, 3],
-      [1, 2], [1, 3], [2, 3],
+      [0, 1],
+      [0, 2],
+      [0, 3],
+      [1, 2],
+      [1, 3],
+      [2, 3],
     ];
     const formula = generateGraphColoring(4, K4edges, 3);
     const source = `
@@ -430,8 +428,12 @@ describe('Extreme: Graph Coloring as SAT', () => {
 
   it('K4 with 4 colors — SAT', () => {
     const K4edges: [number, number][] = [
-      [0, 1], [0, 2], [0, 3],
-      [1, 2], [1, 3], [2, 3],
+      [0, 1],
+      [0, 2],
+      [0, 3],
+      [1, 2],
+      [1, 3],
+      [2, 3],
     ];
     const formula = generateGraphColoring(4, K4edges, 4);
     const source = `
@@ -446,9 +448,21 @@ describe('Extreme: Graph Coloring as SAT', () => {
   it('Petersen graph with 3 colors — SAT (chromatic number = 3)', () => {
     // Petersen graph has 10 nodes, 15 edges, chromatic number 3
     const petersenEdges: [number, number][] = [
-      [0, 1], [1, 2], [2, 3], [3, 4], [4, 0], // outer pentagon
-      [5, 7], [7, 9], [9, 6], [6, 8], [8, 5], // inner pentagram
-      [0, 5], [1, 6], [2, 7], [3, 8], [4, 9], // connections
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 4],
+      [4, 0], // outer pentagon
+      [5, 7],
+      [7, 9],
+      [9, 6],
+      [6, 8],
+      [8, 5], // inner pentagram
+      [0, 5],
+      [1, 6],
+      [2, 7],
+      [3, 8],
+      [4, 9], // connections
     ];
     const formula = generateGraphColoring(10, petersenEdges, 3);
     const source = `
@@ -462,9 +476,21 @@ describe('Extreme: Graph Coloring as SAT', () => {
 
   it('Petersen graph with 2 colors — UNSAT', () => {
     const petersenEdges: [number, number][] = [
-      [0, 1], [1, 2], [2, 3], [3, 4], [4, 0],
-      [5, 7], [7, 9], [9, 6], [6, 8], [8, 5],
-      [0, 5], [1, 6], [2, 7], [3, 8], [4, 9],
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 4],
+      [4, 0],
+      [5, 7],
+      [7, 9],
+      [9, 6],
+      [6, 8],
+      [8, 5],
+      [0, 5],
+      [1, 6],
+      [2, 7],
+      [3, 8],
+      [4, 9],
     ];
     const formula = generateGraphColoring(10, petersenEdges, 2);
     const source = `
@@ -481,32 +507,31 @@ describe('Extreme: Graph Coloring as SAT', () => {
 // SECTION 6: CDCL API DIRECT TESTING
 // ============================================================
 describe('Extreme: Direct CDCL API', () => {
-  function makeFormula(kind: string, args: any[]): any {
-    return { kind, args };
-  }
-  function atom(name: string): any {
+  function atom(name: string): Formula {
     return { kind: 'atom', name };
   }
-  function not(f: any): any {
+  function not(f: Formula): Formula {
     return { kind: 'not', args: [f] };
   }
-  function and(...args: any[]): any {
-    return args.reduce((acc, f) => ({ kind: 'and', args: [acc, f] }));
+  function and(...args: Formula[]): Formula {
+    return args.slice(1).reduce<Formula>((acc, f) => ({ kind: 'and', args: [acc, f] }), args[0]);
   }
-  function or(...args: any[]): any {
-    return args.reduce((acc, f) => ({ kind: 'or', args: [acc, f] }));
+  function or(...args: Formula[]): Formula {
+    return args.slice(1).reduce<Formula>((acc, f) => ({ kind: 'or', args: [acc, f] }), args[0]);
   }
-  function implies(a: any, b: any): any {
+  function implies(a: Formula, b: Formula): Formula {
     return { kind: 'implies', args: [a, b] };
   }
 
   it('cdcl() handles very large formula directly — 200 atoms conjunction', () => {
     const atoms = Array.from({ length: 200 }, (_, i) => atom(`X${i}`));
-    const formula = atoms.reduce((acc, a) => ({ kind: 'and', args: [acc, a] }));
+    const formula = atoms
+      .slice(1)
+      .reduce<Formula>((acc, a) => ({ kind: 'and', args: [acc, a] }), atoms[0]);
     const result = cdcl(formula, 5000);
     expect(result.satisfiable).toBe(true);
     expect(result.stats).toBeDefined();
-    expect(result.stats!.solveTimeMs).toBeLessThan(5000);
+    expect(result.stats?.solveTimeMs).toBeLessThan(5000);
   }, 10000);
 
   it('cdcl() handles P & !P contradiction directly', () => {
@@ -529,22 +554,20 @@ describe('Extreme: Direct CDCL API', () => {
   }, 5000);
 
   it('cdcl() returns correct model for satisfiable formula', () => {
-    const formula = and(
-      or(atom('P'), atom('Q')),
-      or(not(atom('P')), atom('R')),
-      atom('Q'),
-    );
+    const formula = and(or(atom('P'), atom('Q')), or(not(atom('P')), atom('R')), atom('Q'));
     const result = cdcl(formula, 5000);
     expect(result.satisfiable).toBe(true);
     expect(result.model).toBeDefined();
     // Q must be true in the model
-    expect(result.model!['Q']).toBe(true);
+    expect(result.model?.['Q']).toBe(true);
   }, 5000);
 
   it('cdcl() timeout on pathological input returns false gracefully', () => {
     // Force a timeout with tiny timeout
     const atoms = Array.from({ length: 100 }, (_, i) => atom(`T${i}`));
-    const formula = atoms.reduce((acc, a) => ({ kind: 'and', args: [acc, a] }));
+    const formula = atoms
+      .slice(1)
+      .reduce<Formula>((acc, a) => ({ kind: 'and', args: [acc, a] }), atoms[0]);
     const result = cdcl(formula, 1); // 1ms timeout
     // Should not crash; either SAT or timed out
     expect(typeof result.satisfiable).toBe('boolean');
@@ -667,7 +690,10 @@ describe('Extreme: Recursion Boundaries', () => {
     if (out.exitCode !== 0) {
       // The error should mention recursion limit
       const hasRecursionError = out.diagnostics.some(
-        (d) => d.message.includes('recursión') || d.message.includes('recursion') || d.message.includes('límite'),
+        (d) =>
+          d.message.includes('recursión') ||
+          d.message.includes('recursion') ||
+          d.message.includes('límite'),
       );
       expect(hasRecursionError).toBe(true);
     }
@@ -688,7 +714,10 @@ describe('Extreme: Recursion Boundaries', () => {
     expect(out.exitCode !== undefined).toBe(true);
     if (out.exitCode !== 0) {
       const hasRecursionError = out.diagnostics.some(
-        (d) => d.message.includes('recursión') || d.message.includes('recursion') || d.message.includes('límite'),
+        (d) =>
+          d.message.includes('recursión') ||
+          d.message.includes('recursion') ||
+          d.message.includes('límite'),
       );
       expect(hasRecursionError).toBe(true);
     }
@@ -717,10 +746,9 @@ describe('Extreme: Recursion Boundaries', () => {
 // ============================================================
 describe('Extreme: Theory Derivation at Scale', () => {
   it('50-axiom implication chain derives final conclusion', () => {
-    const axioms = Array.from(
-      { length: 49 },
-      (_, i) => `axiom a${i} = P${i} -> P${i + 1}`,
-    ).join('\n    ');
+    const axioms = Array.from({ length: 49 }, (_, i) => `axiom a${i} = P${i} -> P${i + 1}`).join(
+      '\n    ',
+    );
     const names = Array.from({ length: 49 }, (_, i) => `a${i}`).join(', ');
     const source = `
       logic classical.propositional
@@ -775,10 +803,7 @@ describe('Extreme: Theory Derivation at Scale', () => {
 // ============================================================
 describe('Extreme: Tautology Verification', () => {
   it('300-atom tautology: conjunction of (Pi | !Pi)', () => {
-    const parts = Array.from(
-      { length: 300 },
-      (_, i) => `(T${i} | !T${i})`,
-    );
+    const parts = Array.from({ length: 300 }, (_, i) => `(T${i} | !T${i})`);
     const formula = parts.join(' & ');
     const source = `
       logic classical.propositional
@@ -799,7 +824,7 @@ describe('Extreme: Tautology Verification', () => {
     expect(stripAccents(out.stdout).toUpperCase()).toContain('VALIDA');
   }, 5000);
 
-  it('implication tautology: ((P -> Q) -> P) -> P (Peirce\'s law)', () => {
+  it("implication tautology: ((P -> Q) -> P) -> P (Peirce's law)", () => {
     const source = `
       logic classical.propositional
       check valid (((P -> Q) -> P) -> P)

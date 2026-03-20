@@ -98,11 +98,7 @@ type BenchResult = {
   speedup: string;
 };
 
-function benchmark(
-  name: string,
-  formula: Formula,
-  timeoutMs: number = 5000,
-): BenchResult {
+function benchmark(name: string, formula: Formula, timeoutMs: number = 5000): BenchResult {
   const t0 = performance.now();
   const cdclResult = cdcl(formula, timeoutMs);
   const t1 = performance.now();
@@ -113,8 +109,7 @@ function benchmark(
 
   const cdclMs = Math.round((t1 - t0) * 100) / 100;
   const legacyMs = Math.round((t3 - t2) * 100) / 100;
-  const speedup =
-    legacyMs > 0 ? `${(legacyMs / Math.max(cdclMs, 0.01)).toFixed(1)}x` : 'N/A';
+  const speedup = legacyMs > 0 ? `${(legacyMs / Math.max(cdclMs, 0.01)).toFixed(1)}x` : 'N/A';
 
   return {
     cdclMs,
