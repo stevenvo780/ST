@@ -16,10 +16,15 @@ import {
 } from '../../types';
 import { classifyFormula } from '../../runtime/formula-classifier';
 import { formulaToUnicode } from '../../runtime/format';
+import { memoizeString, memoizeAtoms } from '../../utils/memo';
 
 // --- Utilidades de fórmulas ---
 
-function collectAtoms(f: Formula): Set<string> {
+export function collectAtoms(f: Formula): Set<string> {
+  return memoizeAtoms(f, computeCollectAtoms);
+}
+
+function computeCollectAtoms(f: Formula): Set<string> {
   const atoms = new Set<string>();
   function walk(node: Formula) {
     if (node.kind === 'atom' && node.name) {
@@ -70,7 +75,7 @@ function evaluate(f: Formula, v: Valuation): boolean {
         ? evaluate(f.args[0], v) !== evaluate(f.args[1], v)
         : false;
     default:
-      return false;
+      throw new Error(`Operador lógico no soportado en evaluación clásica: ${f.kind}`);
   }
 }
 
@@ -112,6 +117,10 @@ function collectAssociativeArgs(f: Formula, kind: 'and' | 'or' | 'xor'): Formula
 }
 
 export function formulaToString(f: Formula): string {
+  return memoizeString(f, computeFormulaToString);
+}
+
+function computeFormulaToString(f: Formula): string {
   switch (f.kind) {
     case 'atom':
       return f.name || '?';
@@ -465,7 +474,7 @@ function formulasEqual(a: Formula, b: Formula): boolean {
 // --- Motor de derivación ---
 
 /** Límite duro de fórmulas derivadas para evitar explosión combinatoria */
-const MAX_KNOWN = 500;
+const MAX_KNOWN = 5000;
 
 /** Profundidad máxima de negación en cualquier sub-fórmula */
 function maxNegationDepth(f: Formula): number {
@@ -550,21 +559,28 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
     }
   }
 
-  // Intentar derivar con BFS aplicando reglas
-  const maxIterations = 100;
+  // Intentar derivar con BFS aplicando reglas (optimizado)
+  const maxIterations = 1000;
   let changed = true;
   let iterations = 0;
+  let lastProcessedIndex = 0;
 
   while (changed && iterations < maxIterations && state.known.size < MAX_KNOWN) {
     changed = false;
     iterations++;
     const currentFormulas = Array.from(state.known.values());
+    const prevProcessedIndex = lastProcessedIndex;
+    lastProcessedIndex = currentFormulas.length;
 
-    for (const f1 of currentFormulas) {
-      // Check if goal already found
+    for (let i = 0; i < currentFormulas.length; i++) {
+      const f1 = currentFormulas[i];
       if (state.known.has(formulaHash(goal))) break;
 
-      for (const f2 of currentFormulas) {
+      for (let j = 0; j < currentFormulas.length; j++) {
+        // Optimización crucial O(N^2 -> N): ignorar pares antiguos
+        if (i < prevProcessedIndex && j < prevProcessedIndex) continue;
+
+        const f2 = currentFormulas[j];
         if (state.known.has(formulaHash(goal))) break;
 
         // Modus Ponens: de A y (A -> B), derivar B

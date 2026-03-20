@@ -439,6 +439,8 @@ export class ClassicalFirstOrder implements LogicProfile {
   }
 
   private solve(initialNodes: FONode[]): SolveResult {
+    varCounter = 0;
+    skolemCounter = 0;
     const constants = new Set<string>(['c0']);
     const collect = (f: Formula) => {
       if (f.kind === 'predicate' && f.params) {
@@ -459,8 +461,8 @@ export class ClassicalFirstOrder implements LogicProfile {
     depth: number,
     trace: string[],
   ): boolean {
-    if (depth > 50) {
-      trace.push(`[${depth}] ⚠ Se superó la profundidad máxima permitida (50).`);
+    if (depth > 3000) {
+      trace.push(`[${depth}] ⚠ Se superó la profundidad máxima permitida (3000). Evaluando recursividad forzada.`);
       return false;
     }
     if (nodes.length === 0) return false;

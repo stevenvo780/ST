@@ -28,19 +28,7 @@ import {
   TruthTableResult,
   TruthTableRow,
 } from '../../types';
-import { formulaToString } from '../classical/propositional';
-
-// ── Recolectar átomos ───────────────────────────────────────
-
-function collectAtoms(f: Formula): Set<string> {
-  const atoms = new Set<string>();
-  const walk = (node: Formula) => {
-    if (node.kind === 'atom' && node.name) atoms.add(node.name);
-    node.args?.forEach(walk);
-  };
-  walk(f);
-  return atoms;
-}
+import { formulaToString, collectAtoms } from '../classical/propositional';
 
 // ── Evaluación probabilística ───────────────────────────────
 

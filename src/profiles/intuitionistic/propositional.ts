@@ -14,21 +14,8 @@
 // (teorema de completitud de Kripke).
 // ============================================================
 
-import { Formula } from '../../types';
-import { formulaToString } from '../classical/propositional';
-import type { RunResult, Theory, Diagnostic, LogicProfile } from '../../types';
-
-// ── Recolectar átomos ───────────────────────────────────────
-
-function collectAtoms(f: Formula): Set<string> {
-  const atoms = new Set<string>();
-  const walk = (node: Formula) => {
-    if (node.kind === 'atom' && node.name) atoms.add(node.name);
-    node.args?.forEach(walk);
-  };
-  walk(f);
-  return atoms;
-}
+import { Formula, RunResult, Theory, Diagnostic, LogicProfile } from '../../types';
+import { formulaToString, collectAtoms } from '../classical/propositional';
 
 // ── Modelo Kripke ───────────────────────────────────────────
 
@@ -166,6 +153,7 @@ function* generateModels(atoms: string[], maxWorlds: number): Generator<KripkeMo
 
   for (let size = 1; size <= n; size++) {
     const worlds = Array.from({ length: size }, (_, i) => i);
+    const seenPreorders = new Set<string>();
 
     // Generar todos los subconjuntos de aristas (sin incluir reflexivas, que siempre van)
     const pairs: [number, number][] = [];
@@ -190,6 +178,14 @@ function* generateModels(atoms: string[], maxWorlds: number): Generator<KripkeMo
 
       // Cerrar transitivamente
       transitiveClosure(access, worlds);
+
+      // Deduplicar preórdenes idénticos
+      let hash = '';
+      for (const w of worlds) {
+        hash += w + ':' + Array.from(access.get(w) as Set<number>).sort().join(',') + ';';
+      }
+      if (seenPreorders.has(hash)) continue;
+      seenPreorders.add(hash);
 
       // Generar todas las valuaciones persistentes
       yield* generatePersistentValuations(worlds, access, atoms);

@@ -1546,8 +1546,9 @@ export class Interpreter {
       result.tableauTrace.length > 0 &&
       (verbosity === 'on' ||
         verbosity === 'proof' ||
-        cmd === 'check_valid' ||
-        cmd === 'check_satisfiable')
+        cmd === 'check valid' ||
+        cmd === 'check satisfiable' ||
+        cmd === 'check equivalent')
     ) {
       this.emit('  Traza del tableau:');
       for (let i = 0; i < result.tableauTrace.length; i++) {

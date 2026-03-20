@@ -11,6 +11,7 @@
 // ============================================================
 
 import { Formula, Diagnostic, RunResult, Theory, LogicProfile } from '../../types';
+import { collectAtoms } from '../classical/propositional';
 
 // --- Tipos aritméticos ---
 
@@ -106,16 +107,7 @@ function evalComparison(f: Formula, vars?: Map<string, number>, trace?: string[]
   return !isNaN(val) && val !== 0;
 }
 
-/** Recolecta todos los átomos de una fórmula */
-function collectAtoms(f: Formula): Set<string> {
-  const atoms = new Set<string>();
-  function walk(node: Formula) {
-    if (node.kind === 'atom' && node.name) atoms.add(node.name);
-    if (node.args) for (const a of node.args) walk(a);
-  }
-  walk(f);
-  return atoms;
-}
+
 
 // --- Perfil ---
 

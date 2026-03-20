@@ -11,7 +11,7 @@ import {
   Valuation,
   TruthTableResult,
 } from '../../types';
-import { formulaToString } from '../classical/propositional';
+import { formulaToString, collectAtoms } from '../classical/propositional';
 
 /**
  * Valores de verdad en la lógica de Belnap (A4):
@@ -128,10 +128,10 @@ export class ParaconsistentBelnap implements LogicProfile {
     const allFormulas = [...axioms, goal];
     const atoms = new Set<string>();
     for (const f of allFormulas) {
-      for (const a of this.collectAtoms(f)) atoms.add(a);
+      for (const a of collectAtoms(f)) atoms.add(a);
     }
     const atomsArr = Array.from(atoms).sort();
-    const valuations = this.generateBelnapValuations(atomsArr);
+    const valuations = generateBelnapValuations(atomsArr);
     const designated = new Set<BelnapValue>(['T', 'B']);
 
     for (const v of valuations) {
@@ -172,10 +172,10 @@ export class ParaconsistentBelnap implements LogicProfile {
     const allFormulas = [...premiseFormulas, goal];
     const atoms = new Set<string>();
     for (const f of allFormulas) {
-      for (const a of this.collectAtoms(f)) atoms.add(a);
+      for (const a of collectAtoms(f)) atoms.add(a);
     }
     const atomsArr = Array.from(atoms).sort();
-    const valuations = this.generateBelnapValuations(atomsArr);
+    const valuations = generateBelnapValuations(atomsArr);
     const designated = new Set<BelnapValue>(['T', 'B']);
 
     for (const v of valuations) {
@@ -247,7 +247,7 @@ export class ParaconsistentBelnap implements LogicProfile {
     const designated = new Set(['T', 'B']);
     const isTautology = tt.rows.every((r) => designated.has(String(r.result)));
     const isSatisfiable = tt.rows.some((r) => designated.has(String(r.result)));
-    const atoms = Array.from(this.collectAtoms(formula));
+    const atoms = Array.from(collectAtoms(formula));
 
     let out = `Lógica Paraconsistente de Belnap (4-Valores)\n`;
     out += `Fórmula: ${formulaToString(formula)}\n\n`;
@@ -325,10 +325,10 @@ export class ParaconsistentBelnap implements LogicProfile {
     const allFormulas = [a, b];
     const atoms = new Set<string>();
     for (const f of allFormulas) {
-      for (const at of this.collectAtoms(f)) atoms.add(at);
+      for (const at of collectAtoms(f)) atoms.add(at);
     }
     const atomsArr = Array.from(atoms).sort();
-    const valuations = this.generateBelnapValuations(atomsArr);
+    const valuations = generateBelnapValuations(atomsArr);
 
     for (const v of valuations) {
       const bv = v as unknown as Record<string, BelnapValue>;
@@ -386,13 +386,13 @@ export class ParaconsistentBelnap implements LogicProfile {
         return BELNAP_AND[aToB][bToA];
       }
       default:
-        return 'N';
+        throw new Error(`Operador lógico no soportado en evaluación Belnap: ${f.kind}`);
     }
   }
 
   private generateBelnapTable(formula: Formula): TruthTableResult {
-    const atoms = Array.from(this.collectAtoms(formula)).sort();
-    const rows = this.generateBelnapValuations(atoms).map((v) => ({
+    const atoms = Array.from(collectAtoms(formula)).sort();
+    const rows = generateBelnapValuations(atoms).map((v) => ({
       valuation: v as unknown as Valuation,
       result: this.evaluateBelnap(formula, v as unknown as Record<string, BelnapValue>),
     }));
@@ -406,29 +406,26 @@ export class ParaconsistentBelnap implements LogicProfile {
     };
   }
 
-  private collectAtoms(f: Formula): Set<string> {
-    const atoms = new Set<string>();
-    const walk = (node: Formula) => {
-      if (node.kind === 'atom' && node.name) atoms.add(node.name);
-      if (node.args) node.args.forEach(walk);
-    };
-    walk(f);
-    return atoms;
-  }
-
-  private generateBelnapValuations(atoms: string[]): Record<string, BelnapValue>[] {
-    if (atoms.length === 0) return [{}];
-    const sub = this.generateBelnapValuations(atoms.slice(1));
-    const result: Record<string, BelnapValue>[] = [];
-    for (const v of sub) {
-      for (const val of VALUES) {
-        result.push({ ...v, [atoms[0]]: val });
-      }
-    }
-    return result;
-  }
-
   truthTable(formula: Formula): TruthTableResult {
     return this.generateBelnapTable(formula);
   }
+}
+
+function generateBelnapValuations(atoms: string[]): Record<string, BelnapValue>[] {
+  if (atoms.length === 0) return [{}];
+  const list: Record<string, BelnapValue>[] = [{}];
+  for (let i = 0; i < atoms.length; i++) {
+    const atom = atoms[i];
+    const currentLen = list.length;
+    for (let j = 0; j < currentLen; j++) {
+      const base = list[j];
+      const T = { ...base }; T[atom] = 'T';
+      const F = { ...base }; F[atom] = 'F';
+      const B = { ...base }; B[atom] = 'B';
+      const N = { ...base }; N[atom] = 'N';
+      list.push(T, F, B, N);
+    }
+    list.splice(0, currentLen);
+  }
+  return list;
 }

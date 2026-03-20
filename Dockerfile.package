@@ -18,9 +18,15 @@ RUN npm install
 COPY . .
 RUN npm run build
 
+# Bundle CLI into a single CJS file with esbuild (resolves ESM-only deps like chalk v5)
+# __ST_VERSION__ is injected so the binary knows its version without reading package.json
+RUN VERSION=$(node -p "require('./package.json').version") && \
+    npx esbuild dist/cli/index.js --bundle --platform=node --target=node18 --format=cjs \
+    --outfile=dist/cli-bundle.cjs \
+    --define:__ST_VERSION__="\"${VERSION}\""
+
 # Package into a single binary using pkg
-# Note: we use bin/st as entrypoint, which requires dist/cli/index.js
-RUN npx pkg . --targets node18-linux-x64 --output st
+RUN npx pkg dist/cli-bundle.cjs --targets node18-linux-x64 --output st
 
 # Create packages using nfpm
 RUN VERSION=$(node -p "require('./package.json').version") && \

@@ -13,15 +13,27 @@ import { REPL } from '../repl/repl';
 import { ProtocolHandler } from '../protocol/handler';
 import { registry } from '../profiles/interface';
 import { ProtocolRequest } from '../types';
-const pkg = JSON.parse(
-  fs.readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf-8'),
-) as { version: string };
+
+// Version is injected at bundle time via esbuild --define, or read from package.json in dev
+declare const __ST_VERSION__: string | undefined;
+function getVersion(): string {
+  if (typeof __ST_VERSION__ !== 'undefined') return __ST_VERSION__;
+  try {
+    const pkg = JSON.parse(
+      fs.readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf-8'),
+    ) as { version: string };
+    return pkg.version;
+  } catch {
+    return '0.0.0';
+  }
+}
+
 const program = new Command();
 
 program
   .name('st')
   .description('ST — Lenguaje ejecutable con nucleo logico y capa textual')
-  .version(pkg.version);
+  .version(getVersion());
 
 program
   .command('run')

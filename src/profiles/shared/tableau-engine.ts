@@ -228,7 +228,13 @@ function alphaEqual(
   return aa.every((ai, i) => alphaEqual(ai, bb[i], envA, envB, depth));
 }
 
+import { memoizeHash } from '../../utils/memo';
+
 export function formulaHash(f: Formula): string {
+  return memoizeHash(f, computeFormulaHash);
+}
+
+function computeFormulaHash(f: Formula): string {
   switch (f.kind) {
     case 'atom':
       return f.name || '?';
@@ -317,6 +323,7 @@ function classify(f: Formula): FormulaClass {
       if (inner.kind === 'implies') return 'alpha';
       if (inner.kind === 'modal_necessity') return 'delta';
       if (inner.kind === 'modal_possibility') return 'gamma';
+      if (inner.kind === 'temporal_until') return 'alpha';
       return 'literal';
     }
     case 'modal_necessity':
@@ -325,6 +332,8 @@ function classify(f: Formula): FormulaClass {
       return 'delta';
     case 'temporal_next':
       return 'delta';
+    case 'temporal_until':
+      return 'beta';
     default:
       return 'literal';
   }
@@ -441,6 +450,17 @@ function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult 
             (f.args[0].args || [])[0],
             fullNNF({ kind: 'not', args: [(f.args[0].args || [])[1]] }),
           ];
+        else if (f.kind === 'not' && f.args?.[0]?.kind === 'temporal_until')
+          children = [
+            fullNNF({ kind: 'not', args: [(f.args[0].args || [])[1]] }),
+            fullNNF({
+              kind: 'or',
+              args: [
+                { kind: 'not', args: [(f.args[0].args || [])[0]] },
+                { kind: 'not', args: [{ kind: 'temporal_next', args: [f.args[0]] }] },
+              ],
+            }),
+          ];
         else return expand(branch, depth + 1, rules);
         for (const c of children) branch.pending.push({ formula: c, world: node.world });
         return expand(branch, depth + 1, rules);
@@ -517,6 +537,14 @@ function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult 
                 fullNNF({ kind: 'not', args: [(f.args || [])[1]] }),
               ],
             },
+          ];
+        else if (f.kind === 'temporal_until')
+          disjuncts = [
+            (f.args || [])[1],
+            fullNNF({
+              kind: 'and',
+              args: [(f.args || [])[0], { kind: 'temporal_next', args: [f] }],
+            }),
           ];
         else if (f.kind === 'not' && f.args?.[0]?.kind === 'and')
           disjuncts = (f.args[0].args || []).map((a) => fullNNF({ kind: 'not', args: [a] }));
