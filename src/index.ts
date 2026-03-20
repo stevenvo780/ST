@@ -44,6 +44,12 @@ export { ClassicalFirstOrder } from './profiles/classical/first-order';
 export { ModalK } from './profiles/modal/k';
 export { ParaconsistentBelnap } from './profiles/paraconsistent/belnap';
 
+// SAT Solving (parallelism support)
+export { cdcl, cdclAsync } from './profiles/classical/cdcl';
+export type { CDCLResult } from './profiles/classical/cdcl';
+export { dpll, dpllAsync } from './profiles/classical/dpll';
+export { workersAvailable, PARALLEL_THRESHOLD } from './profiles/classical/parallel-sat';
+
 // Formato / Unicode / LaTeX
 export { formulaToUnicode, formulaToLaTeX } from './runtime/format';
 

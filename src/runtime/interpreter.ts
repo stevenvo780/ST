@@ -93,9 +93,9 @@ interface TheoryScope {
   privateMembers: Set<string>;
 }
 
-const MAX_CALL_DEPTH = 10000;
-const DEFAULT_MAX_RUNTIME_STEPS = 100000;
-const DEFAULT_MAX_RUNTIME_CALLS = 7000;
+const MAX_CALL_DEPTH = 50000;
+const DEFAULT_MAX_RUNTIME_STEPS = 500000;
+const DEFAULT_MAX_RUNTIME_CALLS = 100000;
 
 interface RuntimeStatementFrame {
   kind: 'statements';
@@ -150,6 +150,8 @@ interface FunctionExecutionFrame {
   savedReturnValue: Formula | undefined;
   scopeSnapshot?: ScopeExecutionSnapshot;
   continuation?: FunctionContinuation;
+  /** Clave de memoización (null si la función no es pura o no es memoizable) */
+  memoKey?: string | null;
 }
 
 interface RuntimeActionExpr {
@@ -205,6 +207,9 @@ export class Interpreter {
   /** Cache de resolución: fórmula original → fórmula resuelta (invalidado al cambiar bindings) */
   private resolveCache = new WeakMap<Formula, Formula>();
   private resolveCacheGeneration = 0;
+  /** Memoización automática para funciones con argumentos numéricos (fibonacci, factorial, etc.) */
+  private fnMemoCache = new Map<string, Formula | undefined>();
+  private static readonly MEMO_CACHE_MAX = 50000;
 
   constructor() {
     this.theory = this.createEmptyTheory();
@@ -273,7 +278,68 @@ export class Interpreter {
     this.currentBindingFrame = null;
     this.runtimeStepCount = 0;
     this.runtimeCallCount = 0;
+    this.fnMemoCache.clear();
   }
+
+  // ── Memoización de funciones ──────────────────────────────
+  /** Serializa una fórmula a una cadena para usar como clave de cache */
+  private serializeFormulaKey(f: Formula): string {
+    if (f.kind === 'number') return `N:${f.value}`;
+    if (f.kind === 'atom') return `A:${f.name}`;
+    if (f.kind === 'list') return `L:[${f.args?.map(a => this.serializeFormulaKey(a)).join(',') ?? ''}]`;
+    return `${f.kind}(${f.args?.map(a => this.serializeFormulaKey(a)).join(',') ?? ''})`;
+  }
+
+  /** Genera la clave de memoización: nombre_función(arg1,arg2,...) */
+  private memoKey(name: string, args: Formula[]): string | null {
+    // Solo memoizar si todos los argumentos son valores concretos (number, atom sin variables)
+    for (const arg of args) {
+      if (arg.kind !== 'number' && arg.kind !== 'atom') return null;
+    }
+    return `${name}(${args.map(a => this.serializeFormulaKey(a)).join(',')})`;
+  }
+
+  /** Verifica si una función es pura (sin side effects como print, set, check, axiom) */
+  private isPureFn(fn: FnDeclNode): boolean {
+    const check = (stmts: Statement[]): boolean => {
+      for (const s of stmts) {
+        switch (s.kind) {
+          case 'print_cmd':
+          case 'set_cmd':
+          case 'derive_cmd':
+          case 'check_valid_cmd':
+          case 'check_satisfiable_cmd':
+          case 'check_equivalent_cmd':
+          case 'prove_cmd':
+          case 'axiom_decl':
+          case 'theorem_decl':
+          case 'theory_decl':
+          case 'import_decl':
+          case 'export_decl':
+          case 'logic_decl':
+            return false;
+          case 'if_stmt': {
+            const ifS = s as IfStmtNode;
+            for (const branch of ifS.branches) {
+              if (!check(branch.body)) return false;
+            }
+            if (ifS.elseBranch && !check(ifS.elseBranch)) return false;
+            break;
+          }
+          case 'for_stmt':
+            if (!check((s as ForStmtNode).body)) return false;
+            break;
+          case 'while_stmt':
+            if (!check((s as WhileStmtNode).body)) return false;
+            break;
+          // let_decl, return_stmt, fn_call, fn_decl are considered pure
+        }
+      }
+      return true;
+    };
+    return check(fn.body);
+  }
+  // ── Fin memoización ───────────────────────────────────────
 
   private getRuntimeStepLimit(): number {
     const configured = this.getBinding('max_steps') || this.getBinding('max_runtime_steps');
@@ -1527,8 +1593,25 @@ export class Interpreter {
   }
 
   private executeFnCall(stmt: { name: string; args: Formula[] }): Formula | undefined {
-    const initial = this.startFunctionFrame(stmt, undefined);
-    if ('result' in initial) return initial.result;
+    // ── Memoización: verificar cache antes de ejecutar ──
+    const evaluatedArgs = stmt.args.map(a => this.evaluateFormulaValue(a));
+    const memoStmt = { name: stmt.name, args: evaluatedArgs };
+    const fn = this.functions.get(stmt.name);
+    let mKey: string | null = null;
+    if (fn && this.isPureFn(fn)) {
+      mKey = this.memoKey(stmt.name, evaluatedArgs);
+      if (mKey !== null && this.fnMemoCache.has(mKey)) {
+        return this.fnMemoCache.get(mKey);
+      }
+    }
+
+    const initial = this.startFunctionFrame(memoStmt, undefined);
+    if ('result' in initial) {
+      if (mKey !== null && this.fnMemoCache.size < Interpreter.MEMO_CACHE_MAX) {
+        this.fnMemoCache.set(mKey, initial.result);
+      }
+      return initial.result;
+    }
 
     const callStack: FunctionExecutionFrame[] = [initial.frame];
     let finalResult: Formula | undefined = undefined;
@@ -1579,6 +1662,11 @@ export class Interpreter {
       this.dispatchRuntimeStatement(nextStmt, frame.runtimeStack);
     }
 
+    // ── Memoización: guardar resultado ──
+    if (mKey !== null && this.fnMemoCache.size < Interpreter.MEMO_CACHE_MAX) {
+      this.fnMemoCache.set(mKey, finalResult);
+    }
+
     return finalResult;
   }
 
@@ -1592,6 +1680,19 @@ export class Interpreter {
         result: Formula | undefined;
         resultContinuation: FunctionContinuation;
       } {
+    // ── Memoización: comprobar cache antes de crear frame ──
+    const fnDef = this.functions.get(stmt.name);
+    if (fnDef && this.isPureFn(fnDef)) {
+      const evaluatedArgs = stmt.args.map(a => this.evaluateFormulaValue(a));
+      const mk = this.memoKey(stmt.name, evaluatedArgs);
+      if (mk !== null && this.fnMemoCache.has(mk)) {
+        return {
+          result: this.fnMemoCache.get(mk),
+          resultContinuation: continuation || { type: 'discard' },
+        };
+      }
+    }
+
     this.callDepth++;
     if (this.callDepth > MAX_CALL_DEPTH) {
       this.callDepth--;
@@ -1714,6 +1815,13 @@ export class Interpreter {
     this.returnSignal = false;
     this.returnValue = undefined;
 
+    // Calcular clave de memoización para este frame
+    const evaluatedArgValues = Array.from(this.currentBindingFrame.bindings.values());
+    let frameMemoKey: string | null = null;
+    if (this.isPureFn(fn)) {
+      frameMemoKey = this.memoKey(name, evaluatedArgValues);
+    }
+
     return {
       name,
       runtimeStack: [{ kind: 'statements', statements: fn.body, index: 0 }],
@@ -1722,6 +1830,7 @@ export class Interpreter {
       savedReturnValue,
       scopeSnapshot,
       continuation,
+      memoKey: frameMemoKey,
     };
   }
 
@@ -1729,6 +1838,11 @@ export class Interpreter {
     const result = this.returnValue;
     this.returnSignal = frame.savedReturnSignal;
     this.returnValue = frame.savedReturnValue;
+
+    // ── Memoización: guardar resultado al finalizar frame ──
+    if (frame.memoKey && this.fnMemoCache.size < Interpreter.MEMO_CACHE_MAX) {
+      this.fnMemoCache.set(frame.memoKey, result);
+    }
 
     this.discardFunctionFrameState(frame);
 
