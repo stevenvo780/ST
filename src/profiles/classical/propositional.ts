@@ -123,51 +123,142 @@ export function* generateValuationsLazy(atoms: string[]): Generator<Valuation> {
 
 // ── Evaluación vectorizada con Bitsets ──────────────────────
 
+// ── Uint32Array-based bitset engine ─────────────────────────────
+// Each "bitvec" is a Uint32Array where bit i lives in word (i>>>5), bit (i&31).
+// All bitwise ops run on native 32-bit ints — orders of magnitude faster than BigInt.
+
+type BitVec = Uint32Array;
+
+function bvCreate(total: number): BitVec {
+  return new Uint32Array(((total + 31) >>> 5));
+}
+function bvOnes(total: number): BitVec {
+  const words = (total + 31) >>> 5;
+  const v = new Uint32Array(words);
+  v.fill(0xFFFFFFFF);
+  // Clear trailing bits in last word
+  const tail = total & 31;
+  if (tail) v[words - 1] = (1 << tail) - 1;
+  return v;
+}
+function bvAnd(a: BitVec, b: BitVec): BitVec {
+  const r = new Uint32Array(a.length);
+  for (let i = 0; i < a.length; i++) r[i] = a[i] & b[i];
+  return r;
+}
+function bvOr(a: BitVec, b: BitVec): BitVec {
+  const r = new Uint32Array(a.length);
+  for (let i = 0; i < a.length; i++) r[i] = a[i] | b[i];
+  return r;
+}
+function bvXor(a: BitVec, b: BitVec): BitVec {
+  const r = new Uint32Array(a.length);
+  for (let i = 0; i < a.length; i++) r[i] = a[i] ^ b[i];
+  return r;
+}
+function bvNot(a: BitVec, ones: BitVec): BitVec {
+  const r = new Uint32Array(a.length);
+  for (let i = 0; i < a.length; i++) r[i] = ~a[i] & ones[i];
+  return r;
+}
+function bvIsZero(a: BitVec): boolean {
+  for (let i = 0; i < a.length; i++) if (a[i] !== 0) return false;
+  return true;
+}
+function bvEquals(a: BitVec, b: BitVec): boolean {
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+function bvPopcount(a: BitVec): number {
+  let count = 0;
+  for (let i = 0; i < a.length; i++) {
+    let v = a[i];
+    v = v - ((v >>> 1) & 0x55555555);
+    v = (v & 0x33333333) + ((v >>> 2) & 0x33333333);
+    count += (((v + (v >>> 4)) & 0x0F0F0F0F) * 0x01010101) >>> 24;
+  }
+  return count;
+}
+function bvTestBit(a: BitVec, i: number): boolean {
+  return (a[i >>> 5] & (1 << (i & 31))) !== 0;
+}
+// Find first set bit, or -1
+function bvFirstSet(a: BitVec): number {
+  for (let w = 0; w < a.length; w++) {
+    if (a[w] !== 0) return (w << 5) + Math.clz32(a[w] & (-a[w] | 0)) ^ 31;
+  }
+  return -1;
+}
+
 interface BitsetResult {
-  result: bigint;
-  atomMasks: Map<string, bigint>;
+  result: BitVec;
+  atomMasks: Map<string, BitVec>;
   total: number;
-  allOnes: bigint;
+  allOnes: BitVec;
 }
 
 function evaluateBitset(formula: Formula, atoms: string[]): BitsetResult {
   const n = atoms.length;
   if (n > 26) throw new Error('Demasiadas variables para evaluación bitset (>26)');
   const total = 1 << n;
-  const allOnes = (1n << BigInt(total)) - 1n;
+  const allOnes = bvOnes(total);
+  const words = allOnes.length;
 
-  const atomMasks = new Map<string, bigint>();
+  // Build atom masks: atom j is true when bit j of the row index is 1.
+  // Row index i has bit j set when (i >>> (n-1-j)) & 1.
+  // Equivalent: word w, bit b (i = w*32+b), atom j true iff ((w*32+b) >>> (n-1-j)) & 1.
+  const atomMasks = new Map<string, BitVec>();
   for (let j = 0; j < n; j++) {
-    let mask = 0n;
-    const blockSize = 1 << (n - 1 - j);
-    for (let i = 0; i < total; i++) {
-      if ((i >> (n - 1 - j)) & 1) {
-        mask |= 1n << BigInt(i);
+    const shift = n - 1 - j;
+    const mask = bvCreate(total);
+    // The pattern for atom j repeats with period 2^(shift+1).
+    // Within each period, the first 2^shift bits are 0, next 2^shift are 1.
+    // For shift < 5, the pattern fits within single words and we can use word-level fill.
+    if (shift < 5) {
+      // Pattern period in bits
+      const period = 1 << (shift + 1);
+      const halfPeriod = 1 << shift;
+      // Build a 32-bit pattern
+      let pattern = 0;
+      for (let b = 0; b < 32; b++) {
+        if ((b % period) >= halfPeriod) pattern |= 1 << b;
+      }
+      mask.fill(pattern);
+    } else {
+      // shift >= 5: consecutive words are all-0 or all-1
+      const wordPeriod = 1 << (shift - 5 + 1); // period in words
+      const halfWordPeriod = wordPeriod >>> 1;
+      for (let w = 0; w < words; w++) {
+        const posInPeriod = w % wordPeriod;
+        mask[w] = posInPeriod >= halfWordPeriod ? 0xFFFFFFFF : 0;
       }
     }
+    // Clear trailing bits
+    const tail = total & 31;
+    if (tail && words > 0) mask[words - 1] &= (1 << tail) - 1;
     atomMasks.set(atoms[j], mask);
   }
 
-  function evalBits(f: Formula): bigint {
+  function evalBits(f: Formula): BitVec {
     switch (f.kind) {
       case 'atom':
-        return atomMasks.get(f.name!) ?? 0n;
+        return atomMasks.get(f.name!) ?? bvCreate(total);
       case 'not':
-        return ~evalBits(f.args![0]) & allOnes;
+        return bvNot(evalBits(f.args![0]), allOnes);
       case 'and':
-        return evalBits(f.args![0]) & evalBits(f.args![1]);
+        return bvAnd(evalBits(f.args![0]), evalBits(f.args![1]));
       case 'or':
-        return evalBits(f.args![0]) | evalBits(f.args![1]);
+        return bvOr(evalBits(f.args![0]), evalBits(f.args![1]));
       case 'implies':
-        return (~evalBits(f.args![0]) & allOnes) | evalBits(f.args![1]);
+        return bvOr(bvNot(evalBits(f.args![0]), allOnes), evalBits(f.args![1]));
       case 'biconditional':
-        return ~(evalBits(f.args![0]) ^ evalBits(f.args![1])) & allOnes;
+        return bvNot(bvXor(evalBits(f.args![0]), evalBits(f.args![1])), allOnes);
       case 'xor':
-        return evalBits(f.args![0]) ^ evalBits(f.args![1]);
+        return bvXor(evalBits(f.args![0]), evalBits(f.args![1]));
       case 'nand':
-        return ~(evalBits(f.args![0]) & evalBits(f.args![1])) & allOnes;
+        return bvNot(bvAnd(evalBits(f.args![0]), evalBits(f.args![1])), allOnes);
       case 'nor':
-        return ~(evalBits(f.args![0]) | evalBits(f.args![1])) & allOnes;
+        return bvNot(bvOr(evalBits(f.args![0]), evalBits(f.args![1])), allOnes);
       default:
         throw new Error(`Operador no soportado en evaluación bitset: ${f.kind}`);
     }
@@ -176,13 +267,8 @@ function evaluateBitset(formula: Formula, atoms: string[]): BitsetResult {
   return { result: evalBits(formula), atomMasks, total, allOnes };
 }
 
-function bitsetPopcount(n: bigint): number {
-  let count = 0;
-  while (n > 0n) {
-    n &= n - 1n;
-    count++;
-  }
-  return count;
+function bitsetPopcount(a: BitVec): number {
+  return bvPopcount(a);
 }
 
 function isPurePropositional(f: Formula): boolean {
@@ -1154,13 +1240,13 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
     if (allPure && atomList.length <= 26) {
       const premiseBits = allAxiomFormulas.map((f) => evaluateBitset(f, atomList).result);
       const goalBits = evaluateBitset(goal, atomList).result;
-      const allOnes = (1n << BigInt(1 << atomList.length)) - 1n;
+      const allOnes = bvOnes(1 << atomList.length);
       // Conjunction of all premises
       let premisesConj = allOnes;
-      for (const pb of premiseBits) premisesConj &= pb;
+      for (const pb of premiseBits) premisesConj = bvAnd(premisesConj, pb);
       // Valid if: wherever premises are true, goal is also true
       // i.e., premisesConj & ~goalBits === 0
-      if ((premisesConj & (~goalBits & allOnes)) === 0n) {
+      if (bvIsZero(bvAnd(premisesConj, bvNot(goalBits, allOnes)))) {
         return {
           goal,
           steps: state.steps,
@@ -1285,6 +1371,21 @@ export class ClassicalPropositional implements LogicProfile {
       return { status: 'error', diagnostics: wf, formula };
     }
 
+    // Fast path: bitset validity check (no row materialization)
+    const atoms = Array.from(collectAtoms(formula)).sort();
+    if (isPurePropositional(formula) && atoms.length <= 26) {
+      const { result, allOnes } = evaluateBitset(formula, atoms);
+      const isValid = bvEquals(result, allOnes);
+      return {
+        status: isValid ? 'valid' : 'invalid',
+        output: isValid
+          ? `${formulaToString(formula)} es VALIDA (tautologia)`
+          : `${formulaToString(formula)} NO es valida`,
+        diagnostics: [],
+        formula,
+      };
+    }
+
     const tt = this.truthTable(formula);
     if (tt.isTautology) {
       return {
@@ -1295,7 +1396,6 @@ export class ClassicalPropositional implements LogicProfile {
         formula,
       };
     } else {
-      // Encontrar contramodelo
       const cm = tt.rows.find((r) => !r.result);
       return {
         status: 'invalid',
@@ -1312,6 +1412,21 @@ export class ClassicalPropositional implements LogicProfile {
     const wf = this.checkWellFormed(formula);
     if (wf.length > 0) {
       return { status: 'error', diagnostics: wf, formula };
+    }
+
+    // Fast path: bitset satisfiability check (no row materialization)
+    const atoms = Array.from(collectAtoms(formula)).sort();
+    if (isPurePropositional(formula) && atoms.length <= 26) {
+      const { result } = evaluateBitset(formula, atoms);
+      const isSat = !bvIsZero(result);
+      return {
+        status: isSat ? 'satisfiable' : 'unsatisfiable',
+        output: isSat
+          ? `${formulaToString(formula)} es SATISFACIBLE`
+          : `${formulaToString(formula)} es INSATISFACIBLE (contradiccion)`,
+        diagnostics: [],
+        formula,
+      };
     }
 
     const tt = this.truthTable(formula);
@@ -1418,9 +1533,9 @@ export class ClassicalPropositional implements LogicProfile {
     const n = atoms.length;
 
     // Fast path: bitset finds countermodel in one pass
-    if (isPurePropositional(formula) && n <= 26) {
+    if (isPurePropositional(formula) && n <= 18) {
       const { result, allOnes } = evaluateBitset(formula, atoms);
-      if (result === allOnes) {
+      if (bvEquals(result, allOnes)) {
         return {
           status: 'valid',
           output: `${formulaToString(formula)} es tautologia, no hay contramodelo`,
@@ -1429,11 +1544,8 @@ export class ClassicalPropositional implements LogicProfile {
         };
       }
       // Find first 0 bit (first falsifying row)
-      const inverted = ~result & allOnes;
-      const firstFalse = inverted & (-inverted); // isolate lowest set bit
-      let idx = 0;
-      let tmp = firstFalse;
-      while (tmp > 1n) { tmp >>= 1n; idx++; }
+      const inverted = bvNot(result, allOnes);
+      const idx = bvFirstSet(inverted);
       const v: Valuation = {};
       for (let j = 0; j < n; j++) {
         v[atoms[j]] = Boolean((idx >> (n - 1 - j)) & 1);
@@ -1591,25 +1703,24 @@ export class ClassicalPropositional implements LogicProfile {
       const satisfyingCount = bitsetPopcount(result);
 
       // Evaluate subformulas with bitsets too
-      const subBitsets: bigint[] = subForms.map((sf) =>
-        isPurePropositional(sf) ? evaluateBitset(sf, atoms).result : 0n,
+      const subBitsets: BitVec[] = subForms.map((sf) =>
+        isPurePropositional(sf) ? evaluateBitset(sf, atoms).result : bvCreate(total),
       );
 
       // Materialize rows from bitset results
       const rows: TruthTableRow[] = new Array(total);
       for (let i = 0; i < total; i++) {
-        const bit = 1n << BigInt(i);
         const v: Valuation = {};
         for (let j = 0; j < n; j++) {
-          v[atoms[j]] = Boolean((atomMasks.get(atoms[j])! >> BigInt(i)) & 1n);
+          v[atoms[j]] = bvTestBit(atomMasks.get(atoms[j])!, i);
         }
-        rows[i] = { valuation: v, result: Boolean((result >> BigInt(i)) & 1n) };
+        rows[i] = { valuation: v, result: bvTestBit(result, i) };
       }
 
       const subFormulaValues = rows.map((_, i) => {
         const vals: Record<string, boolean> = {};
         subForms.forEach((sf, si) => {
-          vals[formulaToString(sf)] = Boolean((subBitsets[si] >> BigInt(i)) & 1n);
+          vals[formulaToString(sf)] = bvTestBit(subBitsets[si], i);
         });
         return vals;
       });
@@ -1617,9 +1728,9 @@ export class ClassicalPropositional implements LogicProfile {
       return {
         variables: atoms,
         rows,
-        isTautology: result === allOnes,
-        isContradiction: result === 0n,
-        isSatisfiable: result !== 0n,
+        isTautology: bvEquals(result, allOnes),
+        isContradiction: bvIsZero(result),
+        isSatisfiable: !bvIsZero(result),
         subFormulas: subFormulasInfo,
         subFormulaValues,
         satisfyingCount,
