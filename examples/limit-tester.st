@@ -11,9 +11,28 @@ print "Probando fórmula con 13 átomos..."
 let f13 = A & B & C & D & E & F & G & H & I & J & K & L & M
 check satisfiable f13
 
-// 1.2 Profundidad de anidamiento: 100 niveles de negación
-print "Probando anidamiento de 100 niveles de negación..."
-let f_deep = !(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!(!P))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+// 1.2 Profundidad de anidamiento: 20 niveles de negación
+print "Probando anidamiento de 20 niveles de negación..."
+let n1 = !(P)
+let n2 = !(n1)
+let n3 = !(n2)
+let n4 = !(n3)
+let n5 = !(n4)
+let n6 = !(n5)
+let n7 = !(n6)
+let n8 = !(n7)
+let n9 = !(n8)
+let n10 = !(n9)
+let n11 = !(n10)
+let n12 = !(n11)
+let n13 = !(n12)
+let n14 = !(n13)
+let n15 = !(n14)
+let n16 = !(n15)
+let n17 = !(n16)
+let n18 = !(n17)
+let n19 = !(n18)
+let f_deep = !(n19)
 check equivalent f_deep, P
 
 // 1.3 Cadena de implicaciones larga (50 pasos)

@@ -214,7 +214,7 @@ export class Parser {
   private parseAxiomDecl(): AxiomDeclNode {
     const src = this.loc();
     this.expect(TokenType.AXIOM);
-    const name = this.expectIdent();
+    const name = this.expectName();
     this.expectOneOf(TokenType.EQUALS, TokenType.COLON);
     const formula = this.parseFormula();
     return { kind: 'axiom_decl', name, formula, source: src };
@@ -224,7 +224,7 @@ export class Parser {
   private parseTheoremDecl(): TheoremDeclNode {
     const src = this.loc();
     this.expect(TokenType.THEOREM);
-    const name = this.expectIdent();
+    const name = this.expectName();
     this.expectOneOf(TokenType.EQUALS, TokenType.COLON);
     const formula = this.parseFormula();
     return { kind: 'theorem_decl', name, formula, source: src };
@@ -299,7 +299,7 @@ export class Parser {
   private parseLetDecl(): LetDeclNode {
     const src = this.loc();
     this.expect(TokenType.LET);
-    const name = this.expectIdent();
+    const name = this.expectName();
     this.expect(TokenType.EQUALS);
 
     if (this.match(TokenType.PASSAGE)) {
@@ -972,11 +972,40 @@ export class Parser {
       const operand = this.parseUnary();
       return { kind: 'exists', variable, args: [operand], source: this.loc() };
     }
-    if (this.match(TokenType.NEXT)) {
+    if (this.checkType(TokenType.NEXT) && this.shouldParseNextAsOperator()) {
+      this.advance();
       const operand = this.parseUnary();
       return { kind: 'temporal_next', args: [operand], source: this.loc() };
     }
     return this.parseAtom();
+  }
+
+  private shouldParseNextAsOperator(): boolean {
+    const nextType = this.peek(1);
+    const atomFollowers = new Set<TokenType>([
+      TokenType.RPAREN,
+      TokenType.COMMA,
+      TokenType.PLUS,
+      TokenType.MINUS,
+      TokenType.STAR,
+      TokenType.SLASH,
+      TokenType.PERCENT,
+      TokenType.LT,
+      TokenType.GT,
+      TokenType.LTE,
+      TokenType.GTE,
+      TokenType.AND,
+      TokenType.OR,
+      TokenType.XOR,
+      TokenType.NAND,
+      TokenType.NOR,
+      TokenType.ARROW,
+      TokenType.BICONDITIONAL,
+      TokenType.RBRACE,
+      TokenType.NEWLINE,
+      TokenType.EOF,
+    ]);
+    return !atomFollowers.has(nextType);
   }
 
   private parseAtom(): Formula {
@@ -1034,7 +1063,7 @@ export class Parser {
     }
 
     // Predicado o Atomo proposicional
-    if (this.checkType(TokenType.IDENTIFIER)) {
+    if (this.isNameLikeToken(this.current())) {
       const tok = this.current();
       this.advance();
 
@@ -1366,6 +1395,28 @@ export class Parser {
     throw new Error(
       `Se esperaba nombre/identificador, encontrado '${tok.value}' (${tok.type}) ` +
         `en linea ${tok.line}, columna ${tok.column}`,
+    );
+  }
+
+  private isNameLikeToken(tok: Token): boolean {
+    return (
+      tok.type === TokenType.IDENTIFIER ||
+      (tok.type !== TokenType.NEWLINE &&
+        tok.type !== TokenType.EOF &&
+        tok.type !== TokenType.LPAREN &&
+        tok.type !== TokenType.RPAREN &&
+        tok.type !== TokenType.LBRACE &&
+        tok.type !== TokenType.RBRACE &&
+        tok.type !== TokenType.COLON &&
+        tok.type !== TokenType.EQUALS &&
+        tok.type !== TokenType.ARROW &&
+        tok.type !== TokenType.AND &&
+        tok.type !== TokenType.OR &&
+        tok.type !== TokenType.NOT &&
+        tok.type !== TokenType.DOT &&
+        tok.type !== TokenType.COMMA &&
+        tok.type !== TokenType.STRING &&
+        tok.type !== TokenType.NUMBER)
     );
   }
 

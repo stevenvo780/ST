@@ -187,7 +187,7 @@ ${setLines}
       expect([0, 3]).toContain(out.exitCode);
     }, 20000);
 
-    it('deep recursion is caught before stack overflow', () => {
+    it('deep recursion completes without V8 stack overflow', () => {
       const source = `
         logic arithmetic
         fn countdown(N) {
@@ -201,7 +201,24 @@ ${setLines}
         print r
       `;
       const out = run(source);
-      // Should catch the recursion limit error gracefully
+      expect(out.exitCode).toBe(0);
+      expect(out.stdout).toContain('0');
+    });
+
+    it('very deep recursion is still capped gracefully by runtime limit', () => {
+      const source = `
+        logic arithmetic
+        fn countdown(N) {
+          if valid N <= 0 {
+            return 0
+          }
+          let prev = N - 1
+          return countdown(prev)
+        }
+        let r = countdown(12000)
+        print r
+      `;
+      const out = run(source);
       expect(
         out.diagnostics.some(
           (d) =>
