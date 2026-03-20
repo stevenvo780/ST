@@ -5,7 +5,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['src/**/*.test.ts'],
-    exclude: ['node_modules', 'dist'],
+    exclude: ['node_modules', 'dist', 'src/tests/stress-hardware.test.ts'],
     maxWorkers: 24,
     minWorkers: 8,
     coverage: {

@@ -1,6 +1,6 @@
 {
   "name": "@stevenvo780/st-lang",
-  "version": "2.6.1",
+  "version": "2.7.0",
   "description": "ST — Lenguaje ejecutable con nucleo logico y capa textual. Motor multi-perfil (11 lógicas), derivaciones, tablas de verdad, contramodelos, aliases modales, Belnap 4-valores y capa textual para formalización de documentos.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -48,6 +48,7 @@
     "dev": "tsc --watch",
     "start": "node dist/cli/index.js",
     "test": "vitest run",
+    "test:stress": "vitest run src/tests/stress-hardware.test.ts",
     "test:all": "bash ./scripts/run-exhaustive-validation.sh",
     "examples:run": "bash ./scripts/run-all-examples.sh",
     "test:watch": "vitest",
