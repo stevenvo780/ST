@@ -213,7 +213,7 @@ export const CORE_KEYWORDS: Record<string, TokenType> = {
  * Keys are profile prefixes: a keyword activates when the current profile starts with the key.
  */
 export const PROFILE_KEYWORDS: Record<string, Record<string, TokenType>> = {
-  'temporal': {
+  temporal: {
     next: TokenType.NEXT,
     siguiente: TokenType.NEXT,
     until: TokenType.UNTIL,

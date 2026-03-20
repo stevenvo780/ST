@@ -267,7 +267,10 @@ function dpllSolve(
     for (let li = 0; li < clauses[ci].length; li++) {
       const lit = clauses[ci][li];
       let list = litClauses.get(lit);
-      if (!list) { list = []; litClauses.set(lit, list); }
+      if (!list) {
+        list = [];
+        litClauses.set(lit, list);
+      }
       list.push(ci);
     }
   }
@@ -284,7 +287,7 @@ function dpllSolve(
   // Trail for backtracking
   interface TrailEntry {
     variable: number;
-    satisfiedClauses: number[];  // clauses that became satisfied
+    satisfiedClauses: number[]; // clauses that became satisfied
     decrementedClauses: number[]; // clauses where remaining was decremented
   }
 
@@ -376,13 +379,19 @@ function dpllSolve(
       const posC = litClauses.get(v);
       if (posC) {
         for (const ci of posC) {
-          if (!satisfied[ci]) { posActive = true; break; }
+          if (!satisfied[ci]) {
+            posActive = true;
+            break;
+          }
         }
       }
       const negC = litClauses.get(-v);
       if (negC) {
         for (const ci of negC) {
-          if (!satisfied[ci]) { negActive = true; break; }
+          if (!satisfied[ci]) {
+            negActive = true;
+            break;
+          }
         }
       }
       if (posActive && !negActive) assignLiteral(v);
