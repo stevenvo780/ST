@@ -1,5 +1,13 @@
 import * as path from 'path';
-import { workspace, ExtensionContext, commands, window, StatusBarAlignment, StatusBarItem, languages, TextDocument } from 'vscode';
+import {
+  workspace,
+  ExtensionContext,
+  commands,
+  window,
+  StatusBarAlignment,
+  StatusBarItem,
+  TextDocument,
+} from 'vscode';
 import {
   LanguageClient,
   LanguageClientOptions,
@@ -8,10 +16,10 @@ import {
 } from 'vscode-languageclient/node';
 
 let client: LanguageClient;
-let outputChannel = window.createOutputChannel('ST Language', 'markdown');
+const outputChannel = window.createOutputChannel('ST Language', 'markdown');
 let statusBarItem: StatusBarItem;
 
-export function activate(context: ExtensionContext) {
+export async function activate(context: ExtensionContext): Promise<void> {
   const serverModule = context.asAbsolutePath(path.join('dist', 'server.js'));
   const debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
 
@@ -31,8 +39,13 @@ export function activate(context: ExtensionContext) {
     },
   };
 
-  client = new LanguageClient('stLanguageServer', 'ST Language Server', serverOptions, clientOptions);
-  client.start();
+  client = new LanguageClient(
+    'stLanguageServer',
+    'ST Language Server',
+    serverOptions,
+    clientOptions,
+  );
+  await client.start();
 
   // ── Status Bar: perfil lógico activo ───────────────────────
   statusBarItem = window.createStatusBarItem(StatusBarAlignment.Right, 100);
@@ -66,13 +79,19 @@ export function activate(context: ExtensionContext) {
       outputChannel.appendLine('⏳ Ejecutando ST...\n');
 
       try {
-        const resp: any = await client.sendRequest('st/run', {
+        interface STRunResponse {
+          result?: {
+            output?: Array<{ type: string; content: string }>;
+          };
+          diagnostics?: Array<{ severity: string; line?: number; message: string }>;
+        }
+        const resp = await client.sendRequest('st/run', {
           source,
           file: editor.document.uri.toString(),
         });
 
         if (resp.result) {
-          const output = resp.result as any;
+          const output = resp.result;
           if (output.output && output.output.length > 0) {
             for (const item of output.output) {
               if (item.type === 'error') {
@@ -96,8 +115,9 @@ export function activate(context: ExtensionContext) {
             outputChannel.appendLine(`${icon}${loc} ${d.message}`);
           }
         }
-      } catch (e: any) {
-        outputChannel.appendLine(`❌ Error: ${e.message || e}`);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        outputChannel.appendLine(`❌ Error: ${msg}`);
       }
     }),
   );
@@ -121,13 +141,18 @@ export function activate(context: ExtensionContext) {
       outputChannel.appendLine('⏳ Ejecutando selección ST...\n');
 
       try {
-        const resp: any = await client.sendRequest('st/run', {
+        interface STRunSelResponse {
+          result?: {
+            output?: Array<{ type: string; content: string }>;
+          };
+        }
+        const resp = await client.sendRequest('st/run', {
           source,
           file: editor.document.uri.toString(),
         });
 
         if (resp.result) {
-          const output = resp.result as any;
+          const output = resp.result;
           if (output.output && output.output.length > 0) {
             for (const item of output.output) {
               outputChannel.appendLine(item.content || JSON.stringify(item));
@@ -136,8 +161,9 @@ export function activate(context: ExtensionContext) {
             outputChannel.appendLine('✅ Ejecución completada sin salida.');
           }
         }
-      } catch (e: any) {
-        outputChannel.appendLine(`❌ Error: ${e.message || e}`);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        outputChannel.appendLine(`❌ Error: ${msg}`);
       }
     }),
   );
@@ -156,18 +182,21 @@ export function activate(context: ExtensionContext) {
       outputChannel.show(true);
 
       try {
-        const resp: any = await client.sendRequest('st/render', {
+        interface STRenderResponse {
+          result?: { rendered?: string };
+        }
+        const resp = await client.sendRequest('st/render', {
           source,
           file: editor.document.uri.toString(),
           format: 'markdown',
         });
 
         if (resp.result) {
-          const result = resp.result as any;
-          outputChannel.appendLine(result.rendered || JSON.stringify(result, null, 2));
+          outputChannel.appendLine(resp.result.rendered || JSON.stringify(resp.result, null, 2));
         }
-      } catch (e: any) {
-        outputChannel.appendLine(`❌ Error: ${e.message || e}`);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        outputChannel.appendLine(`❌ Error: ${msg}`);
       }
     }),
   );
@@ -179,7 +208,9 @@ export function activate(context: ExtensionContext) {
       if (profile) {
         window.showInformationMessage(`Perfil lógico activo: ${profile}`);
       } else {
-        window.showInformationMessage('No se detectó un perfil lógico (falta "logic ..." al inicio)');
+        window.showInformationMessage(
+          'No se detectó un perfil lógico (falta "logic ..." al inicio)',
+        );
       }
     }),
   );

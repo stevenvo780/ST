@@ -80,7 +80,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
   const diagnostics: Diagnostic[] = [];
 
-  for (const d of (parseResp.diagnostics || []) as STDiagnostic[]) {
+  for (const d of parseResp.diagnostics || []) {
     if (d.severity === 'info') continue; // no enviar "parseado correctamente"
 
     const line = Math.max(0, (d.line || 1) - 1);
@@ -100,7 +100,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   }
 
   // 2) Runtime check — errores de ejecución (solo si no hay errores de parse)
-  if (diagnostics.filter(d => d.severity === DiagnosticSeverity.Error).length === 0) {
+  if (diagnostics.filter((d) => d.severity === DiagnosticSeverity.Error).length === 0) {
     try {
       const runResp = handler.handle({
         id: 2,
@@ -108,7 +108,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
         params: { source, file: textDocument.uri },
       });
 
-      for (const d of (runResp.diagnostics || []) as STDiagnostic[]) {
+      for (const d of runResp.diagnostics || []) {
         if (d.severity === 'info') continue;
 
         const line = Math.max(0, (d.line || 1) - 1);
@@ -151,11 +151,16 @@ function updateSymbolsCache(textDocument: TextDocument): void {
 
 function mapSeverity(s: string): DiagnosticSeverity {
   switch (s) {
-    case 'error': return DiagnosticSeverity.Error;
-    case 'warning': return DiagnosticSeverity.Warning;
-    case 'info': return DiagnosticSeverity.Information;
-    case 'hint': return DiagnosticSeverity.Hint;
-    default: return DiagnosticSeverity.Error;
+    case 'error':
+      return DiagnosticSeverity.Error;
+    case 'warning':
+      return DiagnosticSeverity.Warning;
+    case 'info':
+      return DiagnosticSeverity.Information;
+    case 'hint':
+      return DiagnosticSeverity.Hint;
+    default:
+      return DiagnosticSeverity.Error;
   }
 }
 
@@ -194,7 +199,10 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
   return null;
 });
 
-function getWordRangeAtPosition(lineText: string, col: number): { start: number; end: number } | null {
+function getWordRangeAtPosition(
+  lineText: string,
+  col: number,
+): { start: number; end: number } | null {
   if (col < 0 || col >= lineText.length) return null;
   let start = col;
   while (start > 0 && /[a-zA-Z0-9_.\u00C0-\u024F]/.test(lineText[start - 1])) start--;
@@ -240,13 +248,20 @@ connection.onDocumentSymbol((params: DocumentSymbolParams) => {
 
 function mapSymbolKind(k: string): SymbolKind {
   switch (k) {
-    case 'axiom': return SymbolKind.Constant;
-    case 'theorem': return SymbolKind.Class;
-    case 'claim': return SymbolKind.Variable;
-    case 'passage': return SymbolKind.File;
-    case 'formula': return SymbolKind.Function;
-    case 'variable': return SymbolKind.String;
-    default: return SymbolKind.Field;
+    case 'axiom':
+      return SymbolKind.Constant;
+    case 'theorem':
+      return SymbolKind.Class;
+    case 'claim':
+      return SymbolKind.Variable;
+    case 'passage':
+      return SymbolKind.File;
+    case 'formula':
+      return SymbolKind.Function;
+    case 'variable':
+      return SymbolKind.String;
+    default:
+      return SymbolKind.Field;
   }
 }
 
@@ -316,15 +331,19 @@ connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] =
     const cached = documentSymbolsCache.get(doc.uri);
     if (cached) {
       for (const sym of cached) {
-        const existing = items.find(i => i.label === sym.name);
+        const existing = items.find((i) => i.label === sym.name);
         if (existing) continue;
 
         items.push({
           label: sym.name,
-          kind: sym.kind === 'axiom' ? CompletionItemKind.Constant
-              : sym.kind === 'theorem' ? CompletionItemKind.Class
-              : sym.kind === 'formula' ? CompletionItemKind.Function
-              : CompletionItemKind.Variable,
+          kind:
+            sym.kind === 'axiom'
+              ? CompletionItemKind.Constant
+              : sym.kind === 'theorem'
+                ? CompletionItemKind.Class
+                : sym.kind === 'formula'
+                  ? CompletionItemKind.Function
+                  : CompletionItemKind.Variable,
           detail: sym.detail || `(${sym.kind})`,
           documentation: {
             kind: MarkupKind.Markdown,
@@ -343,14 +362,16 @@ connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] =
 
     // Si la línea empieza con "logic " → solo perfiles
     if (/^(logic|logica)\s+$/i.test(prefix)) {
-      return items.filter(i =>
-        typeof i.label === 'string' && (i.label.startsWith('logic ') || i.label.startsWith('logica '))
+      return items.filter(
+        (i) =>
+          typeof i.label === 'string' &&
+          (i.label.startsWith('logic ') || i.label.startsWith('logica ')),
       );
     }
 
     // Si estamos dentro de "derive ... from {" → solo nombres de axiomas/lets
     if (/from\s*\{\s*[^}]*$/i.test(prefix)) {
-      const symItems = items.filter(i => i.sortText?.startsWith('0_'));
+      const symItems = items.filter((i) => i.sortText?.startsWith('0_'));
       return symItems.length > 0 ? symItems : items;
     }
   }
@@ -364,13 +385,20 @@ connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
 
 function mapCompletionKind(kind: string): CompletionItemKind {
   switch (kind) {
-    case 'keyword': return CompletionItemKind.Keyword;
-    case 'operator': return CompletionItemKind.Operator;
-    case 'snippet': return CompletionItemKind.Snippet;
-    case 'type': return CompletionItemKind.TypeParameter;
-    case 'value': return CompletionItemKind.Value;
-    case 'function': return CompletionItemKind.Function;
-    default: return CompletionItemKind.Variable;
+    case 'keyword':
+      return CompletionItemKind.Keyword;
+    case 'operator':
+      return CompletionItemKind.Operator;
+    case 'snippet':
+      return CompletionItemKind.Snippet;
+    case 'type':
+      return CompletionItemKind.TypeParameter;
+    case 'value':
+      return CompletionItemKind.Value;
+    case 'function':
+      return CompletionItemKind.Function;
+    default:
+      return CompletionItemKind.Variable;
   }
 }
 
@@ -429,17 +457,23 @@ connection.onCodeAction((params: CodeActionParams): CodeAction[] => {
 
   for (const diag of params.context.diagnostics) {
     // Quick fix: sugerir "logic" si falta perfil
-    if (diag.message.includes('perfil') || diag.message.includes('profile') || diag.message.includes('logic')) {
+    if (
+      diag.message.includes('perfil') ||
+      diag.message.includes('profile') ||
+      diag.message.includes('logic')
+    ) {
       actions.push({
         title: 'Añadir "logic classical.propositional" al inicio',
         kind: CodeActionKind.QuickFix,
         diagnostics: [diag],
         edit: {
           changes: {
-            [params.textDocument.uri]: [{
-              range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
-              newText: 'logic classical.propositional\n\n',
-            }],
+            [params.textDocument.uri]: [
+              {
+                range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+                newText: 'logic classical.propositional\n\n',
+              },
+            ],
           },
         },
       });
@@ -449,17 +483,22 @@ connection.onCodeAction((params: CodeActionParams): CodeAction[] => {
         diagnostics: [diag],
         edit: {
           changes: {
-            [params.textDocument.uri]: [{
-              range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
-              newText: 'logic arithmetic\n\n',
-            }],
+            [params.textDocument.uri]: [
+              {
+                range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+                newText: 'logic arithmetic\n\n',
+              },
+            ],
           },
         },
       });
     }
 
     // Quick fix: sugerir traducciones español ↔ inglés
-    if (diag.message.toLowerCase().includes('unexpected') || diag.message.toLowerCase().includes('inesperado')) {
+    if (
+      diag.message.toLowerCase().includes('unexpected') ||
+      diag.message.toLowerCase().includes('inesperado')
+    ) {
       const line = doc.getText().split('\n')[diag.range.start.line] || '';
       const trimmed = line.trim();
 
@@ -485,13 +524,18 @@ connection.onCodeAction((params: CodeActionParams): CodeAction[] => {
               diagnostics: [diag],
               edit: {
                 changes: {
-                  [params.textDocument.uri]: [{
-                    range: {
-                      start: { line: diag.range.start.line, character: startChar },
-                      end: { line: diag.range.start.line, character: startChar + match[0].length },
+                  [params.textDocument.uri]: [
+                    {
+                      range: {
+                        start: { line: diag.range.start.line, character: startChar },
+                        end: {
+                          line: diag.range.start.line,
+                          character: startChar + match[0].length,
+                        },
+                      },
+                      newText: replacement,
                     },
-                    newText: replacement,
-                  }],
+                  ],
                 },
               },
             });
@@ -525,11 +569,13 @@ connection.onSignatureHelp((_params: SignatureHelpParams): SignatureHelp | null 
 
   if (fnSym) {
     return {
-      signatures: [{
-        label: `${fnName}(${fnSym.detail || '...'})`,
-        documentation: fnSym.description || `Función ${fnName}`,
-        parameters: [],
-      }],
+      signatures: [
+        {
+          label: `${fnName}(${fnSym.detail || '...'})`,
+          documentation: fnSym.description || `Función ${fnName}`,
+          parameters: [],
+        },
+      ],
       activeSignature: 0,
       activeParameter: activeParam,
     };
@@ -551,7 +597,11 @@ connection.onRequest('st/render', (params: { source: string; file?: string; form
   return handler.handle({
     id: 1,
     method: 'render',
-    params: { source: params.source, file: params.file || '<editor>', format: params.format || 'markdown' },
+    params: {
+      source: params.source,
+      file: params.file || '<editor>',
+      format: params.format || 'markdown',
+    },
   });
 });
 
