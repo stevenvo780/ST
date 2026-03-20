@@ -419,10 +419,14 @@ function generateBelnapValuations(atoms: string[]): Record<string, BelnapValue>[
     const currentLen = list.length;
     for (let j = 0; j < currentLen; j++) {
       const base = list[j];
-      const T = { ...base }; T[atom] = 'T';
-      const F = { ...base }; F[atom] = 'F';
-      const B = { ...base }; B[atom] = 'B';
-      const N = { ...base }; N[atom] = 'N';
+      const T = { ...base };
+      T[atom] = 'T';
+      const F = { ...base };
+      F[atom] = 'F';
+      const B = { ...base };
+      B[atom] = 'B';
+      const N = { ...base };
+      N[atom] = 'N';
       list.push(T, F, B, N);
     }
     list.splice(0, currentLen);

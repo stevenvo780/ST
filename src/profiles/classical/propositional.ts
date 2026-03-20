@@ -753,7 +753,8 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           formulasEqual(f1.args[0], f2.args[0])
         ) {
           for (let k = 0; k < currentFormulas.length; k++) {
-            if (i < prevProcessedIndex && j < prevProcessedIndex && k < prevProcessedIndex) continue;
+            if (i < prevProcessedIndex && j < prevProcessedIndex && k < prevProcessedIndex)
+              continue;
             const f3 = currentFormulas[k];
             if (
               f3.kind === 'implies' &&

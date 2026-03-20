@@ -10,6 +10,7 @@ export default tseslint.config(
       'coverage/**',
       '*.config.*',
       'editors/**',
+      'benchmark.ts',
     ],
   },
   eslint.configs.recommended,

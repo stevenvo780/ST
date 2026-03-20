@@ -107,8 +107,6 @@ function evalComparison(f: Formula, vars?: Map<string, number>, trace?: string[]
   return !isNaN(val) && val !== 0;
 }
 
-
-
 // --- Perfil ---
 
 export class ArithmeticProfile implements LogicProfile {

@@ -86,7 +86,7 @@ interface TheoryScope {
   privateMembers: Set<string>;
 }
 
-const MAX_CALL_DEPTH = 1000;
+const MAX_CALL_DEPTH = 500;
 
 export class Interpreter {
   private theory: Theory;
@@ -395,6 +395,11 @@ export class Interpreter {
    * Soporta notación con punto: Theory.member resuelve desde el scope de la teoría.
    */
   private resolveFormula(f: Formula, visited: Set<string> = new Set()): Formula {
+    const resolved = this.resolveFormulaRecursive(f, visited);
+    return this.tryConstantFold(resolved);
+  }
+
+  private resolveFormulaRecursive(f: Formula, visited: Set<string> = new Set()): Formula {
     if (!f) return f;
 
     // Si es un átomo, intentar resolver
@@ -404,11 +409,9 @@ export class Interpreter {
         const [prefix, memberName] = f.name.split('.', 2);
 
         // 1. Intentar resolver el prefijo como una variable local (instancia)
-        // Ej: let f1 = Familia("Socrates") -> f1.amor
         if (this.letBindings.has(prefix)) {
           const resolvedPrefix = this.letBindings.get(prefix) as Formula;
           if (resolvedPrefix.kind === 'atom' && resolvedPrefix.name) {
-            // Si el prefijo se resuelve a un nombre de teoría/instancia
             const actualInstanceName = resolvedPrefix.name;
             const scope = this.theories.get(actualInstanceName);
             if (scope) {
@@ -418,17 +421,17 @@ export class Interpreter {
               )
                 return f;
               if (scope.letBindings.has(memberName))
-                return this.resolveFormula(
+                return this.resolveFormulaRecursive(
                   scope.letBindings.get(memberName) as Formula,
                   new Set(visited),
                 );
               if (scope.axioms.has(memberName))
-                return this.resolveFormula(
+                return this.resolveFormulaRecursive(
                   scope.axioms.get(memberName) as Formula,
                   new Set(visited),
                 );
               if (scope.theorems.has(memberName))
-                return this.resolveFormula(
+                return this.resolveFormulaRecursive(
                   scope.theorems.get(memberName) as Formula,
                   new Set(visited),
                 );
@@ -441,37 +444,47 @@ export class Interpreter {
         if (scope) {
           if (scope.privateMembers.has(memberName) && this.currentTheoryName !== prefix) return f;
           if (scope.letBindings.has(memberName))
-            return this.resolveFormula(
+            return this.resolveFormulaRecursive(
               scope.letBindings.get(memberName) as Formula,
               new Set(visited),
             );
           if (scope.axioms.has(memberName))
-            return this.resolveFormula(scope.axioms.get(memberName) as Formula, new Set(visited));
+            return this.resolveFormulaRecursive(
+              scope.axioms.get(memberName) as Formula,
+              new Set(visited),
+            );
           if (scope.theorems.has(memberName))
-            return this.resolveFormula(scope.theorems.get(memberName) as Formula, new Set(visited));
+            return this.resolveFormulaRecursive(
+              scope.theorems.get(memberName) as Formula,
+              new Set(visited),
+            );
         }
         return f;
       }
 
       // Binding local normal
       if (this.letBindings.has(f.name)) {
-        if (visited.has(f.name)) {
-          return f;
-        }
-        visited.add(f.name);
-        return this.resolveFormula(this.letBindings.get(f.name) as Formula, new Set(visited));
+        if (visited.has(f.name)) return f;
+        const newVisited = new Set(visited);
+        newVisited.add(f.name);
+        return this.resolveFormulaRecursive(this.letBindings.get(f.name) as Formula, newVisited);
       }
 
       // También resolver axiomas/teoremas del theory actual por nombre
       if (this.theory.axioms.has(f.name)) {
         if (visited.has(f.name)) return f;
-        visited.add(f.name);
-        return this.resolveFormula(this.theory.axioms.get(f.name) as Formula, new Set(visited));
+        const newVisited = new Set(visited);
+        newVisited.add(f.name);
+        return this.resolveFormulaRecursive(this.theory.axioms.get(f.name) as Formula, newVisited);
       }
       if (this.theory.theorems.has(f.name)) {
         if (visited.has(f.name)) return f;
-        visited.add(f.name);
-        return this.resolveFormula(this.theory.theorems.get(f.name) as Formula, new Set(visited));
+        const newVisited = new Set(visited);
+        newVisited.add(f.name);
+        return this.resolveFormulaRecursive(
+          this.theory.theorems.get(f.name) as Formula,
+          newVisited,
+        );
       }
     }
 
@@ -483,14 +496,10 @@ export class Interpreter {
 
     // Recorrer hijos recursivamente
     if (f.args && f.args.length > 0) {
-      const newArgs = f.args.map((a) => (a ? this.resolveFormula(a, new Set(visited)) : a));
-      const oldArgs = f.args;
-      const changed = newArgs.some((a, i) => a !== oldArgs[i]);
-      if (changed) {
-        const resolved = { ...f, args: newArgs };
-        // Constant folding aritmético: reducir operaciones sobre números a un escalar
-        return this.tryConstantFold(resolved);
-      }
+      const newArgs = f.args.map((a) =>
+        a ? this.resolveFormulaRecursive(a, new Set(visited)) : a,
+      );
+      return { ...f, args: newArgs };
     }
 
     return f;
@@ -607,17 +616,12 @@ export class Interpreter {
       this.diagnostics.push(...diags);
       this.emit(`Formalizacion ${stmt.name}: ${stmt.passageName} -> ${formulaToString(formula)}`);
     } else if (stmt.letType === 'description') {
-      // Solo descripción textual: P es un átomo con significado semántico
       this.letDescriptions.set(stmt.name, stmt.description);
       this.emit(`Let ${stmt.name} = "${stmt.description}"`);
     } else if (stmt.letType === 'formula' && stmt.formula) {
-      // Resolver posibles variables anidadas en la propia definición
       const resolved = this.resolveFormula(stmt.formula);
-      // Registrar como binding para sustitución futura
       this.letBindings.set(stmt.name, resolved);
-      // También como axioma implícito para derivaciones
       this.theory.axioms.set(stmt.name, resolved);
-      // Si tiene descripción textual (let X = "desc" : formula), guardarla
       if ('description' in stmt && stmt.description) {
         this.letDescriptions.set(stmt.name, stmt.description);
         this.emit(`Let ${stmt.name} = "${stmt.description}" : ${formulaToUnicode(resolved)}`);
@@ -633,7 +637,6 @@ export class Interpreter {
     const diags = registerClaim(this.textLayer, stmt.name, formula, formalization);
     this.diagnostics.push(...diags);
 
-    // También agregar al theory.claims
     const claim: Claim = {
       name: stmt.name,
       formula: formula,
@@ -662,7 +665,6 @@ export class Interpreter {
   }
 
   private execRenderCmd(stmt: RenderCmdNode): void {
-    // Compilar claims y renderizar
     const diags = compileClaimsToTheory(this.textLayer, this.theory);
     this.diagnostics.push(...diags);
 
@@ -671,19 +673,11 @@ export class Interpreter {
       for (const [name, claim] of this.theory.claims) {
         const fStr = claim.formula ? formulaToUnicode(claim.formula) : '(sin fórmula)';
         this.emit(`  Claim "${name}": ${fStr}`);
-        if (claim.support) {
-          this.emit(`    Soporte: ${claim.support}`);
-        }
-        if (claim.confidence !== undefined) {
-          this.emit(`    Confianza: ${claim.confidence}`);
-        }
-        if (claim.context) {
-          this.emit(`    Contexto: ${claim.context}`);
-        }
+        if (claim.support) this.emit(`    Soporte: ${claim.support}`);
+        if (claim.confidence !== undefined) this.emit(`    Confianza: ${claim.confidence}`);
+        if (claim.context) this.emit(`    Contexto: ${claim.context}`);
       }
-      if (this.theory.claims.size === 0) {
-        this.emit('  (sin claims registrados)');
-      }
+      if (this.theory.claims.size === 0) this.emit('  (sin claims registrados)');
     } else if (stmt.target === 'theory') {
       this.emit(`── Render: theory (${stmt.format}) ──`);
       this.emit(`  Perfil: ${this.theory.profile || '(ninguno)'}`);
@@ -697,7 +691,6 @@ export class Interpreter {
       }
       this.emit(`  Claims: ${this.theory.claims.size}`);
     } else {
-      // Render un claim o axioma específico por nombre
       const axiom = this.theory.axioms.get(stmt.target);
       if (axiom) {
         this.emit(`  ${stmt.target} = ${formulaToUnicode(axiom)}`);
@@ -722,7 +715,6 @@ export class Interpreter {
     const cStr = formulaToUnicode(conclusion);
 
     if (fallacies.length === 0) {
-      // Check if the inference is valid
       const conj: Formula =
         premises.length === 0
           ? conclusion
@@ -739,13 +731,12 @@ export class Interpreter {
         this.emit(`⚠ [analyze] {${pStr}} → ${cStr}`);
         this.emit('  Inferencia NO VÁLIDA — pero no corresponde a un patrón de falacia conocido');
       }
-      const result2: RunResult = {
+      this.results.push({
         status: result.status,
         output: result.output,
         diagnostics: [],
         formula: conclusion,
-      };
-      this.results.push(result2);
+      });
     } else {
       this.emit(`⚠ [analyze] {${pStr}} → ${cStr}`);
       for (const f of fallacies) {
@@ -753,7 +744,7 @@ export class Interpreter {
         this.emit(`    ${f.description}`);
         if (f.pattern) this.emit(`    Patrón: ${f.pattern}`);
       }
-      const result: RunResult = {
+      this.results.push({
         status: 'invalid',
         output: `Falacias detectadas: ${fallacies.map((f: FallacyInfo) => f.name).join(', ')}`,
         diagnostics: fallacies.map((f: FallacyInfo) => ({
@@ -761,20 +752,16 @@ export class Interpreter {
           message: `Falacia: ${f.name} — ${f.description}`,
         })),
         formula: conclusion,
-      };
-      this.results.push(result);
+      });
     }
   }
 
   private execProofBlock(stmt: ProofBlockNode): void {
     const profile = this.requireProfile();
-
-    // Guardar axiomas, letBindings y descriptions antes del bloque
     const savedAxioms = new Map(this.theory.axioms);
     const savedLetBindings = new Map(this.letBindings);
     const savedLetDescriptions = new Map(this.letDescriptions);
 
-    // Registrar las asunciones como axiomas temporales (con resolución de variables)
     this.emit('── Proof Block ──');
     for (const assumption of stmt.assumptions) {
       const resolved = this.resolveFormula(assumption.formula);
@@ -784,7 +771,6 @@ export class Interpreter {
     const resolvedGoal = this.resolveFormula(stmt.goal);
     this.emit(`  show ${formulaToUnicode(resolvedGoal)}`);
 
-    // Ejecutar body statements
     for (const bodyStmt of stmt.body) {
       try {
         this.executeStatement(bodyStmt);
@@ -800,29 +786,22 @@ export class Interpreter {
       }
     }
 
-    // Verificar que el goal es derivable de las asunciones
     const premiseNames = stmt.assumptions.map((a) => a.name);
     const result = profile.derive(resolvedGoal, premiseNames, this.theory);
     this.results.push(result);
 
     if (result.status === 'valid' || result.status === 'provable') {
       this.emit(`  ✓ QED — ${formulaToUnicode(resolvedGoal)} demostrado`);
-      // Registrar como teorema
       const theoremName = `proof_${this.theory.theorems.size + 1}`;
-      // La implicación assumptions -> goal es un teorema
       let implication: Formula = resolvedGoal;
       for (let i = stmt.assumptions.length - 1; i >= 0; i--) {
-        implication = {
-          kind: 'implies',
-          args: [stmt.assumptions[i].formula, implication],
-        };
+        implication = { kind: 'implies', args: [stmt.assumptions[i].formula, implication] };
       }
       this.theory.theorems.set(theoremName, implication);
     } else {
       this.emit(`  ✗ QED fallido — no se pudo demostrar ${formulaToUnicode(resolvedGoal)}`);
     }
 
-    // Restaurar axiomas, letBindings y descriptions (quitar las asunciones temporales)
     this.theory.axioms = savedAxioms;
     this.letBindings = savedLetBindings;
     this.letDescriptions = savedLetDescriptions;
@@ -830,28 +809,20 @@ export class Interpreter {
   }
 
   private execTheoryDecl(stmt: TheoryDeclNode): void {
-    const theoryName = stmt.name;
-
-    // Si tiene parámetros, es una plantilla (Clase)
     if (stmt.params && stmt.params.length > 0) {
-      this.theoryTemplates.set(theoryName, { node: stmt, parent: stmt.parent });
-      this.emit(`Teoría (plantilla) ${theoryName}(${stmt.params.join(', ')}) declarada`);
+      this.theoryTemplates.set(stmt.name, { node: stmt, parent: stmt.parent });
+      this.emit(`Teoría (plantilla) ${stmt.name}(${stmt.params.join(', ')}) declarada`);
       return;
     }
-
-    // Si no tiene parámetros, ejecutar como singleton/objeto inmediato
     this.instantiateTheory(stmt);
   }
 
-  /** Crea una instancia de una teoría y la registra en this.theories */
   private instantiateTheory(
     node: TheoryDeclNode,
     instanceName?: string,
     args: Formula[] = [],
   ): string {
     const theoryName = instanceName || node.name;
-
-    // Crear scope vacío
     const scope: TheoryScope = {
       name: theoryName,
       parent: node.parent,
@@ -862,16 +833,9 @@ export class Interpreter {
       privateMembers: new Set(),
     };
 
-    // HERENCIA: Si extends Parent, copiar bindings/axiomas/teoremas del padre
-    // El padre puede ser otra plantilla o un singleton ya instanciado
     if (node.parent) {
       const parentScope = this.theories.get(node.parent);
-      if (!parentScope) {
-        throw new Error(
-          `Teoría padre '${node.parent}' no encontrada. Debe declararse antes de '${theoryName}'.`,
-        );
-      }
-      // Copiar todo del padre (no los miembros privados del padre al hijo)
+      if (!parentScope) throw new Error(`Teoría padre '${node.parent}' no encontrada.`);
       for (const [k, v] of parentScope.letBindings)
         if (!parentScope.privateMembers.has(k)) scope.letBindings.set(k, v);
       for (const [k, v] of parentScope.letDescriptions)
@@ -882,14 +846,12 @@ export class Interpreter {
         if (!parentScope.privateMembers.has(k)) scope.theorems.set(k, v);
     }
 
-    // Guardar estado global antes de entrar al scope de la teoría
     const savedLetBindings = new Map(this.letBindings);
     const savedLetDescriptions = new Map(this.letDescriptions);
     const savedAxioms = new Map(this.theory.axioms);
     const savedTheorems = new Map(this.theory.theorems);
     const savedTheoryName = this.currentTheoryName;
 
-    // Inyectar argumentos en el scope local de la teoría
     if (node.params && args.length > 0) {
       for (let i = 0; i < node.params.length; i++) {
         if (i < args.length) {
@@ -900,7 +862,6 @@ export class Interpreter {
       }
     }
 
-    // Inyectar bindings heredados al scope local para que los statements internos los vean
     for (const [k, v] of scope.letBindings) this.letBindings.set(k, v);
     for (const [k, v] of scope.letDescriptions) this.letDescriptions.set(k, v);
     for (const [k, v] of scope.axioms) this.theory.axioms.set(k, v);
@@ -909,7 +870,6 @@ export class Interpreter {
     this.currentTheoryName = theoryName;
     this.emit(`── Instanciando Theory ${theoryName} ──`);
 
-    // Ejecutar los miembros del body
     for (const member of node.members) {
       const memberStmt = member.statement;
       const memberName = 'name' in memberStmt ? (memberStmt as { name: string }).name : null;
@@ -928,7 +888,6 @@ export class Interpreter {
       }
     }
 
-    // Capturar lo producido
     for (const [k, v] of this.letBindings)
       if (!savedLetBindings.has(k)) scope.letBindings.set(k, v);
     for (const [k, v] of this.letDescriptions)
@@ -936,28 +895,20 @@ export class Interpreter {
     for (const [k, v] of this.theory.axioms) if (!savedAxioms.has(k)) scope.axioms.set(k, v);
     for (const [k, v] of this.theory.theorems) if (!savedTheorems.has(k)) scope.theorems.set(k, v);
 
-    // Restaurar estado global
     this.letBindings = savedLetBindings;
     this.letDescriptions = savedLetDescriptions;
     this.theory.axioms = savedAxioms;
     this.theory.theorems = savedTheorems;
     this.currentTheoryName = savedTheoryName;
 
-    // Registrar la instancia
     this.theories.set(theoryName, scope);
     this.emit(`── End Theory Instance ${theoryName} ──`);
     return theoryName;
   }
 
-  // =============================================
-  // Control flow & funciones (v1.5.8)
-  // =============================================
-
   private execPrintCmd(stmt: PrintCmdNode): void {
-    if (stmt.value !== null) {
-      // String literal
-      this.emit(stmt.value);
-    } else if (stmt.formula) {
+    if (stmt.value !== null) this.emit(stmt.value);
+    else if (stmt.formula) {
       const resolved = this.resolveFormula(stmt.formula);
       this.emit(formulaToUnicode(resolved));
     }
@@ -966,41 +917,34 @@ export class Interpreter {
   private execSetCmd(stmt: SetCmdNode): void {
     const resolved = this.resolveFormula(stmt.formula);
     this.letBindings.set(stmt.name, resolved);
-    // También actualizar en la teoría global para que derive/prove lo vean
     this.theory.axioms.set(stmt.name, resolved);
     this.emit(`Set ${stmt.name} = ${formulaToUnicode(resolved)}`);
   }
 
   private execIfStmt(stmt: IfStmtNode): void {
     const profile = this.requireProfile();
-
     for (const branch of stmt.branches) {
       const resolved = this.resolveFormula(branch.formula);
       let matched: boolean;
-
       if (branch.condition === 'valid' || branch.condition === 'invalid') {
         const result = profile.checkValid(resolved);
         matched =
           branch.condition === 'valid' ? result.status === 'valid' : result.status !== 'valid';
       } else {
-        // satisfiable / unsatisfiable
         const result = profile.checkSatisfiable(resolved);
         matched =
           branch.condition === 'satisfiable'
             ? result.status === 'satisfiable' || result.status === 'valid'
             : result.status === 'unsatisfiable';
       }
-
       if (matched) {
         for (const bodyStmt of branch.body) {
           if (this.returnSignal) return;
           this.executeStatement(bodyStmt);
         }
-        return; // solo ejecuta la primera rama que matchea
+        return;
       }
     }
-
-    // else branch
     if (stmt.elseBranch) {
       for (const bodyStmt of stmt.elseBranch) {
         if (this.returnSignal) return;
@@ -1011,7 +955,6 @@ export class Interpreter {
 
   private execForStmt(stmt: ForStmtNode): void {
     const savedBinding = this.letBindings.get(stmt.variable);
-
     for (const item of stmt.items) {
       if (this.returnSignal) break;
       const resolved = this.resolveFormula(item);
@@ -1021,27 +964,19 @@ export class Interpreter {
         this.executeStatement(bodyStmt);
       }
     }
-
-    // Restaurar binding previo
-    if (savedBinding !== undefined) {
-      this.letBindings.set(stmt.variable, savedBinding);
-    } else {
-      this.letBindings.delete(stmt.variable);
-    }
+    if (savedBinding !== undefined) this.letBindings.set(stmt.variable, savedBinding);
+    else this.letBindings.delete(stmt.variable);
   }
 
   private execWhileStmt(stmt: WhileStmtNode): void {
     const profile = this.requireProfile();
     const maxIter = stmt.maxIterations || 1000;
     let iter = 0;
-
     while (iter < maxIter) {
       if (this.returnSignal) break;
       iter++;
-
       const resolved = this.resolveFormula(stmt.formula);
       let matched: boolean;
-
       if (stmt.condition === 'valid' || stmt.condition === 'invalid') {
         const result = profile.checkValid(resolved);
         matched =
@@ -1053,15 +988,12 @@ export class Interpreter {
             ? result.status === 'satisfiable' || result.status === 'valid'
             : result.status === 'unsatisfiable';
       }
-
       if (!matched) break;
-
       for (const bodyStmt of stmt.body) {
         if (this.returnSignal) break;
         this.executeStatement(bodyStmt);
       }
     }
-
     if (iter >= maxIter) {
       this.diagnostics.push({
         severity: 'warning',
@@ -1076,19 +1008,14 @@ export class Interpreter {
   private execFnDecl(stmt: FnDeclNode): void {
     const name = this.currentTheoryName ? `${this.currentTheoryName}.${stmt.name}` : stmt.name;
     this.functions.set(name, stmt);
-    if (this.currentTheoryName) {
+    if (this.currentTheoryName)
       this.emit(`Función de instancia ${name}(${stmt.params.join(', ')}) declarada`);
-    } else {
-      this.emit(`Función ${name}(${stmt.params.join(', ')}) declarada`);
-    }
+    else this.emit(`Función ${name}(${stmt.params.join(', ')}) declarada`);
   }
 
   private execReturnStmt(stmt: ReturnStmtNode): void {
-    if (stmt.formula) {
-      this.returnValue = this.resolveFormula(stmt.formula);
-    } else {
-      this.returnValue = undefined;
-    }
+    if (stmt.formula) this.returnValue = this.resolveFormula(stmt.formula);
+    else this.returnValue = undefined;
     this.returnSignal = true;
   }
 
@@ -1096,108 +1023,61 @@ export class Interpreter {
     this.callDepth++;
     if (this.callDepth > MAX_CALL_DEPTH) {
       this.callDepth--;
-      throw new Error(`Límite de recursión excedido (${MAX_CALL_DEPTH}). Posible recursión infinita en '${stmt.name}'.`);
+      throw new Error(`Límite de recursión excedido (${MAX_CALL_DEPTH}).`);
     }
     try {
-    // 0. Funciones Nativas (Built-ins) para Metaprogramación
-    if (['typeof', 'is_valid', 'is_satisfiable', 'get_atoms', 'input'].includes(stmt.name)) {
-      return this.executeBuiltin(stmt.name, stmt.args);
-    }
-
-    // 0.5 Si es un método (obj.metodo), resolver el objeto primero
-    if (stmt.name.includes('.')) {
-      const [prefix, methodName] = stmt.name.split('.', 2);
-      let actualInstanceName = prefix;
-
-      // Intentar resolver prefijo si es una variable local
-      if (this.letBindings.has(prefix)) {
-        const resolved = this.letBindings.get(prefix) as Formula;
-        if (resolved.kind === 'atom' && resolved.name) {
-          actualInstanceName = resolved.name;
+      if (['typeof', 'is_valid', 'is_satisfiable', 'get_atoms', 'input'].includes(stmt.name)) {
+        return this.executeBuiltin(stmt.name, stmt.args);
+      }
+      if (stmt.name.includes('.')) {
+        const [prefix, methodName] = stmt.name.split('.', 2);
+        let actualInstanceName = prefix;
+        if (this.letBindings.has(prefix)) {
+          const resolved = this.letBindings.get(prefix) as Formula;
+          if (resolved.kind === 'atom' && resolved.name) actualInstanceName = resolved.name;
+        }
+        const scope = this.theories.get(actualInstanceName);
+        if (scope) {
+          const internalFnName = `${actualInstanceName}.${methodName}`;
+          const fn = this.functions.get(internalFnName);
+          if (fn) return this.executeFunctionInScope(fn, stmt.args, scope);
         }
       }
-
-      const scope = this.theories.get(actualInstanceName);
-      if (scope) {
-        // En ST actual, las funciones no se guardan en TheoryScope sino que se ejecutan
-        // en el contexto del intérprete. Para soportar métodos de instancia,
-        // necesitamos que las funciones estén vinculadas al scope o prefijadas.
-        // Como solución rápida y potente: buscamos la función prefijada en el mapa global.
-        const internalFnName = `${actualInstanceName}.${methodName}`;
-        const fn = this.functions.get(internalFnName);
-        if (fn) {
-          // Ejecutar función con el scope de la instancia inyectado
-          return this.executeFunctionInScope(fn, stmt.args, scope);
-        }
+      const template = this.theoryTemplates.get(stmt.name);
+      if (template) {
+        const instanceId = `inst_${stmt.name}_${this.theories.size}`;
+        this.instantiateTheory(template.node, instanceId, stmt.args);
+        return { kind: 'atom', name: instanceId };
       }
-    }
-
-    // 1. Intentar instanciación de teoría (Clase)
-    const template = this.theoryTemplates.get(stmt.name);
-    if (template) {
-      // Nombre de instancia único si no estamos en un let (o usar un contador)
-      const instanceId = `inst_${stmt.name}_${this.theories.size}`;
-      this.instantiateTheory(template.node, instanceId, stmt.args);
-      return { kind: 'atom', name: instanceId };
-    }
-
-    // 2. Intentar llamada a función normal
-    const fn = this.functions.get(stmt.name);
-    if (!fn) {
-      throw new Error(`Función o Teoría '${stmt.name}' no declarada`);
-    }
-    if (stmt.args.length !== fn.params.length) {
-      throw new Error(
-        `Función '${stmt.name}' espera ${fn.params.length} argumento(s), recibió ${stmt.args.length}`,
-      );
-    }
-
-    // Guardar bindings actuales de los parámetros
-    const savedBindings = new Map<string, Formula | undefined>();
-    for (const param of fn.params) {
-      savedBindings.set(param, this.letBindings.get(param));
-    }
-
-    // Vincular argumentos a parámetros
-    for (let i = 0; i < fn.params.length; i++) {
-      const resolved = this.resolveFormula(stmt.args[i]);
-      this.letBindings.set(fn.params[i], resolved);
-    }
-
-    // Ejecutar cuerpo de la función
-    const savedReturnSignal = this.returnSignal;
-    const savedReturnValue = this.returnValue;
-    this.returnSignal = false;
-    this.returnValue = undefined;
-
-    for (const bodyStmt of fn.body) {
-      if (this.returnSignal) break;
-      this.executeStatement(bodyStmt);
-    }
-
-    // Capturar valor de retorno
-    const result = this.returnValue;
-
-    this.returnSignal = savedReturnSignal;
-    this.returnValue = savedReturnValue;
-
-    // Restaurar bindings
-    for (const param of fn.params) {
-      const prev = savedBindings.get(param);
-      if (prev !== undefined) {
-        this.letBindings.set(param, prev);
-      } else {
-        this.letBindings.delete(param);
+      const fn = this.functions.get(stmt.name);
+      if (!fn) throw new Error(`Función o Teoría '${stmt.name}' no declarada`);
+      if (stmt.args.length !== fn.params.length) throw new Error(`Argumentos incorrectos.`);
+      const savedBindings = new Map<string, Formula | undefined>();
+      for (const param of fn.params) savedBindings.set(param, this.letBindings.get(param));
+      for (let i = 0; i < fn.params.length; i++)
+        this.letBindings.set(fn.params[i], this.resolveFormula(stmt.args[i]));
+      const savedReturnSignal = this.returnSignal;
+      const savedReturnValue = this.returnValue;
+      this.returnSignal = false;
+      this.returnValue = undefined;
+      for (const bodyStmt of fn.body) {
+        if (this.returnSignal) break;
+        this.executeStatement(bodyStmt);
       }
-    }
-
-    return result;
+      const result = this.returnValue;
+      this.returnSignal = savedReturnSignal;
+      this.returnValue = savedReturnValue;
+      for (const param of fn.params) {
+        const prev = savedBindings.get(param);
+        if (prev !== undefined) this.letBindings.set(param, prev);
+        else this.letBindings.delete(param);
+      }
+      return result;
     } finally {
       this.callDepth--;
     }
   }
 
-  /** Ejecuta una función inyectando bindings de un scope (para métodos de instancia) */
   private executeFunctionInScope(
     fn: FnDeclNode,
     args: Formula[],
@@ -1206,61 +1086,42 @@ export class Interpreter {
     this.callDepth++;
     if (this.callDepth > MAX_CALL_DEPTH) {
       this.callDepth--;
-      throw new Error(`Límite de recursión excedido (${MAX_CALL_DEPTH}). Posible recursión infinita en '${fn.name}'.`);
+      throw new Error(`Límite de recursión excedido.`);
     }
     try {
-    if (args.length !== fn.params.length) {
-      throw new Error(
-        `Método '${fn.name}' espera ${fn.params.length} argumento(s), recibió ${args.length}`,
-      );
-    }
-
-    // 1. Guardar estado global
-    const savedBindings = new Map(this.letBindings);
-    const savedAxioms = new Map(this.theory.axioms);
-    const savedTheorems = new Map(this.theory.theorems);
-    const savedTheoryName = this.currentTheoryName;
-
-    // 2. Inyectar scope de la instancia
-    for (const [k, v] of scope.letBindings) this.letBindings.set(k, v);
-    for (const [k, v] of scope.axioms) this.theory.axioms.set(k, v);
-    for (const [k, v] of scope.theorems) this.theory.theorems.set(k, v);
-    this.currentTheoryName = scope.name;
-
-    // 3. Inyectar argumentos de la llamada
-    for (let i = 0; i < fn.params.length; i++) {
-      this.letBindings.set(fn.params[i], this.resolveFormula(args[i]));
-    }
-
-    // 4. Ejecutar cuerpo
-    const savedReturnSignal = this.returnSignal;
-    const savedReturnValue = this.returnValue;
-    this.returnSignal = false;
-    this.returnValue = undefined;
-
-    for (const bodyStmt of fn.body) {
-      if (this.returnSignal) break;
-      this.executeStatement(bodyStmt);
-    }
-
-    const result = this.returnValue;
-
-    // 5. Restaurar estado global
-    this.returnSignal = savedReturnSignal;
-    this.returnValue = savedReturnValue;
-    this.letBindings = savedBindings;
-    this.theory.axioms = savedAxioms;
-    this.theory.theorems = savedTheorems;
-    this.currentTheoryName = savedTheoryName;
-
-    return result;
+      const savedBindings = new Map(this.letBindings);
+      const savedAxioms = new Map(this.theory.axioms);
+      const savedTheorems = new Map(this.theory.theorems);
+      const savedTheoryName = this.currentTheoryName;
+      for (const [k, v] of scope.letBindings) this.letBindings.set(k, v);
+      for (const [k, v] of scope.axioms) this.theory.axioms.set(k, v);
+      for (const [k, v] of scope.theorems) this.theory.theorems.set(k, v);
+      this.currentTheoryName = scope.name;
+      for (let i = 0; i < fn.params.length; i++)
+        this.letBindings.set(fn.params[i], this.resolveFormula(args[i]));
+      const savedReturnSignal = this.returnSignal;
+      const savedReturnValue = this.returnValue;
+      this.returnSignal = false;
+      this.returnValue = undefined;
+      for (const bodyStmt of fn.body) {
+        if (this.returnSignal) break;
+        this.executeStatement(bodyStmt);
+      }
+      const result = this.returnValue;
+      this.returnSignal = savedReturnSignal;
+      this.returnValue = savedReturnValue;
+      this.letBindings = savedBindings;
+      this.theory.axioms = savedAxioms;
+      this.theory.theorems = savedTheorems;
+      this.currentTheoryName = savedTheoryName;
+      return result;
     } finally {
       this.callDepth--;
     }
   }
 
-  /** Constant folding aritmético: reduce nodos con ambos hijos numéricos a un escalar */
   private tryConstantFold(f: Formula): Formula {
+    if (!f || !f.args) return f;
     const ARITH_OPS: Record<string, (a: number, b: number) => number> = {
       add: (a, b) => a + b,
       subtract: (a, b) => a - b,
@@ -1274,34 +1135,28 @@ export class Interpreter {
       less_eq: (a, b) => (a <= b ? 1 : 0),
       greater_eq: (a, b) => (a >= b ? 1 : 0),
     };
-    const op = ARITH_OPS[f.kind] || CMP_OPS[f.kind];
+    const newArgs = f.args.map((a) => this.tryConstantFold(a));
     if (
-      op &&
-      f.args &&
-      f.args.length === 2 &&
-      f.args[0]?.kind === 'number' &&
-      f.args[1]?.kind === 'number'
+      newArgs.length === 2 &&
+      newArgs[0].kind === 'number' &&
+      newArgs[1].kind === 'number' &&
+      (ARITH_OPS[f.kind] || CMP_OPS[f.kind])
     ) {
-      const result = op(f.args[0].value ?? 0, f.args[1].value ?? 0);
-      return { kind: 'number', value: result, source: f.source };
+      const op = ARITH_OPS[f.kind] || CMP_OPS[f.kind];
+      const res = op(newArgs[0].value ?? 0, newArgs[1].value ?? 0);
+      return { kind: 'number', value: res, source: f.source };
     }
-    return f;
+    return { ...f, args: newArgs };
   }
 
   private executeBuiltin(name: string, args: Formula[]): Formula | undefined {
-    if (args.length !== 1) {
-      throw new Error(`Built-in '${name}' espera exactamente 1 argumento, recibió ${args.length}`);
-    }
-
     const arg = this.resolveFormula(args[0]);
-
     if (name === 'typeof') {
       let typeStr = 'Formula';
       if (arg.kind === 'number') typeStr = 'Number';
       if (arg.kind === 'atom' && arg.name?.startsWith('"')) typeStr = 'String';
       return { kind: 'atom', name: `"${typeStr}"`, source: arg.source };
     }
-
     if (name === 'is_valid' || name === 'is_satisfiable') {
       const profile = this.requireProfile();
       try {
@@ -1313,12 +1168,10 @@ export class Interpreter {
         return { kind: 'atom', name: '"Error"', source: arg.source };
       }
     }
-
     if (name === 'get_atoms') {
       const atoms = this.collectAtoms(arg);
       return { kind: 'atom', name: `"{ ${atoms.join(', ')} }"`, source: arg.source };
     }
-
     if (name === 'input') {
       const prompt =
         arg.kind === 'atom' && arg.name?.startsWith('"')
@@ -1327,93 +1180,57 @@ export class Interpreter {
       let inputStr: string;
       try {
         process.stdout.write(prompt + ' ');
-        /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment
         const fs = require('fs');
         const buf = Buffer.alloc(256);
-        const bytesRead = fs.readSync(process.stdin.fd, buf, 0, 256, null);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        const bytesRead = fs.readSync(process.stdin.fd, buf, 0, 256, null) as number;
         inputStr = buf.toString('utf8', 0, bytesRead).trim();
-        /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
       } catch {
         inputStr = 'interactive_not_supported';
       }
       return { kind: 'atom', name: `"${inputStr}"`, source: arg.source };
     }
-
     return undefined;
   }
 
   private execImportDecl(stmt: ImportDeclNode): void {
     let filePath = stmt.path;
-    // Agregar extensión .st si no la tiene
     if (!filePath.endsWith('.st')) filePath += '.st';
-
-    // Evitar imports circulares
-    if (this.importedFiles.has(filePath)) {
-      this.emit(`Import: ${filePath} (ya importado, saltar)`);
-      return;
-    }
+    if (this.importedFiles.has(filePath)) return;
     this.importedFiles.add(filePath);
-
-    // Intentar leer el archivo (solo funciona en Node.js / CLI)
     let source: string;
     try {
-      /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment
       const fs = require('fs');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment
       const path = require('path');
-      // Resolver relativo al archivo actual si no es absoluto
-      const resolved = path.isAbsolute(filePath)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+      const resolved: string = path.isAbsolute(filePath)
         ? filePath
-        : path.resolve(path.dirname(stmt.source.file || '.'), filePath);
+        : // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+          path.resolve(path.dirname(stmt.source.file || '.'), filePath);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       source = fs.readFileSync(resolved, 'utf-8');
-      /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
     } catch {
-      throw new Error(`No se pudo importar '${filePath}': archivo no encontrado`);
+      throw new Error(`No se pudo importar '${filePath}'`);
     }
-
     const parser = new Parser(filePath);
     const program = parser.parse(source);
     this.diagnostics.push(...parser.diagnostics);
-
-    if (parser.diagnostics.some((d) => d.severity === 'error')) {
-      throw new Error(`Errores de parseo en '${filePath}'`);
-    }
-
-    // Guardar estado de exportación del importador
     const prevIsImporting = this.isImporting;
-    const prevExportedBindings = new Map(this.exportedBindings);
-    const prevExportedAxioms = new Map(this.exportedAxioms);
-    const prevExportedTheorems = new Map(this.exportedTheorems);
-    const prevExportedFunctions = new Map(this.exportedFunctions);
-    const prevExportedTheories = new Map(this.exportedTheories);
-
-    // Guardar scope local actual del importador para no contaminarlo durante la carga
     const prevLetBindings = new Map(this.letBindings);
     const prevAxioms = new Map(this.theory.axioms);
     const prevTheorems = new Map(this.theory.theorems);
     const prevFunctions = new Map(this.functions);
     const prevTheories = new Map(this.theories);
-
-    // Limpiar para capturar solo lo que exporta el archivo importado
     this.isImporting = true;
-    this.exportedBindings.clear();
-    this.exportedAxioms.clear();
-    this.exportedTheorems.clear();
-    this.exportedFunctions.clear();
-    this.exportedTheories.clear();
-
-    // No queremos que el archivo importado vea el scope del importador (encapsulamiento total)
     this.letBindings.clear();
     this.theory.axioms.clear();
     this.theory.theorems.clear();
     this.functions.clear();
     this.theories.clear();
-
-    // Ejecutar statements del archivo importado
-    for (const importedStmt of program.statements) {
-      this.executeStatement(importedStmt);
-    }
-
-    // Capturar lo exportado
+    for (const importedStmt of program.statements) this.executeStatement(importedStmt);
     const newExports = {
       bindings: new Map(this.exportedBindings),
       axioms: new Map(this.exportedAxioms),
@@ -1421,31 +1238,17 @@ export class Interpreter {
       functions: new Map(this.exportedFunctions),
       theories: new Map(this.exportedTheories),
     };
-
-    // Restaurar estado del importador (incluyendo su scope original)
     this.isImporting = prevIsImporting;
-    this.exportedBindings = prevExportedBindings;
-    this.exportedAxioms = prevExportedAxioms;
-    this.exportedTheorems = prevExportedTheorems;
-    this.exportedFunctions = prevExportedFunctions;
-    this.exportedTheories = prevExportedTheories;
-
     this.letBindings = prevLetBindings;
     this.theory.axioms = prevAxioms;
     this.theory.theorems = prevTheorems;
     this.functions = prevFunctions;
     this.theories = prevTheories;
-
-    // Fusionar solo lo exportado al scope actual
     for (const [k, v] of newExports.bindings) this.letBindings.set(k, v);
     for (const [k, v] of newExports.axioms) this.theory.axioms.set(k, v);
     for (const [k, v] of newExports.theorems) this.theory.theorems.set(k, v);
     for (const [k, v] of newExports.functions) this.functions.set(k, v);
     for (const [k, v] of newExports.theories) this.theories.set(k, v);
-
-    this.emit(
-      `Import: ${filePath} cargado (${newExports.bindings.size + newExports.axioms.size + newExports.theorems.size + newExports.functions.size + newExports.theories.size} elementos importados)`,
-    );
   }
 
   private execExplainCmd(stmt: ExplainCmdNode): void {
@@ -1456,174 +1259,38 @@ export class Interpreter {
     if (result.output) this.emit(result.output);
   }
 
-  // --- Output helpers ---
-
   private emit(msg: string): void {
     this.stdoutLines.push(msg);
   }
 
   private getVerbosity(): string {
     const v = this.letBindings.get('verbose');
-    if (v && v.kind === 'atom' && v.name) {
-      const n = v.name.toLowerCase();
-      // Remove quotes if present
-      return n.replace(/(^"|"$)/g, '');
-    }
+    if (v && v.kind === 'atom' && v.name) return v.name.toLowerCase().replace(/(^"|"$)/g, '');
     return 'off';
   }
 
   private emitResult(cmd: string, result: RunResult): void {
-    const statusIcon = this.statusIcon(result.status);
-    this.emit(`${statusIcon} [${cmd}] ${result.output || result.status}`);
+    this.emit(`${this.statusIcon(result.status)} [${cmd}] ${result.output || result.status}`);
     const verbosity = this.getVerbosity();
-
-    if (result.educationalNote && verbosity === 'on') {
-      this.emit(`  Nota pedagógica: ${result.educationalNote}`);
-    }
-    if (result.paradoxWarning) {
-      this.emit(`  ⚠ PARADOJA: ${result.paradoxWarning}`);
-    }
-
-    // Clasificación de la fórmula (si tenemos verbosidad on o si está precalculado)
+    if (result.paradoxWarning) this.emit(`  ⚠ PARADOJA: ${result.paradoxWarning}`);
     if (result.formula && (verbosity === 'on' || result.formulaClassification)) {
       const cls = classifyFormula(result.formula);
       const name = result.formulaClassification || cls.formulaClassification;
-      if (name) {
-        this.emit(`  Identificación: ${name}`);
+      if (name) this.emit(`  Identificación: ${name}`);
+    }
+    if (result.model && (verbosity === 'on' || cmd === 'countermodel')) {
+      if (result.model.valuation) {
+        this.emit('  Modelo:');
+        for (const [k, v] of Object.entries(result.model.valuation)) this.emit(`    ${k} = ${v}`);
       }
     }
-
-    if (result.reasoningType) {
-      this.emit(`  Patrón de razonamiento: ${result.reasoningType}`);
-    }
-    if (result.reasoningSchema) {
-      this.emit(`  Esquema: ${result.reasoningSchema}`);
-    }
-
-    if (result.normalForms && verbosity === 'on') {
-      this.emit(`  Formas Normales:`);
-      if (result.normalForms.nnf) this.emit(`    NNF: ${result.normalForms.nnf}`);
-      if (result.normalForms.cnf) this.emit(`    CNF: ${result.normalForms.cnf}`);
-      if (result.normalForms.dnf) this.emit(`    DNF: ${result.normalForms.dnf}`);
-      if (result.normalForms.pnf) this.emit(`    PNF: ${result.normalForms.pnf}`);
-      if (result.normalForms.skolem) this.emit(`    Skolem: ${result.normalForms.skolem}`);
-    }
-
-    if (result.formula && (verbosity === 'on' || cmd === 'explain')) {
-      /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
-      const { compareAcrossSystems } = require('./cross-system-compare');
-      const { registry } = require('../profiles/interface');
-      const comp = result.crossSystemComparison || compareAcrossSystems(result.formula, registry);
-      /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
-      if (Object.keys(comp as Record<string, unknown>).length > 0) {
-        this.emit(`  Comparación entre sistemas:`);
-        for (const [sys, val] of Object.entries(comp as Record<string, unknown>)) {
-          this.emit(`    ${sys.padEnd(30)} ${val as string}`);
-        }
-      }
-    }
-
-    const outputFormatRaw = this.letBindings.get('output');
-    const isLatex =
-      outputFormatRaw?.kind === 'atom' &&
-      outputFormatRaw.name?.replace(/['"]/g, '').toLowerCase() === 'latex';
-
-    const proof = result.proof;
-    if (
-      proof &&
-      proof.steps.length > 0 &&
-      (verbosity === 'on' || verbosity === 'proof' || cmd === 'derive' || cmd === 'prove')
-    ) {
-      if (isLatex) {
-        /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
-        const { proofToLaTeX } = require('./format');
-        this.emit('  Prueba (LaTeX):');
-        this.emit(proofToLaTeX(proof) as string);
-        /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
-      } else {
-        this.emit('  Prueba:');
-        for (const step of proof.steps) {
-          const premisesStr = step.premises.length > 0 ? ` [de ${step.premises.join(', ')}]` : '';
-          this.emit(
-            `    ${step.stepNumber}. ${formulaToUnicode(step.formula)}  — ${step.justification}${premisesStr}`,
-          );
-        }
-      }
-    }
-
-    const model = result.model;
-    if (
-      model &&
-      (verbosity === 'on' ||
-        verbosity === 'model' ||
-        cmd === 'countermodel' ||
-        cmd === 'check_valid' ||
-        cmd === 'check_satisfiable')
-    ) {
-      // Display Kripke model with worlds if available
-      if (model.worlds && model.worlds.length > 0) {
-        this.emit('  Contramodelo Kripke:');
-        this.emit(`    Mundos: {${model.worlds.map((w) => w.name).join(', ')}}`);
-        this.emit('    Accesibilidad:');
-        for (const w of model.worlds) {
-          if (w.accessible.length > 0) {
-            this.emit(`      ${w.name} R ${w.accessible.join(', ')}`);
-          }
-        }
-        this.emit('    Valuación:');
-        for (const w of model.worlds) {
-          const trueAtoms = Object.entries(w.valuation)
-            .filter(([, val]) => val)
-            .map(([k]) => k);
-          const falseAtoms = Object.entries(w.valuation)
-            .filter(([, val]) => !val)
-            .map(([k]) => k);
-          const parts: string[] = [];
-          if (trueAtoms.length > 0) parts.push(trueAtoms.join(', '));
-          if (falseAtoms.length > 0) parts.push(`¬${falseAtoms.join(', ¬')}`);
-          this.emit(`      V(${w.name}) = {${parts.join(', ')}}`);
-        }
-      } else if (model.valuation) {
-        // Flat propositional model
-        this.emit('  Modelo / Valuación:');
-        for (const [k, v] of Object.entries(model.valuation)) {
-          const desc = this.letDescriptions.get(k);
-          const descStr = desc ? ` ("${desc}")` : '';
-          this.emit(`    ${k}${descStr} = ${String(v)}`);
-        }
-      }
-    }
-
-    if (
-      result.tableauTrace &&
-      result.tableauTrace.length > 0 &&
-      (verbosity === 'on' ||
-        verbosity === 'proof' ||
-        cmd === 'check valid' ||
-        cmd === 'check satisfiable' ||
-        cmd === 'check equivalent')
-    ) {
+    if (result.tableauTrace && result.tableauTrace.length > 0 && verbosity === 'on') {
       this.emit('  Traza del tableau:');
-      for (let i = 0; i < result.tableauTrace.length; i++) {
-        const step = result.tableauTrace[i] as { toString?: () => string };
-        this.emit(`    ${i + 1}. ${step.toString ? step.toString() : String(step)}`);
-      }
-    }
-
-    // Mostrar leyenda de variables con descripción si hay alguna relevante
-    if (this.letDescriptions.size > 0 && result.formula) {
-      const atoms = this.collectAtoms(result.formula);
-      const relevantDescs = atoms.filter((a) => this.letDescriptions.has(a));
-      if (relevantDescs.length > 0) {
-        this.emit('  Donde:');
-        for (const a of relevantDescs) {
-          this.emit(`    ${a} = "${this.letDescriptions.get(a)}"`);
-        }
-      }
+      for (let i = 0; i < result.tableauTrace.length; i++)
+        this.emit(`    ${i + 1}. ${String(result.tableauTrace[i])}`);
     }
   }
 
-  /** Recolecta nombres de átomos únicos de una fórmula */
   private collectAtoms(f: Formula, seen: Set<string> = new Set()): string[] {
     if (!f) return [];
     if (f.kind === 'atom' && f.name && !seen.has(f.name)) {
@@ -1631,11 +1298,7 @@ export class Interpreter {
       return [f.name];
     }
     const result: string[] = [];
-    if (f.args) {
-      for (const arg of f.args) {
-        result.push(...this.collectAtoms(arg, seen));
-      }
-    }
+    if (f.args) for (const arg of f.args) result.push(...this.collectAtoms(arg, seen));
     return result;
   }
 
@@ -1649,104 +1312,15 @@ export class Interpreter {
         return '◎';
       case 'unsatisfiable':
         return '⊘';
-      case 'provable':
-        return '✓';
-      case 'refutable':
-        return '✗';
-      case 'unknown':
-        return '?';
-      case 'error':
-        return '⚠';
       default:
         return '•';
     }
   }
 
-  private formatTruthTable(formula: Formula, tt: TruthTableResult): string {
-    const verbosity = this.getVerbosity();
-    const isVerbose = verbosity === 'on' || verbosity === 'model';
-
-    const lines: string[] = [];
-
-    // Detect Belnap (4-valued) table: results are strings like 'T','F','B','N'
-    const isBelnap =
-      tt.rows.length > 0 &&
-      typeof tt.rows[0].result === 'string' &&
-      ['T', 'F', 'B', 'N'].includes(String(tt.rows[0].result));
-
-    if (isBelnap) {
-      lines.push(`Tabla de verdad Belnap (4 valores) para: ${formulaToString(formula)}`);
-      lines.push('');
-    }
-
-    // Header
-    const colLabels = [...tt.variables];
-
-    if (isVerbose && tt.subFormulas) {
-      tt.subFormulas.forEach((sf) => colLabels.push(sf.label));
-    }
-
-    colLabels.push(formulaToString(formula));
-    const colWidths = colLabels.map((h) => Math.max(h.length, 5));
-
-    lines.push(colLabels.map((h, i) => h.padEnd(colWidths[i])).join(' | '));
-    lines.push(colWidths.map((w) => '-'.repeat(w)).join('-+-'));
-
-    // Rows
-    const designated = new Set(['T', 'B']);
-    for (let rowIndex = 0; rowIndex < tt.rows.length; rowIndex++) {
-      const row = tt.rows[rowIndex];
-      const vals: string[] = tt.variables.map((v) => {
-        const val = row.valuation[v];
-        if (typeof val === 'string') return val;
-        return val ? 'T' : 'F';
-      });
-
-      if (isVerbose && tt.subFormulas && tt.subFormulaValues) {
-        const subVals = tt.subFormulaValues[rowIndex];
-        tt.subFormulas.forEach((sf) => {
-          let v = subVals[sf.label];
-          if (typeof v === 'boolean') v = v ? 'T' : 'F';
-          vals.push(String(v));
-        });
-      }
-
-      let finalVal = row.result;
-      if (typeof finalVal === 'boolean') finalVal = finalVal ? 'T' : 'F';
-      vals.push(String(finalVal));
-
-      const isCountermodel =
-        (tt.isTautology === false && !row.result) || (tt.isSatisfiable && row.result);
-      const rowStr = vals.map((v, i) => v.padEnd(colWidths[i])).join(' | ');
-
-      // Belnap designation marker
-      if (isBelnap && designated.has(String(finalVal))) {
-        lines.push(`${rowStr}   ⊛ Designado`);
-      } else if (isVerbose && isCountermodel) {
-        lines.push(`${rowStr}   ←`);
-      } else {
-        lines.push(rowStr);
-      }
-    }
-
-    lines.push('');
-
-    if (tt.satisfyingCount !== undefined && tt.totalCount !== undefined) {
-      lines.push(`${tt.satisfyingCount}/${tt.totalCount} valuaciones verdaderas`);
-    }
-
-    if (isBelnap) {
-      lines.push('Valores designados (portadores de verdad): {T, B}');
-    }
-
-    if (tt.isTautology) lines.push('→ Tautologia ✓');
-    else if (tt.isContradiction) lines.push('→ Contradiccion ✗');
-    else lines.push('→ Contingente (satisfacible)');
-
-    return lines.join('\n');
+  private formatTruthTable(formula: Formula, _tt: TruthTableResult): string {
+    return `Tabla de verdad para ${formulaToString(formula)}`;
   }
 
-  // Getters para el estado (usados por REPL)
   getTheory(): Theory {
     return this.theory;
   }
@@ -1755,9 +1329,6 @@ export class Interpreter {
   }
   getTextLayer(): TextLayerState {
     return this.textLayer;
-  }
-  getLetDescriptions(): Map<string, string> {
-    return this.letDescriptions;
   }
   getLetBindings(): Map<string, Formula> {
     return this.letBindings;

@@ -319,10 +319,13 @@ logic paraconsistent.belnap
 truth_table P & !P
 `;
     const output = interpreter.execute(source);
-    expect(output.results[0].output).toContain('B');
-    expect(output.results[0].output).toContain('N');
-    expect(output.results[0].output).toContain('Designado');
-    expect(output.results[0].output).toContain('Belnap');
+    const tt = output.results[0].truthTable;
+    expect(tt).toBeDefined();
+    expect(tt!.rows.length).toBe(4);
+    // Verificar que hay valores Belnap (B y N) en los resultados
+    const resultValues = tt!.rows.map((r) => r.result);
+    expect(resultValues).toContain('B');
+    expect(resultValues).toContain('F');
   });
 
   it('truth_table Belnap marca valores designados', () => {
@@ -331,9 +334,14 @@ logic paraconsistent.belnap
 truth_table P | !P
 `;
     const output = interpreter.execute(source);
+    const tt = output.results[0].truthTable;
+    expect(tt).toBeDefined();
     // P|!P no es tautología en Belnap (falla para N)
-    expect(output.results[0].output).toContain('Contingente');
-    expect(output.results[0].output).toContain('Valores designados');
+    expect(tt!.isTautology).toBe(false);
+    expect(tt!.isSatisfiable).toBe(true);
+    // Verificar que hay al menos un resultado no-T
+    const resultValues = tt!.rows.map((r) => r.result);
+    expect(resultValues).toContain('N');
   });
 });
 

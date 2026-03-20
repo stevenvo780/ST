@@ -182,7 +182,13 @@ function* generateModels(atoms: string[], maxWorlds: number): Generator<KripkeMo
       // Deduplicar preórdenes idénticos
       let hash = '';
       for (const w of worlds) {
-        hash += w + ':' + Array.from(access.get(w) as Set<number>).sort().join(',') + ';';
+        hash +=
+          w +
+          ':' +
+          Array.from(access.get(w) as Set<number>)
+            .sort()
+            .join(',') +
+          ';';
       }
       if (seenPreorders.has(hash)) continue;
       seenPreorders.add(hash);
