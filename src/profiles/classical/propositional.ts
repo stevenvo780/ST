@@ -130,12 +130,12 @@ export function* generateValuationsLazy(atoms: string[]): Generator<Valuation> {
 type BitVec = Uint32Array;
 
 function bvCreate(total: number): BitVec {
-  return new Uint32Array(((total + 31) >>> 5));
+  return new Uint32Array((total + 31) >>> 5);
 }
 function bvOnes(total: number): BitVec {
   const words = (total + 31) >>> 5;
   const v = new Uint32Array(words);
-  v.fill(0xFFFFFFFF);
+  v.fill(0xffffffff);
   // Clear trailing bits in last word
   const tail = total & 31;
   if (tail) v[words - 1] = (1 << tail) - 1;
@@ -175,7 +175,7 @@ function bvPopcount(a: BitVec): number {
     let v = a[i];
     v = v - ((v >>> 1) & 0x55555555);
     v = (v & 0x33333333) + ((v >>> 2) & 0x33333333);
-    count += (((v + (v >>> 4)) & 0x0F0F0F0F) * 0x01010101) >>> 24;
+    count += (((v + (v >>> 4)) & 0x0f0f0f0f) * 0x01010101) >>> 24;
   }
   return count;
 }
@@ -185,7 +185,7 @@ function bvTestBit(a: BitVec, i: number): boolean {
 // Find first set bit, or -1
 function bvFirstSet(a: BitVec): number {
   for (let w = 0; w < a.length; w++) {
-    if (a[w] !== 0) return (w << 5) + Math.clz32(a[w] & (-a[w] | 0)) ^ 31;
+    if (a[w] !== 0) return ((w << 5) + Math.clz32(a[w] & (-a[w] | 0))) ^ 31;
   }
   return -1;
 }
@@ -221,7 +221,7 @@ function evaluateBitset(formula: Formula, atoms: string[]): BitsetResult {
       // Build a 32-bit pattern
       let pattern = 0;
       for (let b = 0; b < 32; b++) {
-        if ((b % period) >= halfPeriod) pattern |= 1 << b;
+        if (b % period >= halfPeriod) pattern |= 1 << b;
       }
       mask.fill(pattern);
     } else {
@@ -230,7 +230,7 @@ function evaluateBitset(formula: Formula, atoms: string[]): BitsetResult {
       const halfWordPeriod = wordPeriod >>> 1;
       for (let w = 0; w < words; w++) {
         const posInPeriod = w % wordPeriod;
-        mask[w] = posInPeriod >= halfWordPeriod ? 0xFFFFFFFF : 0;
+        mask[w] = posInPeriod >= halfWordPeriod ? 0xffffffff : 0;
       }
     }
     // Clear trailing bits
@@ -273,11 +273,19 @@ function bitsetPopcount(a: BitVec): number {
 
 function isPurePropositional(f: Formula): boolean {
   switch (f.kind) {
-    case 'atom': return true;
-    case 'not': case 'and': case 'or': case 'implies':
-    case 'biconditional': case 'xor': case 'nand': case 'nor':
+    case 'atom':
+      return true;
+    case 'not':
+    case 'and':
+    case 'or':
+    case 'implies':
+    case 'biconditional':
+    case 'xor':
+    case 'nand':
+    case 'nor':
       return (f.args || []).every(isPurePropositional);
-    default: return false;
+    default:
+      return false;
   }
 }
 
@@ -1708,7 +1716,7 @@ export class ClassicalPropositional implements LogicProfile {
       );
 
       // Materialize rows from bitset results
-      const rows: TruthTableRow[] = new Array(total);
+      const rows: TruthTableRow[] = new Array<TruthTableRow>(total);
       for (let i = 0; i < total; i++) {
         const v: Valuation = {};
         for (let j = 0; j < n; j++) {

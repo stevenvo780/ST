@@ -379,7 +379,8 @@ function acquireBranch(): Branch {
   };
 }
 
-function releaseBranch(b: Branch): void {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _releaseBranch(b: Branch): void {
   if (branchPool.length < MAX_POOL_SIZE) {
     b.literals.length = 0;
     b.pending.length = 0;

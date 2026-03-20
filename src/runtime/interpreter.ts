@@ -47,7 +47,12 @@ import {
   ReturnStmtNode,
 } from '../ast/nodes';
 import { registry } from '../profiles/interface';
-import { formulaToString, collectAtoms, evaluateClassical, generateValuationsLazy } from '../profiles/classical/propositional';
+import {
+  formulaToString,
+  collectAtoms,
+  evaluateClassical,
+  generateValuationsLazy,
+} from '../profiles/classical/propositional';
 import { evalNumeric } from '../profiles/arithmetic';
 import { formulaToUnicode } from './format';
 import { detectFallacies, FallacyInfo } from './fallacies';
@@ -578,7 +583,7 @@ export class Interpreter {
 
       if (frame.kind === 'for') {
         if (this.returnSignal || frame.index >= frame.stmt.items.length) {
-          this.restoreBindingSnapshot(frame.stmt.variable, frame.savedBinding as BindingSnapshot);
+          this.restoreBindingSnapshot(frame.stmt.variable, frame.savedBinding);
           runtimeStack.pop();
           continue;
         }
@@ -653,7 +658,8 @@ export class Interpreter {
     switch (stmt.kind) {
       case 'if_stmt': {
         const selectedBody = this.selectIfBody(stmt);
-        if (selectedBody) runtimeStack.push({ kind: 'statements', statements: selectedBody, index: 0 });
+        if (selectedBody)
+          runtimeStack.push({ kind: 'statements', statements: selectedBody, index: 0 });
         return;
       }
       case 'for_stmt':
@@ -766,9 +772,7 @@ export class Interpreter {
     return this.resolveFormula(formula);
   }
 
-  private getDirectFunctionCall(
-    stmt: Statement,
-  ):
+  private getDirectFunctionCall(stmt: Statement):
     | {
         call: { name: string; args: Formula[] };
         type: FunctionContinuation['type'];
@@ -828,7 +832,10 @@ export class Interpreter {
       case 'set_cmd':
         return this.execSetCmd({ ...(continuation.stmt as SetCmdNode), formula: normalized });
       case 'return_stmt':
-        return this.execReturnStmt({ ...(continuation.stmt as ReturnStmtNode), formula: normalized });
+        return this.execReturnStmt({
+          ...(continuation.stmt as ReturnStmtNode),
+          formula: normalized,
+        });
       case 'print_cmd':
         return this.execPrintCmd({ ...(continuation.stmt as PrintCmdNode), formula: normalized });
     }
@@ -982,9 +989,7 @@ export class Interpreter {
 
     // Recorrer hijos recursivamente
     if (f.args && f.args.length > 0) {
-      const newArgs = f.args.map(
-        (a) => (a ? this.resolveFormulaRecursive(a, visited) : a),
-      );
+      const newArgs = f.args.map((a) => (a ? this.resolveFormulaRecursive(a, visited) : a));
       // Check if args actually changed to avoid unnecessary object creation
       let changed = false;
       for (let i = 0; i < f.args.length; i++) {
@@ -1086,7 +1091,7 @@ export class Interpreter {
     const formula = this.resolveFormula(stmt.formula);
 
     if (profile.name === 'classical.propositional') {
-      const atoms = Array.from(collectAtoms(formula)).sort() as string[];
+      const atoms = Array.from(collectAtoms(formula)).sort();
 
       // Streaming de tabla de verdad para evitar OOM
       this.emit(`Tabla de verdad para ${formulaToString(formula)}:`);
@@ -1118,7 +1123,9 @@ export class Interpreter {
       }
 
       this.emit(`\nResumen: ${count} valuaciones analizadas.`);
-      this.emit(`Estatus: ${isTautology ? 'Tautología ✓' : isSatisfiable ? 'Satisfacible' : 'Contradicción ✗'}`);
+      this.emit(
+        `Estatus: ${isTautology ? 'Tautología ✓' : isSatisfiable ? 'Satisfacible' : 'Contradicción ✗'}`,
+      );
 
       this.results.push({
         status: isTautology ? 'valid' : isSatisfiable ? 'satisfiable' : 'unsatisfiable',
@@ -1166,7 +1173,8 @@ export class Interpreter {
       this.diagnostics.push(...diags);
       this.emit(`Formalizacion ${stmt.name}: ${stmt.passageName} -> ${formulaToString(formula)}`);
     } else if (stmt.letType === 'description') {
-      if (this.currentBindingFrame) this.currentBindingFrame.descriptions.set(stmt.name, stmt.description);
+      if (this.currentBindingFrame)
+        this.currentBindingFrame.descriptions.set(stmt.name, stmt.description);
       else this.letDescriptions.set(stmt.name, stmt.description);
       if (this.shouldEmitLocalBindings()) this.emit(`Let ${stmt.name} = "${stmt.description}"`);
     } else if (stmt.letType === 'action') {
@@ -1194,7 +1202,8 @@ export class Interpreter {
         if (this.shouldEmitLocalBindings())
           this.emit(`Let ${stmt.name} = "${stmt.description}" : ${formulaToUnicode(resolved)}`);
       } else {
-        if (this.shouldEmitLocalBindings()) this.emit(`Let ${stmt.name} = ${formulaToUnicode(resolved)}`);
+        if (this.shouldEmitLocalBindings())
+          this.emit(`Let ${stmt.name} = ${formulaToUnicode(resolved)}`);
       }
     }
   }
@@ -1476,7 +1485,8 @@ export class Interpreter {
     const resolved = this.evaluateFormulaValue(stmt.formula);
     this.setBinding(stmt.name, resolved);
     if (!this.currentBindingFrame) this.theory.axioms.set(stmt.name, resolved);
-    if (this.shouldEmitLocalBindings()) this.emit(`Set ${stmt.name} = ${formulaToUnicode(resolved)}`);
+    if (this.shouldEmitLocalBindings())
+      this.emit(`Set ${stmt.name} = ${formulaToUnicode(resolved)}`);
   }
 
   private execIfStmt(stmt: IfStmtNode): void {
@@ -1550,7 +1560,8 @@ export class Interpreter {
           type: nestedCall.type,
           stmt: nestedCall.stmt,
         });
-        if ('result' in started) this.applyFunctionContinuation(started.resultContinuation, started.result);
+        if ('result' in started)
+          this.applyFunctionContinuation(started.resultContinuation, started.result);
         else callStack.push(started.frame);
         continue;
       }
@@ -1768,7 +1779,7 @@ export class Interpreter {
 
       if (frame.kind === 'for') {
         if (this.returnSignal || frame.index >= frame.stmt.items.length) {
-          this.restoreBindingSnapshot(frame.stmt.variable, frame.savedBinding as BindingSnapshot);
+          this.restoreBindingSnapshot(frame.stmt.variable, frame.savedBinding);
           runtimeStack.pop();
           continue;
         }
@@ -2020,7 +2031,14 @@ export class Interpreter {
           extraBindings: [
             ['left', left],
             ['right', right],
-            ['equivalent', { kind: 'number', value: formulaToString(left) === formulaToString(right) ? 1 : 0, source: action.source }],
+            [
+              'equivalent',
+              {
+                kind: 'number',
+                value: formulaToString(left) === formulaToString(right) ? 1 : 0,
+                source: action.source,
+              },
+            ],
           ],
         };
       }
@@ -2097,7 +2115,10 @@ export class Interpreter {
           extraBindings: [
             ['variables', this.createAtomListFormula(tt.variables, action.source)],
             ['rows_count', { kind: 'number', value: tt.rows.length, source: action.source }],
-            ['satisfying_count', { kind: 'number', value: tt.satisfyingCount ?? 0, source: action.source }],
+            [
+              'satisfying_count',
+              { kind: 'number', value: tt.satisfyingCount ?? 0, source: action.source },
+            ],
           ],
         };
       }
@@ -2123,24 +2144,27 @@ export class Interpreter {
   ): void {
     this.defineBinding(baseName, primary);
     this.defineBinding(`${baseName}.formula`, primary);
-    this.defineBinding(`${baseName}.status`, this.createStringFormula(result.status, primary.source));
+    this.defineBinding(
+      `${baseName}.status`,
+      this.createStringFormula(result.status, primary.source),
+    );
     this.defineBinding(
       `${baseName}.output`,
       this.createStringFormula(result.output || '', primary.source),
     );
-    this.defineBinding(
-      `${baseName}.ok`,
-      {
-        kind: 'number',
-        value: this.isSuccessfulStatus(result.status) ? 1 : 0,
-        source: primary.source,
-      },
-    );
+    this.defineBinding(`${baseName}.ok`, {
+      kind: 'number',
+      value: this.isSuccessfulStatus(result.status) ? 1 : 0,
+      source: primary.source,
+    });
     this.defineBinding(`${baseName}.command`, this.createStringFormula(actionName, primary.source));
     this.defineBinding(`${baseName}.formulas`, this.createListFormula(formulas, primary.source));
     this.defineBinding(
       `${baseName}.diagnostics`,
-      this.createStringListFormula(result.diagnostics.map((diag) => diag.message), primary.source),
+      this.createStringListFormula(
+        result.diagnostics.map((diag) => diag.message),
+        primary.source,
+      ),
     );
     for (const [suffix, value] of extraBindings) {
       this.defineBinding(`${baseName}.${suffix}`, value);

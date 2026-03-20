@@ -150,8 +150,9 @@ describe('Stress: Hash-Consing / Formula Sharing', () => {
   }, 10000);
 
   it('100 axioms sharing same subformulas', () => {
-    const axioms = Array.from({ length: 100 }, (_, i) =>
-      `axiom a${i} = (P -> Q) & (Q -> R) & (R -> S${i})`
+    const axioms = Array.from(
+      { length: 100 },
+      (_, i) => `axiom a${i} = (P -> Q) & (Q -> R) & (R -> S${i})`,
     ).join('\n');
     const source = `
       logic classical.propositional
@@ -291,8 +292,9 @@ describe('Stress: First-Order Logic', () => {
   }, 15000);
 
   it('derivation with 10 axioms in FOL', () => {
-    const axioms = Array.from({ length: 9 }, (_, i) =>
-      `axiom a${i} = forall x (P${i}(x) -> P${i + 1}(x))`
+    const axioms = Array.from(
+      { length: 9 },
+      (_, i) => `axiom a${i} = forall x (P${i}(x) -> P${i + 1}(x))`,
     ).join('\n');
     const source = `
       logic classical.first_order
@@ -519,9 +521,9 @@ describe('Stress: Multi-Profile Whiplash', () => {
 // ============================================================
 describe('Stress: Omega Final', () => {
   it('theory with 50 axioms + derivation chain', () => {
-    const axioms = Array.from({ length: 49 }, (_, i) =>
-      `axiom a${i} = P${i} -> P${i + 1}`
-    ).join('\n');
+    const axioms = Array.from({ length: 49 }, (_, i) => `axiom a${i} = P${i} -> P${i + 1}`).join(
+      '\n',
+    );
     const source = `
       logic classical.propositional
       ${axioms}
@@ -548,12 +550,10 @@ describe('Stress: Omega Final', () => {
   }, 10000);
 
   it('massive theory render (50 axioms + 50 theorems)', () => {
-    const decls = Array.from({ length: 50 }, (_, i) =>
-      `axiom a${i} = P${i} -> Q${i}`
-    ).join('\n') + '\n' +
-    Array.from({ length: 50 }, (_, i) =>
-      `theorem t${i} = Q${i} -> R${i}`
-    ).join('\n');
+    const decls =
+      Array.from({ length: 50 }, (_, i) => `axiom a${i} = P${i} -> Q${i}`).join('\n') +
+      '\n' +
+      Array.from({ length: 50 }, (_, i) => `theorem t${i} = Q${i} -> R${i}`).join('\n');
     const source = `
       logic classical.propositional
       ${decls}

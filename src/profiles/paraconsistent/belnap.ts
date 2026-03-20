@@ -60,7 +60,10 @@ const BELNAP_OR: Record<BelnapValue, Record<BelnapValue, BelnapValue>> = {
 // NOT: swap pos <-> neg
 // Designado (T o B): pos bit está encendido
 
-interface BelnapBitset { pos: bigint; neg: bigint; }
+interface BelnapBitset {
+  pos: bigint;
+  neg: bigint;
+}
 
 function evaluateBelnapBitset(
   formula: Formula,
@@ -132,10 +135,16 @@ function evaluateBelnapBitset(
 
 function isBelnapPure(f: Formula): boolean {
   switch (f.kind) {
-    case 'atom': return true;
-    case 'not': case 'and': case 'or': case 'implies': case 'biconditional':
+    case 'atom':
+      return true;
+    case 'not':
+    case 'and':
+    case 'or':
+    case 'implies':
+    case 'biconditional':
       return (f.args || []).every(isBelnapPure);
-    default: return false;
+    default:
+      return false;
   }
 }
 
@@ -517,7 +526,10 @@ export class ParaconsistentBelnap implements LogicProfile {
       const { pos, neg, total } = evaluateBelnapBitset(formula, atoms);
 
       // Materialize rows from bitset results
-      const rows: { valuation: Valuation; result: BelnapValue }[] = new Array(total);
+      const rows: { valuation: Valuation; result: BelnapValue }[] = new Array<{
+        valuation: Valuation;
+        result: BelnapValue;
+      }>(total);
       const designated = new Set<BelnapValue>(['T', 'B']);
       let tautCount = 0;
       let satCount = 0;

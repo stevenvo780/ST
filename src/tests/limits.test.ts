@@ -19,14 +19,29 @@ describe('ST Language Limits & Stress Tests', () => {
       expect(out.stdout).toContain('SATISFACIBLE');
     }, 20000); // 20s timeout
 
-    it('reaches the 20 atoms limit and throws error', () => {
+    it('handles 21 atoms via bitset fast-path (≤26)', () => {
       const source = `
         logic classical.propositional
         let f = A & B & C & D & E & F & G & H & I & J & K & L & M & N & O & P & Q & R & S & T & U
         check satisfiable f
       `;
       const out = run(source);
-      // The engine throws an error for > 20 atoms
+      // Bitset fast-path supports up to 26 atoms without truth table generation
+      expect(out.exitCode).toBe(0);
+      expect(out.stdout).toContain('SATISFACIBLE');
+    });
+
+    it('reaches the 26 atoms bitset limit and falls back to truth table error', () => {
+      const atoms = Array.from({ length: 27 }, (_, i) =>
+        i < 26 ? String.fromCharCode(65 + i) : 'AA',
+      ).join(' & ');
+      const source = `
+        logic classical.propositional
+        let f = ${atoms}
+        check satisfiable f
+      `;
+      const out = run(source);
+      // >26 atoms exceeds bitset path, falls back to truth table which rejects >20
       expect(out.diagnostics.some((d) => d.message.includes('Demasiadas variables'))).toBe(true);
     });
 

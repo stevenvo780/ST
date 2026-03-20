@@ -12,10 +12,10 @@ export class FormulaFactory {
    */
   static create(f: Formula): Formula {
     if (!f) return f;
-    
+
     // Generar hash estructural
     const hash = this.hash(f);
-    
+
     // Si ya existe en caché, devolver la instancia existente
     if (this.cache.has(hash)) {
       return this.cache.get(hash)!;
@@ -34,11 +34,11 @@ export class FormulaFactory {
    */
   private static hash(f: Formula): string {
     const parts: string[] = [f.kind];
-    
+
     if (f.name) parts.push(`n:${f.name}`);
     if (f.variable) parts.push(`v:${f.variable}`);
     if (f.value !== undefined) parts.push(`val:${f.value}`);
-    
+
     if (f.params) {
       parts.push(`p:${f.params.join(',')}`);
     }
