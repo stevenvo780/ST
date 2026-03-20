@@ -69,6 +69,9 @@ export {
   registerConfidence,
   registerContext,
   compileClaimsToTheory,
+  registerDefinition,
+  registerSource,
+  registerInterpretation,
 } from './text-layer/compiler';
 
 // Runtime

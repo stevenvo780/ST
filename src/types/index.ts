@@ -94,6 +94,41 @@ export interface TextLayerState {
   supports: Support[];
   confidences: Confidence[];
   contexts: Context[];
+  /** v3: Formal definitions */
+  definitions: Map<string, DefinitionEntry>;
+  /** v3: Bibliographic sources */
+  sources: Map<string, SourceInfo>;
+  /** v3: Interpretations (text → formula mappings) */
+  interpretations: Map<string, InterpretationEntry>;
+}
+
+// --- v3: Definitions ---
+
+export interface DefinitionEntry {
+  name: string;
+  params?: string[];
+  body: Formula;
+  description?: string;
+}
+
+// --- v3: Sources ---
+
+export interface SourceInfo {
+  id: string;
+  author?: string;
+  work?: string;
+  year?: number;
+  section?: string;
+  edition?: string;
+  url?: string;
+}
+
+// --- v3: Interpretations ---
+
+export interface InterpretationEntry {
+  text: string;
+  passageRef?: string;
+  formula: Formula;
 }
 
 // --- Valuación ---

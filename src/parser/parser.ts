@@ -41,6 +41,13 @@ import {
   ReturnStmtNode,
   FnCallNode,
   ActionExprNode,
+  DefineDeclNode,
+  UnfoldCmdNode,
+  FoldCmdNode,
+  SourceDeclNode,
+  SourceField,
+  InterpretCmdNode,
+  GlossaryCmdNode,
 } from '../ast/nodes';
 
 // Modal aliases per profile: maps identifier names to modal formula types
@@ -192,6 +199,18 @@ export class Parser {
         return this.parseReturnStmt();
       case TokenType.EXPORT:
         return this.parseExportDecl();
+      case TokenType.DEFINE:
+        return this.parseDefineDecl();
+      case TokenType.UNFOLD:
+        return this.parseUnfoldCmd();
+      case TokenType.FOLD:
+        return this.parseFoldCmd();
+      case TokenType.SOURCE_KW:
+        return this.parseSourceDecl();
+      case TokenType.INTERPRET:
+        return this.parseInterpretCmd();
+      case TokenType.GLOSSARY:
+        return this.parseGlossaryCmd();
       case TokenType.IDENTIFIER:
         throw new Error(`Statement inesperado: '${tok.value}' (${tok.type})`);
       case TokenType.NEWLINE:
@@ -316,6 +335,24 @@ export class Parser {
     }
 
     if (this.match(TokenType.PASSAGE)) {
+      // passage @Source "text" (standalone passage with source and raw text)
+      if (this.checkType(TokenType.AT)) {
+        this.advance(); // skip @
+        const sourceRef = this.expectName();
+        // Optional section: §section or just a string
+        let section = '';
+        if (this.checkType(TokenType.STRING)) {
+          // No section, just text
+        } else if (this.checkType(TokenType.IDENTIFIER) || this.checkType(TokenType.NUMBER)) {
+          section = this.current().value;
+          this.advance();
+        }
+        if (this.checkType(TokenType.STRING)) {
+          this.advance(); // consume the raw text string
+          const anchorPath = `@${sourceRef}${section ? '#' + section : ''}`;
+          return { kind: 'let_decl', name, letType: 'passage', anchorPath, source: src };
+        }
+      }
       this.expect(TokenType.LPAREN);
       this.expect(TokenType.LBRACKET_DOUBLE);
       // El lexer ya leyó el contenido como STRING entre [[ y ]]
@@ -420,22 +457,30 @@ export class Parser {
     return { kind: 'context_decl', claimName, text: tok.value, source: src };
   }
 
-  // render target --format FORMAT
+  // render target [as FORMAT] | render glossary [as FORMAT] | render analysis [as FORMAT]
   private parseRenderCmd(): RenderCmdNode {
     const src = this.loc();
     this.expect(TokenType.RENDER);
-    // El target puede ser un identificador o la keyword 'theory' (que ahora es un token especial)
+    // El target puede ser un identificador, keyword 'theory', 'glossary', o 'analysis'
     let target: string;
     if (this.checkType(TokenType.THEORY)) {
       target = this.current().value;
+      this.advance();
+    } else if (this.checkType(TokenType.GLOSSARY)) {
+      target = 'glossary';
       this.advance();
     } else {
       target = this.expectIdent();
     }
     let format = 'markdown';
-    // Opcionalmente leer --format
-    // Simplificado: si hay un ident 'markdown' o 'json' o 'text' después, lo tomamos
-    if (this.checkType(TokenType.IDENTIFIER)) {
+    // render X as FORMAT
+    if (this.match(TokenType.AS)) {
+      if (this.checkType(TokenType.IDENTIFIER)) {
+        format = this.current().value;
+        this.advance();
+      }
+    } else if (this.checkType(TokenType.IDENTIFIER)) {
+      // Backward compatible: render X markdown
       format = this.current().value;
       this.advance();
     }
@@ -830,11 +875,140 @@ export class Parser {
       throw new Error('Se esperaba un statement después de "export"');
     }
     // Solo permitimos exportar declaraciones
-    const exportable = ['let_decl', 'axiom_decl', 'theorem_decl', 'fn_decl', 'theory_decl'];
+    const exportable = [
+      'let_decl',
+      'axiom_decl',
+      'theorem_decl',
+      'fn_decl',
+      'theory_decl',
+      'define_decl',
+    ];
     if (!exportable.includes(stmt.kind)) {
       throw new Error(`No se puede exportar un statement de tipo: ${stmt.kind}`);
     }
     return { kind: 'export_decl', statement: stmt, source: src };
+  }
+
+  // --- define NAME(params?) := FORMULA (description "text")? ---
+  private parseDefineDecl(): DefineDeclNode {
+    const src = this.loc();
+    this.expect(TokenType.DEFINE);
+    const name = this.expectName();
+
+    // Parámetros opcionales: define F(x, y) := ...
+    let params: string[] | undefined;
+    if (this.match(TokenType.LPAREN)) {
+      params = [];
+      if (!this.checkType(TokenType.RPAREN)) {
+        params.push(this.expectName());
+        while (this.match(TokenType.COMMA)) {
+          params.push(this.expectName());
+        }
+      }
+      this.expect(TokenType.RPAREN);
+    }
+
+    // := (colon + equals) or just =
+    if (this.match(TokenType.COLON)) {
+      this.expect(TokenType.EQUALS);
+    } else {
+      this.expect(TokenType.EQUALS);
+    }
+
+    const body = this.parseFormula();
+
+    // Optional description: description "text" (on next line or same line)
+    let description: string | undefined;
+    this.skipNewlines();
+    if (this.checkType(TokenType.DESCRIPTION)) {
+      this.advance();
+      if (this.checkType(TokenType.STRING)) {
+        description = this.current().value;
+        this.advance();
+      }
+    }
+
+    return { kind: 'define_decl', name, params, body, description, source: src };
+  }
+
+  // --- unfold FORMULA ---
+  private parseUnfoldCmd(): UnfoldCmdNode {
+    const src = this.loc();
+    this.expect(TokenType.UNFOLD);
+    const formula = this.parseFormula();
+    return { kind: 'unfold_cmd', formula, source: src };
+  }
+
+  // --- fold FORMULA ---
+  private parseFoldCmd(): FoldCmdNode {
+    const src = this.loc();
+    this.expect(TokenType.FOLD);
+    const formula = this.parseFormula();
+    return { kind: 'fold_cmd', formula, source: src };
+  }
+
+  // --- source NAME { key "value", ... } ---
+  private parseSourceDecl(): SourceDeclNode {
+    const src = this.loc();
+    this.expect(TokenType.SOURCE_KW);
+    const name = this.expectName();
+    this.expect(TokenType.LBRACE);
+    this.skipNewlines();
+
+    const fields: SourceField[] = [];
+    while (!this.checkType(TokenType.RBRACE) && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.checkType(TokenType.RBRACE)) break;
+      const key = this.expectName();
+      // Value: string or number
+      if (this.checkType(TokenType.STRING)) {
+        fields.push({ key, value: this.current().value });
+        this.advance();
+      } else if (this.checkType(TokenType.NUMBER)) {
+        fields.push({ key, value: parseFloat(this.current().value) });
+        this.advance();
+      } else if (this.checkType(TokenType.MINUS)) {
+        // Negative number (e.g., year -350)
+        this.advance();
+        if (this.checkType(TokenType.NUMBER)) {
+          fields.push({ key, value: -parseFloat(this.current().value) });
+          this.advance();
+        }
+      }
+      this.skipNewlines();
+    }
+    this.expect(TokenType.RBRACE);
+    return { kind: 'source_decl', name, fields, source: src };
+  }
+
+  // --- interpret "text" as FORMULA  |  interpret IDENT as FORMULA ---
+  private parseInterpretCmd(): InterpretCmdNode {
+    const src = this.loc();
+    this.expect(TokenType.INTERPRET);
+
+    let text: string;
+    let passageRef: string | undefined;
+
+    if (this.checkType(TokenType.STRING)) {
+      text = this.current().value;
+      this.advance();
+    } else {
+      // interpret passageRef as FORMULA
+      passageRef = this.expectName();
+      text = passageRef;
+    }
+
+    this.expect(TokenType.AS);
+    const formula = this.parseFormula();
+
+    return { kind: 'interpret_cmd', text, passageRef, formula, source: src };
+  }
+
+  // --- glossary ---
+  private parseGlossaryCmd(): GlossaryCmdNode {
+    const src = this.loc();
+    this.expect(TokenType.GLOSSARY);
+    return { kind: 'glossary_cmd', source: src };
   }
 
   // --- nombre(arg1, arg2) — llamada a función ---
@@ -1514,6 +1688,12 @@ export class Parser {
       TokenType.WHILE,
       TokenType.FN,
       TokenType.RETURN,
+      TokenType.DEFINE,
+      TokenType.UNFOLD,
+      TokenType.FOLD,
+      TokenType.SOURCE_KW,
+      TokenType.INTERPRET,
+      TokenType.GLOSSARY,
     ]);
     while (!this.isAtEnd()) {
       if (this.checkType(TokenType.NEWLINE)) {

@@ -36,7 +36,13 @@ export type StatementKind =
   | 'fn_decl'
   | 'return_stmt'
   | 'fn_call'
-  | 'export_decl';
+  | 'export_decl'
+  | 'define_decl'
+  | 'unfold_cmd'
+  | 'fold_cmd'
+  | 'source_decl'
+  | 'interpret_cmd'
+  | 'glossary_cmd';
 
 export interface ASTNode {
   kind: StatementKind;
@@ -229,6 +235,48 @@ export interface ExportDeclNode extends ASTNode {
   statement: Statement;
 }
 
+// --- v3: Definitions, sources, glossary ---
+
+export interface DefineDeclNode extends ASTNode {
+  kind: 'define_decl';
+  name: string;
+  params?: string[]; // define F(x,y) := ...
+  body: Formula;
+  description?: string;
+}
+
+export interface UnfoldCmdNode extends ASTNode {
+  kind: 'unfold_cmd';
+  formula: Formula;
+}
+
+export interface FoldCmdNode extends ASTNode {
+  kind: 'fold_cmd';
+  formula: Formula;
+}
+
+export interface SourceField {
+  key: string;
+  value: string | number;
+}
+
+export interface SourceDeclNode extends ASTNode {
+  kind: 'source_decl';
+  name: string;
+  fields: SourceField[];
+}
+
+export interface InterpretCmdNode extends ASTNode {
+  kind: 'interpret_cmd';
+  text: string;
+  passageRef?: string; // interpret p as FORMULA
+  formula: Formula;
+}
+
+export interface GlossaryCmdNode extends ASTNode {
+  kind: 'glossary_cmd';
+}
+
 // --- Text Layer ---
 
 export interface LetPassageNode extends ASTNode {
@@ -333,7 +381,13 @@ export type Statement =
   | FnDeclNode
   | ReturnStmtNode
   | FnCallNode
-  | ExportDeclNode;
+  | ExportDeclNode
+  | DefineDeclNode
+  | UnfoldCmdNode
+  | FoldCmdNode
+  | SourceDeclNode
+  | InterpretCmdNode
+  | GlossaryCmdNode;
 
 export interface Program {
   statements: Statement[];

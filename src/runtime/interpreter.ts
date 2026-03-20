@@ -12,6 +12,8 @@ import {
   TruthTableResult,
   TextLayerState,
   Formula,
+  DefinitionEntry,
+  SourceInfo,
 } from '../types';
 import { Parser } from '../parser/parser';
 import {
@@ -45,6 +47,12 @@ import {
   WhileStmtNode,
   FnDeclNode,
   ReturnStmtNode,
+  DefineDeclNode,
+  UnfoldCmdNode,
+  FoldCmdNode,
+  SourceDeclNode,
+  InterpretCmdNode,
+  GlossaryCmdNode,
 } from '../ast/nodes';
 import { registry } from '../profiles/interface';
 import {
@@ -54,7 +62,7 @@ import {
   generateValuationsLazy,
 } from '../profiles/classical/propositional';
 import { evalNumeric } from '../profiles/arithmetic';
-import { formulaToUnicode } from './format';
+import { formulaToUnicode, formulaToLaTeX } from './format';
 import { detectFallacies, FallacyInfo } from './fallacies';
 // Barrel import: registra todos los perfiles automáticamente
 import '../profiles';
@@ -67,6 +75,9 @@ import {
   registerConfidence,
   registerContext,
   compileClaimsToTheory,
+  registerDefinition,
+  registerSource,
+  registerInterpretation,
 } from '../text-layer/compiler';
 import { classifyFormula } from './formula-classifier';
 import { FormulaFactory } from './formula-factory';
@@ -211,6 +222,11 @@ export class Interpreter {
   private fnMemoCache = new Map<string, Formula | undefined>();
   private static readonly MEMO_CACHE_MAX = 50000;
 
+  /** v3: Formal definitions (define Name(params?) := body) */
+  private definitions: Map<string, DefinitionEntry> = new Map();
+  /** v3: Bibliographic sources */
+  private sources: Map<string, SourceInfo> = new Map();
+
   constructor() {
     this.theory = this.createEmptyTheory();
     this.textLayer = createTextLayerState();
@@ -279,6 +295,8 @@ export class Interpreter {
     this.runtimeStepCount = 0;
     this.runtimeCallCount = 0;
     this.fnMemoCache.clear();
+    this.definitions.clear();
+    this.sources.clear();
   }
 
   // ── Memoización de funciones ──────────────────────────────
@@ -318,6 +336,9 @@ export class Interpreter {
           case 'import_decl':
           case 'export_decl':
           case 'logic_decl':
+          case 'glossary_cmd':
+          case 'unfold_cmd':
+          case 'fold_cmd':
             return false;
           case 'if_stmt': {
             const ifS = s;
@@ -625,6 +646,18 @@ export class Interpreter {
         return;
       case 'export_decl':
         return this.execExportDecl(stmt);
+      case 'define_decl':
+        return this.execDefineDecl(stmt);
+      case 'unfold_cmd':
+        return this.execUnfoldCmd(stmt);
+      case 'fold_cmd':
+        return this.execFoldCmd(stmt);
+      case 'source_decl':
+        return this.execSourceDecl(stmt);
+      case 'interpret_cmd':
+        return this.execInterpretCmd(stmt);
+      case 'glossary_cmd':
+        return this.execGlossaryCmd(stmt);
     }
   }
 
@@ -805,6 +838,18 @@ export class Interpreter {
         return;
       case 'export_decl':
         return this.execExportDecl(stmt);
+      case 'define_decl':
+        return this.execDefineDecl(stmt);
+      case 'unfold_cmd':
+        return this.execUnfoldCmd(stmt);
+      case 'fold_cmd':
+        return this.execFoldCmd(stmt);
+      case 'source_decl':
+        return this.execSourceDecl(stmt);
+      case 'interpret_cmd':
+        return this.execInterpretCmd(stmt);
+      case 'glossary_cmd':
+        return this.execGlossaryCmd(stmt);
     }
   }
 
@@ -943,6 +988,13 @@ export class Interpreter {
       case 'theory_decl':
         this.exportedTheories.set(s.name, this.theories.get(s.name) as TheoryScope);
         break;
+      case 'define_decl': {
+        const defEntry = this.definitions.get(s.name);
+        if (defEntry) {
+          this.exportedBindings.set(s.name, defEntry.body);
+        }
+        break;
+      }
     }
   }
 
@@ -1055,6 +1107,34 @@ export class Interpreter {
         );
         visited.delete(f.name);
         return result;
+      }
+
+      // v3: Expand definitions (no-param definitions referenced as atoms)
+      const def = this.definitions.get(f.name);
+      if (def && (!def.params || def.params.length === 0)) {
+        if (visited.has(f.name)) return f;
+        visited.add(f.name);
+        const result = this.resolveFormulaRecursive(def.body, visited);
+        visited.delete(f.name);
+        return result;
+      }
+    }
+
+    // v3: Expand parametric definitions used as predicates: F(a, b)
+    if (f.kind === 'predicate' && f.name) {
+      const def = this.definitions.get(f.name);
+      if (def && def.params && def.params.length > 0) {
+        // Predicates store arguments as params (string[]) or args (Formula[])
+        let argFormulas: Formula[];
+        if (f.args && f.args.length > 0) {
+          argFormulas = f.args.map((a) => (a ? this.resolveFormulaRecursive(a, visited) : a));
+        } else {
+          argFormulas = (f.params ?? []).map(
+            (p): Formula => ({ kind: 'atom', name: p, source: f.source }),
+          );
+        }
+        const expanded = this.substituteParams(def.body, def.params, argFormulas);
+        return this.resolveFormulaRecursive(expanded, visited);
       }
     }
 
@@ -1322,6 +1402,13 @@ export class Interpreter {
     const diags = compileClaimsToTheory(this.textLayer, this.theory);
     this.diagnostics.push(...diags);
 
+    if (stmt.target === 'glossary') {
+      return this.renderGlossary(stmt.format);
+    }
+    if (stmt.target === 'analysis') {
+      return this.renderAnalysis(stmt.format);
+    }
+
     if (stmt.target === 'claims' || stmt.target === 'all') {
       this.emit(`── Render: ${stmt.target} (${stmt.format}) ──`);
       for (const [name, claim] of this.theory.claims) {
@@ -1357,6 +1444,105 @@ export class Interpreter {
         return;
       }
       this.emit(`Render: ${stmt.target} (${stmt.format})`);
+    }
+  }
+
+  /** Render glossary in the specified format */
+  private renderGlossary(format: string): void {
+    if (format === 'json') {
+      const obj: Record<string, unknown> = {};
+      for (const [name, def] of this.definitions) {
+        obj[name] = {
+          params: def.params ?? [],
+          body: formulaToString(def.body),
+          description: def.description ?? null,
+        };
+      }
+      this.emit(JSON.stringify(obj, null, 2));
+      return;
+    }
+
+    // markdown or default
+    if (this.definitions.size === 0) {
+      this.emit('(sin definiciones)');
+      return;
+    }
+    for (const [name, def] of this.definitions) {
+      const paramsStr = def.params?.length ? `(${def.params.join(', ')})` : '';
+      const bodyStr = format === 'latex' ? formulaToLaTeX(def.body) : formulaToUnicode(def.body);
+      if (format === 'latex') {
+        this.emit(`\\newcommand{\\${name}}{${bodyStr}} % ${def.description ?? ''}`);
+      } else {
+        this.emit(`- **${name}${paramsStr}** := ${bodyStr}`);
+        if (def.description) this.emit(`  > ${def.description}`);
+      }
+    }
+  }
+
+  /** Render full analysis document */
+  private renderAnalysis(format: string): void {
+    const isLatex = format === 'latex';
+    const heading = (level: number, text: string) => {
+      if (isLatex) return `${'\\'.repeat(1)}${'sub'.repeat(level - 1)}section{${text}}`;
+      return `${'#'.repeat(level)} ${text}`;
+    };
+
+    this.emit(heading(1, 'Análisis'));
+    this.emit('');
+
+    // Sources
+    if (this.sources.size > 0) {
+      this.emit(heading(2, 'Fuentes'));
+      for (const [, src] of this.sources) {
+        const yearStr = src.year ? ` (${src.year})` : '';
+        this.emit(`- ${src.author ?? ''}${yearStr} *${src.work ?? ''}*`);
+      }
+      this.emit('');
+    }
+
+    // Definitions
+    if (this.definitions.size > 0) {
+      this.emit(heading(2, 'Definiciones'));
+      this.renderGlossary(format);
+      this.emit('');
+    }
+
+    // Axioms
+    if (this.theory.axioms.size > 0) {
+      this.emit(heading(2, 'Axiomas'));
+      for (const [name, formula] of this.theory.axioms) {
+        this.emit(`- **${name}**: ${formulaToUnicode(formula)}`);
+      }
+      this.emit('');
+    }
+
+    // Theorems
+    if (this.theory.theorems.size > 0) {
+      this.emit(heading(2, 'Teoremas'));
+      for (const [name, formula] of this.theory.theorems) {
+        this.emit(`- **${name}**: ${formulaToUnicode(formula)}`);
+      }
+      this.emit('');
+    }
+
+    // Claims
+    if (this.theory.claims.size > 0) {
+      this.emit(heading(2, 'Claims'));
+      for (const [name, claim] of this.theory.claims) {
+        const fStr = claim.formula ? formulaToUnicode(claim.formula) : '(sin fórmula)';
+        this.emit(`- **${name}**: ${fStr}`);
+      }
+      this.emit('');
+    }
+
+    // Results summary
+    if (this.results.length > 0) {
+      this.emit(heading(2, 'Verificaciones'));
+      for (const r of this.results) {
+        const status = r.status === 'valid' ? '✓' : r.status === 'satisfiable' ? '~' : '✗';
+        const fStr = r.formula ? formulaToUnicode(r.formula) : '';
+        this.emit(`- ${fStr}: ${r.status} ${status}`);
+      }
     }
   }
 
@@ -1592,6 +1778,263 @@ export class Interpreter {
     else this.returnValue = undefined;
     this.returnSignal = true;
   }
+
+  // ── v3: Definitions, sources, glossary ──────────────────────────
+
+  private execDefineDecl(stmt: DefineDeclNode): void {
+    // Check for circular definitions
+    this.checkCircularDefinition(stmt.name, stmt.body, new Set());
+
+    const entry: DefinitionEntry = {
+      name: stmt.name,
+      params: stmt.params,
+      body: stmt.body,
+      description: stmt.description,
+    };
+    this.definitions.set(stmt.name, entry);
+    const diags = registerDefinition(this.textLayer, entry);
+    this.diagnostics.push(...diags);
+    this.invalidateResolveCache();
+
+    const paramsStr = stmt.params?.length ? `(${stmt.params.join(', ')})` : '';
+    const bodyStr = formulaToUnicode(stmt.body);
+    this.emit(`Define ${stmt.name}${paramsStr} := ${bodyStr}`);
+    if (stmt.description) {
+      this.emit(`  → "${stmt.description}"`);
+    }
+  }
+
+  /** Detect circular definitions (A := ... A ...) */
+  private checkCircularDefinition(name: string, body: Formula, visited: Set<string>): void {
+    if (!body) return;
+    if (body.kind === 'atom' && body.name) {
+      if (body.name === name) {
+        throw new Error(`Definición circular detectada: '${name}' se refiere a sí mismo`);
+      }
+      if (visited.has(body.name)) return;
+      visited.add(body.name);
+      const dep = this.definitions.get(body.name);
+      if (dep) {
+        this.checkCircularDefinition(name, dep.body, visited);
+      }
+    }
+    if (body.args) {
+      for (const arg of body.args) {
+        if (arg) this.checkCircularDefinition(name, arg, visited);
+      }
+    }
+  }
+
+  /** Expand a definition by name with given arguments */
+  private expandDefinition(name: string, args?: Formula[]): Formula | null {
+    const def = this.definitions.get(name);
+    if (!def) return null;
+
+    // If definition has no params, return body directly
+    if (!def.params || def.params.length === 0) {
+      return def.body;
+    }
+
+    // Substitute params with args
+    const actualArgs = args ?? [];
+    return this.substituteParams(def.body, def.params, actualArgs);
+  }
+
+  /** Recursively substitute parameter names with actual argument formulas */
+  private substituteParams(formula: Formula, params: string[], args: Formula[]): Formula {
+    if (!formula) return formula;
+
+    if (formula.kind === 'atom' && formula.name) {
+      const idx = params.indexOf(formula.name);
+      if (idx >= 0 && idx < args.length) {
+        return args[idx];
+      }
+      return formula;
+    }
+
+    if (formula.args && formula.args.length > 0) {
+      const newArgs = formula.args.map((a) => (a ? this.substituteParams(a, params, args) : a));
+      let changed = false;
+      for (let i = 0; i < formula.args.length; i++) {
+        if (formula.args[i] !== newArgs[i]) {
+          changed = true;
+          break;
+        }
+      }
+      return changed ? { ...formula, args: newArgs } : formula;
+    }
+
+    return formula;
+  }
+
+  /** Expand all definitions in a formula (one level) */
+  private expandDefinitionsInFormula(f: Formula): Formula {
+    if (!f) return f;
+
+    // If atom matches a definition name (no params), expand it
+    if (f.kind === 'atom' && f.name) {
+      const expanded = this.expandDefinition(f.name);
+      if (expanded) return expanded;
+    }
+
+    // If it's a predicate-like call (name with args), try to expand parametric definition
+    if (f.kind === 'predicate' && f.name) {
+      const def = this.definitions.get(f.name);
+      if (def && def.params && def.params.length > 0 && f.args) {
+        const expanded = this.expandDefinition(f.name, f.args);
+        if (expanded) return expanded;
+      }
+    }
+
+    // Recurse into sub-formulas
+    if (f.args && f.args.length > 0) {
+      const newArgs = f.args.map((a) => (a ? this.expandDefinitionsInFormula(a) : a));
+      let changed = false;
+      for (let i = 0; i < f.args.length; i++) {
+        if (f.args[i] !== newArgs[i]) {
+          changed = true;
+          break;
+        }
+      }
+      return changed ? { ...f, args: newArgs } : f;
+    }
+
+    return f;
+  }
+
+  /** Try to fold a formula back into a definition reference */
+  private foldFormula(f: Formula): Formula {
+    const fStr = formulaToString(f);
+    for (const [name, def] of this.definitions) {
+      if (!def.params || def.params.length === 0) {
+        const defStr = formulaToString(def.body);
+        if (fStr === defStr) {
+          return { kind: 'atom', name, source: f.source };
+        }
+      }
+    }
+    return f;
+  }
+
+  private execUnfoldCmd(stmt: UnfoldCmdNode): void {
+    const resolved = this.resolveFormulaRecursive(stmt.formula, new Set());
+    const expanded = this.expandDefinitionsInFormula(resolved);
+    const expandedStr = formulaToUnicode(expanded);
+    this.emit(`Unfold: ${formulaToUnicode(resolved)} → ${expandedStr}`);
+    this.results.push({
+      status: 'valid',
+      output: expandedStr,
+      diagnostics: [],
+      formula: expanded,
+    });
+  }
+
+  private execFoldCmd(stmt: FoldCmdNode): void {
+    const resolved = this.resolveFormulaRecursive(stmt.formula, new Set());
+    const folded = this.foldFormula(resolved);
+    const foldedStr = formulaToUnicode(folded);
+    this.emit(`Fold: ${formulaToUnicode(resolved)} → ${foldedStr}`);
+    this.results.push({
+      status: 'valid',
+      output: foldedStr,
+      diagnostics: [],
+      formula: folded,
+    });
+  }
+
+  private execSourceDecl(stmt: SourceDeclNode): void {
+    const info: SourceInfo = { id: stmt.name };
+    for (const field of stmt.fields) {
+      switch (field.key) {
+        case 'author':
+          info.author = String(field.value);
+          break;
+        case 'work':
+          info.work = String(field.value);
+          break;
+        case 'year':
+          info.year = typeof field.value === 'number' ? field.value : parseInt(String(field.value));
+          break;
+        case 'section':
+          info.section = String(field.value);
+          break;
+        case 'edition':
+          info.edition = String(field.value);
+          break;
+        case 'url':
+          info.url = String(field.value);
+          break;
+      }
+    }
+    this.sources.set(stmt.name, info);
+    const diags = registerSource(this.textLayer, info);
+    this.diagnostics.push(...diags);
+
+    const yearStr = info.year ? ` (${info.year})` : '';
+    this.emit(`Source ${stmt.name}: ${info.author ?? ''}${yearStr} — ${info.work ?? ''}`);
+  }
+
+  private execInterpretCmd(stmt: InterpretCmdNode): void {
+    const formula = this.resolveFormula(stmt.formula);
+    const key = stmt.passageRef ?? stmt.text;
+    const diags = registerInterpretation(this.textLayer, key, {
+      text: stmt.text,
+      passageRef: stmt.passageRef,
+      formula,
+    });
+    this.diagnostics.push(...diags);
+
+    // Also register as a let binding so the interpretation is available as a named formula
+    const bindingName = stmt.text.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+    if (bindingName) {
+      this.defineBinding(bindingName, formula);
+    }
+
+    this.emit(`Interpret: "${stmt.text}" → ${formulaToUnicode(formula)}`);
+  }
+
+  private execGlossaryCmd(_stmt: GlossaryCmdNode): void {
+    this.emit('');
+    this.emit('══════════════════════════════════════');
+    this.emit('  GLOSARIO');
+    this.emit('══════════════════════════════════════');
+
+    if (this.definitions.size === 0) {
+      this.emit('  (sin definiciones registradas)');
+    } else {
+      for (const [name, def] of this.definitions) {
+        const paramsStr = def.params?.length ? `(${def.params.join(', ')})` : '';
+        const bodyStr = formulaToUnicode(def.body);
+        this.emit(`  ${name}${paramsStr}  :=  ${bodyStr}`);
+        if (def.description) {
+          this.emit(`      "${def.description}"`);
+        }
+      }
+    }
+
+    // Also show sources if any
+    if (this.sources.size > 0) {
+      this.emit('');
+      this.emit('── Fuentes ──');
+      for (const [, src] of this.sources) {
+        const yearStr = src.year ? ` (${src.year})` : '';
+        this.emit(`  ${src.id}: ${src.author ?? ''}${yearStr} — ${src.work ?? ''}`);
+      }
+    }
+
+    // Show interpretations if any
+    if (this.textLayer.interpretations.size > 0) {
+      this.emit('');
+      this.emit('── Interpretaciones ──');
+      for (const [, interp] of this.textLayer.interpretations) {
+        this.emit(`  "${interp.text}" → ${formulaToUnicode(interp.formula)}`);
+      }
+    }
+
+    this.emit('══════════════════════════════════════');
+    this.emit('');
+  }
+  // ── End v3 ─────────────────────────────────────────────────
 
   private executeFnCall(stmt: { name: string; args: Formula[] }): Formula | undefined {
     // ── Memoización: verificar cache antes de ejecutar ──

@@ -2,7 +2,16 @@
  * ST Text Layer — Compilador texto -> formula/claim
  */
 
-import { Anchor, Formula, Theory, Diagnostic, TextLayerState } from '../types';
+import {
+  Anchor,
+  Formula,
+  Theory,
+  Diagnostic,
+  TextLayerState,
+  DefinitionEntry,
+  SourceInfo,
+  InterpretationEntry,
+} from '../types';
 
 export type { TextLayerState };
 
@@ -14,6 +23,9 @@ export function createTextLayerState(): TextLayerState {
     supports: [],
     confidences: [],
     contexts: [],
+    definitions: new Map(),
+    sources: new Map(),
+    interpretations: new Map(),
   };
 }
 
@@ -194,4 +206,40 @@ export function compileClaimsToTheory(state: TextLayerState, theory: Theory): Di
   }
 
   return diags;
+}
+
+// --- v3: Register a formal definition ---
+export function registerDefinition(state: TextLayerState, entry: DefinitionEntry): Diagnostic[] {
+  const diags: Diagnostic[] = [];
+  if (state.definitions.has(entry.name)) {
+    diags.push({
+      severity: 'warning',
+      message: `Definición '${entry.name}' redefinida`,
+    });
+  }
+  state.definitions.set(entry.name, entry);
+  return diags;
+}
+
+// --- v3: Register a bibliographic source ---
+export function registerSource(state: TextLayerState, source: SourceInfo): Diagnostic[] {
+  const diags: Diagnostic[] = [];
+  if (state.sources.has(source.id)) {
+    diags.push({
+      severity: 'warning',
+      message: `Fuente '${source.id}' redefinida`,
+    });
+  }
+  state.sources.set(source.id, source);
+  return diags;
+}
+
+// --- v3: Register an interpretation ---
+export function registerInterpretation(
+  state: TextLayerState,
+  key: string,
+  entry: InterpretationEntry,
+): Diagnostic[] {
+  state.interpretations.set(key, entry);
+  return [];
 }

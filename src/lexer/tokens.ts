@@ -50,6 +50,16 @@ export enum TokenType {
   FN = 'FN', // function declaration
   RETURN = 'RETURN', // return from function
 
+  // v3 — Definitions, sources, glossary
+  DEFINE = 'DEFINE', // define keyword
+  UNFOLD = 'UNFOLD', // unfold command
+  FOLD = 'FOLD', // fold command
+  SOURCE_KW = 'SOURCE_KW', // source declaration
+  INTERPRET = 'INTERPRET', // interpret text as formula
+  GLOSSARY = 'GLOSSARY', // glossary command
+  DESCRIPTION = 'DESCRIPTION', // description keyword (post-define)
+  AT = 'AT', // @ source annotation
+
   // Operators
   ARROW = 'ARROW', // ->
   AND = 'AND', // &
@@ -153,6 +163,13 @@ export const CORE_KEYWORDS: Record<string, TokenType> = {
   nand: TokenType.NAND,
   nor: TokenType.NOR,
   xor: TokenType.XOR,
+  define: TokenType.DEFINE,
+  unfold: TokenType.UNFOLD,
+  fold: TokenType.FOLD,
+  source: TokenType.SOURCE_KW,
+  interpret: TokenType.INTERPRET,
+  glossary: TokenType.GLOSSARY,
+  description: TokenType.DESCRIPTION,
   import: TokenType.IMPORT,
   importar: TokenType.IMPORT,
   export: TokenType.EXPORT,
@@ -206,6 +223,13 @@ export const CORE_KEYWORDS: Record<string, TokenType> = {
   mientras: TokenType.WHILE,
   funcion: TokenType.FN,
   retornar: TokenType.RETURN,
+  definir: TokenType.DEFINE,
+  desplegar: TokenType.UNFOLD,
+  plegar: TokenType.FOLD,
+  fuente: TokenType.SOURCE_KW,
+  interpretar: TokenType.INTERPRET,
+  glosario: TokenType.GLOSSARY,
+  descripcion: TokenType.DESCRIPTION,
 };
 
 /**

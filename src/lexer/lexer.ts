@@ -259,6 +259,10 @@ export class Lexer {
             this.advance();
           }
           break;
+        case '@':
+          this.addToken(TokenType.AT, '@');
+          this.advance();
+          break;
         default:
           this.diagnostics.push({
             severity: 'error',
