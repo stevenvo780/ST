@@ -331,8 +331,8 @@ ${setLines}
     const source = `
       logic arithmetic
       fn infinite(N) {
-        let next = N + 1
-        return infinite(next)
+        let m = N + 1
+        return infinite(m)
       }
       let r = infinite(1)
     `;
@@ -473,7 +473,7 @@ describe('Stress: Multi-Profile Whiplash', () => {
       check valid O(P) -> O(P)
 
       logic temporal.ltl
-      check satisfiable (P U Q)
+      check satisfiable G(P -> F(Q))
 
       logic epistemic.s5
       check satisfiable K(P) & !P
@@ -561,6 +561,175 @@ describe('Stress: Omega Final', () => {
     `;
     const out = run(source);
     expect(out.exitCode).toBe(0);
-    expect(out.stdout).toContain('render');
+    expect(out.stdout).toContain('Render');
+  }, 10000);
+});
+
+// ============================================================
+// 9. DPLL SAT SOLVER — BEYOND 26 ATOM WALL
+// ============================================================
+describe('Stress: DPLL SAT Solver', () => {
+  it('30 atoms — validity via DPLL (tautology)', () => {
+    const atoms = Array.from({ length: 30 }, (_, i) => `D${i}`);
+    const tautology = atoms.map((a) => `(${a} | !${a})`).join(' & ');
+    const source = `
+      logic classical.propositional
+      check valid ${tautology}
+    `;
+    const out = run(source);
+    expect(out.exitCode).toBe(0);
+    expect(stripAccents(out.stdout).toUpperCase()).toContain('VALIDA');
+  }, 30000);
+
+  it('30 atoms — satisfiability via DPLL (conjunction)', () => {
+    const atoms = Array.from({ length: 30 }, (_, i) => `S${i}`);
+    const formula = atoms.join(' & ');
+    const source = `
+      logic classical.propositional
+      check satisfiable ${formula}
+    `;
+    const out = run(source);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('SATISFACIBLE');
+  }, 30000);
+
+  it('30 atoms — unsatisfiable conjunction via DPLL', () => {
+    // C0 & !C0 & C1 & ... — immediately unsatisfiable
+    const atoms = Array.from({ length: 30 }, (_, i) => `C${i}`);
+    const formula = atoms.join(' & ') + ' & !C0';
+    const source = `
+      logic classical.propositional
+      check satisfiable ${formula}
+    `;
+    const out = run(source);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('INSATISFACIBLE');
+  }, 30000);
+
+  it('50 atoms — satisfiability via DPLL (simple conjunction)', () => {
+    const atoms = Array.from({ length: 50 }, (_, i) => `V${i}`);
+    const formula = atoms.join(' & ');
+    const source = `
+      logic classical.propositional
+      check satisfiable ${formula}
+    `;
+    const out = run(source);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('SATISFACIBLE');
+  }, 30000);
+
+  it('50 atoms — tautology via DPLL', () => {
+    // Each atom ORed with its negation — tautology
+    const atoms = Array.from({ length: 50 }, (_, i) => `T${i}`);
+    const tautology = atoms.map((a) => `(${a} | !${a})`).join(' & ');
+    const source = `
+      logic classical.propositional
+      check valid ${tautology}
+    `;
+    const out = run(source);
+    expect(out.exitCode).toBe(0);
+    expect(stripAccents(out.stdout).toUpperCase()).toContain('VALIDA');
+  }, 30000);
+
+  it('countermodel with 26 atoms (previously capped at 18)', () => {
+    const atoms = Array.from({ length: 26 }, (_, i) => `M${i}`);
+    // Conjunction of all atoms is not a tautology — countermodel exists
+    const formula = atoms.join(' & ');
+    const source = `
+      logic classical.propositional
+      countermodel ${formula}
+    `;
+    const out = run(source);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('Contramodelo');
+  }, 15000);
+
+  it('countermodel with 30 atoms via DPLL', () => {
+    const atoms = Array.from({ length: 30 }, (_, i) => `N${i}`);
+    const formula = atoms.join(' & ');
+    const source = `
+      logic classical.propositional
+      countermodel ${formula}
+    `;
+    const out = run(source);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('Contramodelo');
+  }, 30000);
+
+  it('pigeonhole(4,3) — 12 variables, hard for naive but resoluble', () => {
+    // Encode: 4 pigeons, 3 holes
+    // Each pigeon must be in some hole: OR_j P_{i,j}
+    // No two pigeons in same hole: NOT(P_{i,j} AND P_{k,j}) for i != k
+    const clauses: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      clauses.push(`(P${i}H0 | P${i}H1 | P${i}H2)`);
+    }
+    for (let j = 0; j < 3; j++) {
+      for (let i = 0; i < 4; i++) {
+        for (let k = i + 1; k < 4; k++) {
+          clauses.push(`!(P${i}H${j} & P${k}H${j})`);
+        }
+      }
+    }
+    const formula = clauses.join(' & ');
+    const source = `
+      logic classical.propositional
+      check satisfiable ${formula}
+    `;
+    const out = run(source);
+    expect(out.exitCode).toBe(0);
+    // Pigeonhole(4,3) is unsatisfiable
+    expect(out.stdout).toContain('INSATISFACIBLE');
+  }, 30000);
+});
+
+// ============================================================
+// 10. PROFILE-AWARE LEXER — CONTEXTUAL KEYWORDS
+// ============================================================
+describe('Stress: Profile-Aware Lexer', () => {
+  it('`next` is a valid identifier in arithmetic profile', () => {
+    const source = `
+      logic arithmetic
+      let next = 5
+      let until = 10
+      let result = next + until
+      explain result
+    `;
+    const out = run(source);
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('15');
+  }, 10000);
+
+  it('`next` is still a temporal keyword in temporal.ltl', () => {
+    const source = `
+      logic temporal.ltl
+      check satisfiable next P
+    `;
+    const out = run(source);
+    expect(out.exitCode).toBe(0);
+  }, 10000);
+
+  it('`until` is a valid identifier in classical.propositional', () => {
+    const source = `
+      logic classical.propositional
+      let until = P & Q
+      check valid until -> P
+    `;
+    const out = run(source);
+    expect(out.exitCode).toBe(0);
+    expect(stripAccents(out.stdout).toUpperCase()).toContain('VALIDA');
+  }, 10000);
+
+  it('multi-profile file still works with temporal keywords', () => {
+    const source = `
+      logic classical.propositional
+      check valid (P | !P)
+
+      logic temporal.ltl
+      check satisfiable next P
+      check satisfiable P until Q
+    `;
+    const out = run(source);
+    expect(out.exitCode).toBe(0);
   }, 10000);
 });

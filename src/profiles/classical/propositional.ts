@@ -16,7 +16,9 @@ import {
 } from '../../types';
 import { classifyFormula } from '../../runtime/formula-classifier';
 import { formulaToUnicode } from '../../runtime/format';
+import { pickEducationalNote } from '../../runtime/educational-notes';
 import { memoizeString, memoizeAtoms, memoizeNNF, memoizeCNF, memoizeDNF } from '../../utils/memo';
+import { dpll } from './dpll';
 
 // --- Utilidades de fórmulas ---
 
@@ -87,7 +89,7 @@ export function evaluateClassical(f: Formula, v: Valuation): boolean {
 function generateValuations(atoms: string[]): Valuation[] {
   const n = atoms.length;
   if (n === 0) return [{}];
-  if (n > 20) throw new Error('Demasiadas variables para tabla de verdad (>20)');
+  if (n > 23) throw new Error('Demasiadas variables para tabla de verdad (>23)');
 
   const total = 1 << n;
   const valuations: Valuation[] = new Array<Valuation>(total);
@@ -1262,6 +1264,25 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           derivedFrom: premiseNames,
         };
       }
+    } else if (allPure && atomList.length > 26) {
+      // DPLL fallback for >26 atoms
+      // Build: (premise1 & premise2 & ... & premiseN) -> goal
+      // Valid iff NOT satisfiable: (premises & !goal)
+      let conjunction: Formula = allAxiomFormulas[0];
+      for (let i = 1; i < allAxiomFormulas.length; i++) {
+        conjunction = { kind: 'and', args: [conjunction, allAxiomFormulas[i]] };
+      }
+      const negGoal: Formula = { kind: 'not', args: [goal] };
+      const check: Formula = { kind: 'and', args: [conjunction, negGoal] };
+      const result = dpll(check);
+      if (!result.satisfiable) {
+        return {
+          goal,
+          steps: state.steps,
+          status: 'complete',
+          derivedFrom: premiseNames,
+        };
+      }
     } else {
       // Classic fallback
       const valuations = generateValuations(atomList);
@@ -1389,6 +1410,25 @@ export class ClassicalPropositional implements LogicProfile {
         output: isValid
           ? `${formulaToString(formula)} es VALIDA (tautologia)`
           : `${formulaToString(formula)} NO es valida`,
+        educationalNote: pickEducationalNote({ op: 'valid', valid: isValid }),
+        diagnostics: [],
+        formula,
+      };
+    }
+
+    // DPLL path: for formulas with >26 atoms, use SAT solver
+    if (isPurePropositional(formula) && atoms.length > 26) {
+      const negated: Formula = { kind: 'not', args: [formula] };
+      const result = dpll(negated);
+      const isValid = !result.satisfiable;
+      return {
+        status: isValid ? 'valid' : 'invalid',
+        output: isValid
+          ? `${formulaToString(formula)} es VALIDA (tautologia)`
+          : `${formulaToString(formula)} NO es valida`,
+        model:
+          !isValid && result.model ? { type: 'propositional', valuation: result.model } : undefined,
+        educationalNote: pickEducationalNote({ op: 'valid', valid: isValid }),
         diagnostics: [],
         formula,
       };
@@ -1400,6 +1440,7 @@ export class ClassicalPropositional implements LogicProfile {
         status: 'valid',
         output: `${formulaToString(formula)} es VALIDA (tautologia)`,
         truthTable: tt,
+        educationalNote: pickEducationalNote({ op: 'valid', valid: true }),
         diagnostics: [],
         formula,
       };
@@ -1410,6 +1451,7 @@ export class ClassicalPropositional implements LogicProfile {
         output: `${formulaToString(formula)} NO es valida`,
         truthTable: tt,
         model: cm ? { type: 'propositional', valuation: cm.valuation } : undefined,
+        educationalNote: pickEducationalNote({ op: 'valid', valid: false }),
         diagnostics: [],
         formula,
       };
@@ -1432,6 +1474,25 @@ export class ClassicalPropositional implements LogicProfile {
         output: isSat
           ? `${formulaToString(formula)} es SATISFACIBLE`
           : `${formulaToString(formula)} es INSATISFACIBLE (contradiccion)`,
+        educationalNote: pickEducationalNote({ op: 'satisfiable', sat: isSat }),
+        diagnostics: [],
+        formula,
+      };
+    }
+
+    // DPLL path: for formulas with >26 atoms, use SAT solver
+    if (isPurePropositional(formula) && atoms.length > 26) {
+      const result = dpll(formula);
+      return {
+        status: result.satisfiable ? 'satisfiable' : 'unsatisfiable',
+        output: result.satisfiable
+          ? `${formulaToString(formula)} es SATISFACIBLE`
+          : `${formulaToString(formula)} es INSATISFACIBLE (contradiccion)`,
+        model:
+          result.satisfiable && result.model
+            ? { type: 'propositional', valuation: result.model }
+            : undefined,
+        educationalNote: pickEducationalNote({ op: 'satisfiable', sat: result.satisfiable }),
         diagnostics: [],
         formula,
       };
@@ -1445,6 +1506,7 @@ export class ClassicalPropositional implements LogicProfile {
         output: `${formulaToString(formula)} es SATISFACIBLE`,
         model: sat ? { type: 'propositional', valuation: sat.valuation } : undefined,
         truthTable: tt,
+        educationalNote: pickEducationalNote({ op: 'satisfiable', sat: true }),
         diagnostics: [],
         formula,
       };
@@ -1453,6 +1515,7 @@ export class ClassicalPropositional implements LogicProfile {
         status: 'unsatisfiable',
         output: `${formulaToString(formula)} es INSATISFACIBLE (contradiccion)`,
         truthTable: tt,
+        educationalNote: pickEducationalNote({ op: 'satisfiable', sat: false }),
         diagnostics: [],
         formula,
       };
@@ -1473,6 +1536,7 @@ export class ClassicalPropositional implements LogicProfile {
         status: 'provable',
         output: `${formulaToString(goal)} es DEMOSTRABLE desde la teoria`,
         proof,
+        educationalNote: pickEducationalNote({ op: 'prove', ok: true }),
         diagnostics: [],
         formula: goal,
       };
@@ -1481,6 +1545,7 @@ export class ClassicalPropositional implements LogicProfile {
     return {
       status: 'refutable',
       output: `${formulaToString(goal)} NO es demostrable desde la teoria dada`,
+      educationalNote: pickEducationalNote({ op: 'prove', ok: false }),
       diagnostics: [],
       formula: goal,
     };
@@ -1517,7 +1582,12 @@ export class ClassicalPropositional implements LogicProfile {
             : rulesUsed.has('Silogismo Hipotetico')
               ? 'φ → ψ, ψ → χ ⊢ φ → χ'
               : undefined,
-        educationalNote: `Consecuencia semántica (⊨): Verificada — no existe valuación donde las premisas sean V y la conclusión F.\nConsecuencia sintáctica (⊢): Derivación formal completada en ${proof.steps.length} pasos.\nNota: Por completitud de la lógica proposicional clásica, ⊨ y ⊢ coinciden.`,
+        educationalNote: pickEducationalNote({
+          op: 'derive',
+          ok: true,
+          steps: proof.steps.length,
+          rules: Array.from(rulesUsed),
+        }),
         diagnostics: [],
         formula: goal,
       };
@@ -1526,6 +1596,7 @@ export class ClassicalPropositional implements LogicProfile {
     return {
       status: 'refutable',
       output: `No se puede derivar ${formulaToString(goal)} desde las premisas dadas`,
+      educationalNote: pickEducationalNote({ op: 'derive', ok: false }),
       diagnostics: [],
       formula: goal,
     };
@@ -1541,12 +1612,13 @@ export class ClassicalPropositional implements LogicProfile {
     const n = atoms.length;
 
     // Fast path: bitset finds countermodel in one pass
-    if (isPurePropositional(formula) && n <= 18) {
+    if (isPurePropositional(formula) && n <= 26) {
       const { result, allOnes } = evaluateBitset(formula, atoms);
       if (bvEquals(result, allOnes)) {
         return {
           status: 'valid',
           output: `${formulaToString(formula)} es tautologia, no hay contramodelo`,
+          educationalNote: pickEducationalNote({ op: 'countermodel', found: false }),
           diagnostics: [],
           formula,
         };
@@ -1563,6 +1635,31 @@ export class ClassicalPropositional implements LogicProfile {
         status: 'invalid',
         output: `Contramodelo encontrado para ${formulaToString(formula)}\n  ← ${valStr}`,
         model: { type: 'propositional', valuation: v },
+        educationalNote: pickEducationalNote({ op: 'countermodel', found: true }),
+        diagnostics: [],
+        formula,
+      };
+    }
+
+    // DPLL path: for formulas with >26 atoms, use SAT solver to find countermodel
+    if (isPurePropositional(formula) && n > 26) {
+      const negated: Formula = { kind: 'not', args: [formula] };
+      const result = dpll(negated);
+      if (result.satisfiable && result.model) {
+        const valStr = atoms.map((a) => `${a}=${result.model![a] ? 'V' : 'F'}`).join(', ');
+        return {
+          status: 'invalid',
+          output: `Contramodelo encontrado para ${formulaToString(formula)}\n  ← ${valStr}`,
+          model: { type: 'propositional', valuation: result.model },
+          educationalNote: pickEducationalNote({ op: 'countermodel', found: true }),
+          diagnostics: [],
+          formula,
+        };
+      }
+      return {
+        status: 'valid',
+        output: `${formulaToString(formula)} es tautologia, no hay contramodelo`,
+        educationalNote: pickEducationalNote({ op: 'countermodel', found: false }),
         diagnostics: [],
         formula,
       };
@@ -1577,6 +1674,7 @@ export class ClassicalPropositional implements LogicProfile {
           status: 'invalid',
           output: `Contramodelo encontrado para ${formulaToString(formula)}\n  ← ${valStr}`,
           model: { type: 'propositional', valuation: v },
+          educationalNote: pickEducationalNote({ op: 'countermodel', found: true }),
           diagnostics: [],
           formula,
         };
@@ -1586,6 +1684,7 @@ export class ClassicalPropositional implements LogicProfile {
     return {
       status: 'valid',
       output: `${formulaToString(formula)} es tautologia, no hay contramodelo`,
+      educationalNote: pickEducationalNote({ op: 'countermodel', found: false }),
       diagnostics: [],
       formula,
     };
@@ -1789,6 +1888,7 @@ export class ClassicalPropositional implements LogicProfile {
         status: 'valid',
         output: `${formulaToString(a)} y ${formulaToString(b)} son EQUIVALENTES`,
         truthTable: tt,
+        educationalNote: pickEducationalNote({ op: 'equivalent', equiv: true }),
         diagnostics: [],
       };
     }
@@ -1798,6 +1898,7 @@ export class ClassicalPropositional implements LogicProfile {
       status: 'invalid',
       output: `${formulaToString(a)} y ${formulaToString(b)} NO son equivalentes`,
       model: cm ? { type: 'propositional', valuation: cm.valuation } : undefined,
+      educationalNote: pickEducationalNote({ op: 'equivalent', equiv: false }),
       diagnostics: [],
     };
   }

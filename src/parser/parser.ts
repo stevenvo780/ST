@@ -73,12 +73,15 @@ export class Parser {
   private knownTheoryNames: Set<string> = new Set();
   private currentProfile: string = '';
 
-  constructor(file: string = '<stdin>') {
+  private initialProfile: string | undefined;
+
+  constructor(file: string = '<stdin>', profile?: string) {
     this.file = file;
+    this.initialProfile = profile;
   }
 
   parse(source: string): Program {
-    const lexer = new Lexer(source, this.file);
+    const lexer = new Lexer(source, this.file, this.initialProfile);
     this.tokens = lexer.tokenize();
     this.diagnostics.push(...lexer.diagnostics);
     this.pos = 0;

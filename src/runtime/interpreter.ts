@@ -398,7 +398,17 @@ export class Interpreter {
     this.runtimeStepCount = 0;
     this.runtimeCallCount = 0;
 
-    const parser = new Parser(file);
+    // Pre-scan for profile declarations to enable profile-aware lexing.
+    // Only restrict keywords when there's exactly one profile in the source.
+    // Multi-profile files use all keywords for safety.
+    const profileMatches = source.match(/(?:^|\n)\s*(?:logic|logica)\s+([\w.]+)/g);
+    let detectedProfile: string | undefined;
+    if (profileMatches && profileMatches.length === 1) {
+      const m = profileMatches[0].match(/(?:logic|logica)\s+([\w.]+)/);
+      detectedProfile = m ? m[1] : undefined;
+    }
+
+    const parser = new Parser(file, detectedProfile);
     const program = parser.parse(source);
     this.diagnostics.push(...parser.diagnostics);
 

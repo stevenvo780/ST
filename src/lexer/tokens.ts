@@ -111,7 +111,10 @@ export interface Token {
   column: number;
 }
 
-export const KEYWORDS: Record<string, TokenType> = {
+/**
+ * Core keywords — always reserved regardless of profile.
+ */
+export const CORE_KEYWORDS: Record<string, TokenType> = {
   // ── English keywords ───────────────────────────────────────
   logic: TokenType.LOGIC,
   axiom: TokenType.AXIOM,
@@ -150,6 +153,21 @@ export const KEYWORDS: Record<string, TokenType> = {
   nand: TokenType.NAND,
   nor: TokenType.NOR,
   xor: TokenType.XOR,
+  import: TokenType.IMPORT,
+  importar: TokenType.IMPORT,
+  export: TokenType.EXPORT,
+  exportar: TokenType.EXPORT,
+  assume: TokenType.ASSUME,
+  asumir: TokenType.ASSUME,
+  show: TokenType.SHOW,
+  demostrar: TokenType.SHOW,
+  qed: TokenType.QED,
+  theory: TokenType.THEORY,
+  teoria: TokenType.THEORY,
+  extends: TokenType.EXTENDS,
+  extiende: TokenType.EXTENDS,
+  private: TokenType.PRIVATE,
+  privado: TokenType.PRIVATE,
 
   // ── Spanish aliases (aliases en español) ───────────────────
   logica: TokenType.LOGIC,
@@ -179,25 +197,6 @@ export const KEYWORDS: Record<string, TokenType> = {
   explicar: TokenType.EXPLAIN,
   refute: TokenType.REFUTE,
   refutar: TokenType.REFUTE,
-  next: TokenType.NEXT,
-  siguiente: TokenType.NEXT,
-  until: TokenType.UNTIL,
-  hasta: TokenType.UNTIL,
-  import: TokenType.IMPORT,
-  importar: TokenType.IMPORT,
-  export: TokenType.EXPORT,
-  exportar: TokenType.EXPORT,
-  assume: TokenType.ASSUME,
-  asumir: TokenType.ASSUME,
-  show: TokenType.SHOW,
-  demostrar: TokenType.SHOW,
-  qed: TokenType.QED,
-  theory: TokenType.THEORY,
-  teoria: TokenType.THEORY,
-  extends: TokenType.EXTENDS,
-  extiende: TokenType.EXTENDS,
-  private: TokenType.PRIVATE,
-  privado: TokenType.PRIVATE,
   imprimir: TokenType.PRINT,
   asignar: TokenType.SET,
   si: TokenType.IF,
@@ -208,3 +207,44 @@ export const KEYWORDS: Record<string, TokenType> = {
   funcion: TokenType.FN,
   retornar: TokenType.RETURN,
 };
+
+/**
+ * Profile-specific keywords — only reserved when the matching profile is active.
+ * Keys are profile prefixes: a keyword activates when the current profile starts with the key.
+ */
+export const PROFILE_KEYWORDS: Record<string, Record<string, TokenType>> = {
+  'temporal': {
+    next: TokenType.NEXT,
+    siguiente: TokenType.NEXT,
+    until: TokenType.UNTIL,
+    hasta: TokenType.UNTIL,
+  },
+};
+
+/**
+ * Build the full keyword map for a given profile.
+ * If no profile is given, all keywords (core + all profile) are active (backward compatible).
+ */
+export function getKeywordsForProfile(profile?: string): Record<string, TokenType> {
+  if (!profile) {
+    // No profile context: all keywords active (backward compatible)
+    const all: Record<string, TokenType> = { ...CORE_KEYWORDS };
+    for (const group of Object.values(PROFILE_KEYWORDS)) {
+      Object.assign(all, group);
+    }
+    return all;
+  }
+
+  const keywords: Record<string, TokenType> = { ...CORE_KEYWORDS };
+  for (const [prefix, group] of Object.entries(PROFILE_KEYWORDS)) {
+    if (profile.startsWith(prefix)) {
+      Object.assign(keywords, group);
+    }
+  }
+  return keywords;
+}
+
+/**
+ * Legacy: all keywords combined (for backward compatibility).
+ */
+export const KEYWORDS: Record<string, TokenType> = getKeywordsForProfile();

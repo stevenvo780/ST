@@ -2,7 +2,7 @@
  * ST Lexer — Tokenizador
  */
 
-import { Token, TokenType, KEYWORDS } from './tokens';
+import { Token, TokenType, KEYWORDS, getKeywordsForProfile } from './tokens';
 import { Diagnostic } from '../types';
 
 export class Lexer {
@@ -12,11 +12,13 @@ export class Lexer {
   private line: number = 1;
   private column: number = 1;
   private file: string;
+  private activeKeywords: Record<string, TokenType>;
   public diagnostics: Diagnostic[] = [];
 
-  constructor(source: string, file: string = '<stdin>') {
+  constructor(source: string, file: string = '<stdin>', profile?: string) {
     this.source = source;
     this.file = file;
+    this.activeKeywords = profile !== undefined ? getKeywordsForProfile(profile) : KEYWORDS;
   }
 
   tokenize(): Token[] {
@@ -440,7 +442,7 @@ export class Lexer {
       this.advance();
     }
     const lower = value.toLowerCase();
-    const kwType = KEYWORDS[lower];
+    const kwType = this.activeKeywords[lower];
     if (kwType) {
       this.tokens.push({
         type: kwType,

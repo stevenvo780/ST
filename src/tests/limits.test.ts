@@ -31,7 +31,7 @@ describe('ST Language Limits & Stress Tests', () => {
       expect(out.stdout).toContain('SATISFACIBLE');
     });
 
-    it('reaches the 26 atoms bitset limit and falls back to truth table error', () => {
+    it('handles 27 atoms via DPLL solver (beyond bitset limit)', () => {
       const atoms = Array.from({ length: 27 }, (_, i) =>
         i < 26 ? String.fromCharCode(65 + i) : 'AA',
       ).join(' & ');
@@ -41,8 +41,9 @@ describe('ST Language Limits & Stress Tests', () => {
         check satisfiable f
       `;
       const out = run(source);
-      // >26 atoms exceeds bitset path, falls back to truth table which rejects >20
-      expect(out.diagnostics.some((d) => d.message.includes('Demasiadas variables'))).toBe(true);
+      // >26 atoms now handled by DPLL solver instead of failing
+      expect(out.exitCode).toBe(0);
+      expect(out.stdout).toContain('SATISFACIBLE');
     });
 
     it('handles deep nesting (500 levels of NOT)', () => {
