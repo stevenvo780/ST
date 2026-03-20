@@ -7,7 +7,6 @@ function run(source: string) {
 }
 
 describe('ST Language Limits & Stress Tests', () => {
-  
   describe('Classical Propositional Limits', () => {
     it('handles 14 atoms without OOM', () => {
       const source = `
@@ -28,7 +27,7 @@ describe('ST Language Limits & Stress Tests', () => {
       `;
       const out = run(source);
       // The engine throws an error for > 20 atoms
-      expect(out.diagnostics.some(d => d.message.includes('Demasiadas variables'))).toBe(true);
+      expect(out.diagnostics.some((d) => d.message.includes('Demasiadas variables'))).toBe(true);
     });
 
     it('handles deep nesting (500 levels of NOT)', () => {
@@ -76,8 +75,6 @@ describe('ST Language Limits & Stress Tests', () => {
       const out = run(source);
       expect(out.stdout).toContain('MAX_DEPTH');
     });
-
-
   });
 
   describe('Arithmetic & Recursion Limits', () => {
@@ -155,6 +152,53 @@ describe('ST Language Limits & Stress Tests', () => {
       const out = run(source);
       // In SDL, []A & []!A is unsatisfiable due to seriality (w0 must have a successor w1 where A and !A are true)
       expect(out.stdout.toLowerCase()).toContain('insatisfacible');
+    });
+  });
+
+  describe('Security Stress Tests (Anti-Attack)', () => {
+    it('arithmetic loop (200 iterations of x = x + 1) does NOT OOM', () => {
+      let setLines = '';
+      for (let i = 0; i < 200; i++) {
+        setLines += `  set x = x + 1\n`;
+      }
+      const source = `
+        logic arithmetic
+        let x = 0
+${setLines}
+        print x
+      `;
+      const out = run(source);
+      expect(out.exitCode).toBe(0);
+      // Should print 200 as a number, not a deep AST
+      expect(out.stdout).toContain('200');
+    }, 10000);
+
+    it('FOL infinite domain (forall x exists y) does NOT stack overflow', () => {
+      const source = `
+        logic classical.first_order
+        check satisfiable forall x exists y R(x,y)
+      `;
+      const out = run(source);
+      // Should return a result without crashing
+      expect(out.exitCode).toBe(0);
+    }, 20000);
+
+    it('deep recursion is caught before stack overflow', () => {
+      const source = `
+        logic arithmetic
+        fn countdown(N) {
+          if valid N <= 0 {
+            return 0
+          }
+          let prev = N - 1
+          return countdown(prev)
+        }
+        let r = countdown(5000)
+        print r
+      `;
+      const out = run(source);
+      // Should catch the recursion limit error gracefully
+      expect(out.diagnostics.some(d => d.message.includes('recursión') || d.message.includes('recursion') || d.message.includes('Límite'))).toBe(true);
     });
   });
 });

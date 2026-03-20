@@ -86,6 +86,8 @@ interface TheoryScope {
   privateMembers: Set<string>;
 }
 
+const MAX_CALL_DEPTH = 1000;
+
 export class Interpreter {
   private theory: Theory;
   private profile: LogicProfile | null = null;
@@ -113,6 +115,8 @@ export class Interpreter {
   private exportedTheorems: Map<string, Formula> = new Map();
   private exportedFunctions: Map<string, FnDeclNode> = new Map();
   private exportedTheories: Map<string, TheoryScope> = new Map();
+  /** Profundidad de llamadas a funciones (anti-recursión infinita) */
+  private callDepth = 0;
 
   constructor() {
     this.theory = this.createEmptyTheory();
@@ -483,7 +487,9 @@ export class Interpreter {
       const oldArgs = f.args;
       const changed = newArgs.some((a, i) => a !== oldArgs[i]);
       if (changed) {
-        return { ...f, args: newArgs };
+        const resolved = { ...f, args: newArgs };
+        // Constant folding aritmético: reducir operaciones sobre números a un escalar
+        return this.tryConstantFold(resolved);
       }
     }
 
@@ -1087,6 +1093,12 @@ export class Interpreter {
   }
 
   private executeFnCall(stmt: { name: string; args: Formula[] }): Formula | undefined {
+    this.callDepth++;
+    if (this.callDepth > MAX_CALL_DEPTH) {
+      this.callDepth--;
+      throw new Error(`Límite de recursión excedido (${MAX_CALL_DEPTH}). Posible recursión infinita en '${stmt.name}'.`);
+    }
+    try {
     // 0. Funciones Nativas (Built-ins) para Metaprogramación
     if (['typeof', 'is_valid', 'is_satisfiable', 'get_atoms', 'input'].includes(stmt.name)) {
       return this.executeBuiltin(stmt.name, stmt.args);
@@ -1180,6 +1192,9 @@ export class Interpreter {
     }
 
     return result;
+    } finally {
+      this.callDepth--;
+    }
   }
 
   /** Ejecuta una función inyectando bindings de un scope (para métodos de instancia) */
@@ -1188,6 +1203,12 @@ export class Interpreter {
     args: Formula[],
     scope: TheoryScope,
   ): Formula | undefined {
+    this.callDepth++;
+    if (this.callDepth > MAX_CALL_DEPTH) {
+      this.callDepth--;
+      throw new Error(`Límite de recursión excedido (${MAX_CALL_DEPTH}). Posible recursión infinita en '${fn.name}'.`);
+    }
+    try {
     if (args.length !== fn.params.length) {
       throw new Error(
         `Método '${fn.name}' espera ${fn.params.length} argumento(s), recibió ${args.length}`,
@@ -1233,6 +1254,38 @@ export class Interpreter {
     this.currentTheoryName = savedTheoryName;
 
     return result;
+    } finally {
+      this.callDepth--;
+    }
+  }
+
+  /** Constant folding aritmético: reduce nodos con ambos hijos numéricos a un escalar */
+  private tryConstantFold(f: Formula): Formula {
+    const ARITH_OPS: Record<string, (a: number, b: number) => number> = {
+      add: (a, b) => a + b,
+      subtract: (a, b) => a - b,
+      multiply: (a, b) => a * b,
+      divide: (a, b) => (b === 0 ? NaN : a / b),
+      modulo: (a, b) => (b === 0 ? NaN : a % b),
+    };
+    const CMP_OPS: Record<string, (a: number, b: number) => number> = {
+      less: (a, b) => (a < b ? 1 : 0),
+      greater: (a, b) => (a > b ? 1 : 0),
+      less_eq: (a, b) => (a <= b ? 1 : 0),
+      greater_eq: (a, b) => (a >= b ? 1 : 0),
+    };
+    const op = ARITH_OPS[f.kind] || CMP_OPS[f.kind];
+    if (
+      op &&
+      f.args &&
+      f.args.length === 2 &&
+      f.args[0]?.kind === 'number' &&
+      f.args[1]?.kind === 'number'
+    ) {
+      const result = op(f.args[0].value ?? 0, f.args[1].value ?? 0);
+      return { kind: 'number', value: result, source: f.source };
+    }
+    return f;
   }
 
   private executeBuiltin(name: string, args: Formula[]): Formula | undefined {

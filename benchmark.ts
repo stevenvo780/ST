@@ -1,12 +1,21 @@
 import { Interpreter } from './src/runtime/interpreter';
 
 const interpreter = new Interpreter();
+// Force actual recursive evaluation via arithmetic
 const source = `
-logic classical.propositional
-check valid ((P1 | P2) & (P3 | P4)) -> (P1 | P3)
+logic arithmetic
+fn countdown(N) {
+  if valid N <= 0 {
+    return 0
+  }
+  let prev = N - 1
+  return countdown(prev)
+}
+let r = countdown(5000)
+print r
 `;
 
-console.time('Ejecución');
-const res = interpreter.execute(source, 'benchmark.st');
-console.timeEnd('Ejecución');
-console.log(JSON.stringify(res, null, 2));
+const res = interpreter.execute(source, 'test.st');
+console.log('Exit code:', res.exitCode);
+console.log('Diagnostics:', JSON.stringify(res.diagnostics, null, 2));
+console.log('Stdout:', res.stdout);

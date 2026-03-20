@@ -461,8 +461,8 @@ export class ClassicalFirstOrder implements LogicProfile {
     depth: number,
     trace: string[],
   ): boolean {
-    if (depth > 3000) {
-      trace.push(`[${depth}] ⚠ Se superó la profundidad máxima permitida (3000). Evaluando recursividad forzada.`);
+    if (depth > 500) {
+      trace.push(`[${depth}] ⚠ Se superó la profundidad máxima permitida (500).`);
       return false;
     }
     if (nodes.length === 0) return false;
@@ -542,6 +542,15 @@ export class ClassicalFirstOrder implements LogicProfile {
         case 'forall': {
           const variable = f.variable;
           if (!args[0] || !variable) return false;
+          // Limité de iteraciones Gamma anti-explosión exponencial
+          const gammaKey = `gamma_count:${key}`;
+          const gammaCount = (processed as any).__gammaCounters?.get(gammaKey) ?? 0;
+          if (gammaCount >= 50) {
+            trace.push(`[${depth}] ⚠ Límite Gamma alcanzado para ${formulaToString(f)}`);
+            return this.solveRecursive(rest, constants, nextProcessed, depth, trace);
+          }
+          if (!(processed as any).__gammaCounters) (processed as any).__gammaCounters = new Map();
+          (processed as any).__gammaCounters.set(gammaKey, gammaCount + 1);
           const newInsts: FONode[] = [];
           for (const c of constants) {
             const instKey = `gamma:${c}:${key}`;
