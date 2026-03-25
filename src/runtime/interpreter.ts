@@ -1260,6 +1260,10 @@ export class Interpreter {
       let count = 0;
       let satCount = 0;
 
+      // Accumulate rows for graphic view (cap at 512 to avoid OOM on huge tables)
+      const MAX_GRAPHIC_ROWS = 512;
+      const rows: Array<{ valuation: Record<string, boolean>; result: boolean }> = [];
+
       for (const v of generateValuationsLazy(atoms)) {
         const res = evaluateClassical(formula, v);
         if (res) {
@@ -1269,6 +1273,11 @@ export class Interpreter {
           isTautology = false;
         }
         count++;
+
+        // Accumulate rows for the graphic table (capped)
+        if (count <= MAX_GRAPHIC_ROWS) {
+          rows.push({ valuation: { ...v }, result: res });
+        }
 
         // Solo imprimir las primeras 64 filas para no saturar el stdout en tablas masivas
         if (count <= 64) {
@@ -1289,13 +1298,14 @@ export class Interpreter {
         output: `Tabla de verdad de ${count} filas procesada.`,
         truthTable: {
           variables: atoms,
-          rows: [],
+          rows,
           subFormulas: [],
           subFormulaValues: [],
           isTautology,
           isContradiction: !isSatisfiable,
           isSatisfiable,
           satisfyingCount: satCount,
+          totalCount: count,
         },
         diagnostics: [],
         formula: formula,
