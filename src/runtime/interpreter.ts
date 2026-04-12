@@ -1170,6 +1170,8 @@ export class Interpreter {
     }
     this.profile = p;
     this.theory.profile = stmt.profile;
+    // Clear memoization cache to avoid stale results from prior profile
+    this.fnMemoCache.clear();
     this.emit(`Perfil logico: ${stmt.profile}`);
   }
 

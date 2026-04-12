@@ -836,9 +836,10 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
         }
 
         // Conjunction Introduction: de A y B, derivar A & B
+        // Only produce conjunctions that are relevant to the goal to avoid O(n²) explosion
         if (f1 !== f2) {
           const conj: Formula = { kind: 'and', args: [f1, f2] };
-          if (formulasEqual(conj, goal)) {
+          if (formulasEqual(conj, goal) || isRelevantToGoal(conj, goal)) {
             changed =
               addDerivedFormula(state, conj, 'Introduccion de conjuncion', [
                 findStep(state.steps, f1),
@@ -1030,7 +1031,8 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
         }
       }
 
-      // Disjunction Introduction: de A, derivar A | B (si A|B es la meta)
+      // Disjunction Introduction: de A, derivar A | B
+      // Relaxed: also allow intermediate disjunctions that are relevant to goal
       if (goal.kind === 'or' && goal.args?.[0] && goal.args?.[1]) {
         if (formulasEqual(f1, goal.args[0]) || formulasEqual(f1, goal.args[1])) {
           changed =
@@ -1038,6 +1040,23 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
               findStep(state.steps, f1),
             ]) || changed;
         }
+      }
+      // Also check if f1 can form a disjunction relevant to some intermediate goal
+      if (goal.kind !== 'or') {
+        // If the goal is e.g. (A|B) -> C, and we have A, generate A|B as intermediate
+        const checkDisjGoals = (g: Formula) => {
+          if (g.kind === 'or' && g.args?.[0] && g.args?.[1]) {
+            if (formulasEqual(f1, g.args[0]) || formulasEqual(f1, g.args[1])) {
+              const disj: Formula = { kind: 'or', args: [g.args[0], g.args[1]] };
+              changed =
+                addDerivedFormula(state, disj, 'Introduccion de disyuncion', [
+                  findStep(state.steps, f1),
+                ]) || changed;
+            }
+          }
+          g.args?.forEach(checkDisjGoals);
+        };
+        checkDisjGoals(goal);
       }
 
       // Double Negation Elimination: de !!A, derivar A
@@ -1056,7 +1075,8 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           ]) || changed;
       }
 
-      // Introducción de implicación simple: si la meta es A -> B y ya conocemos B, se permite cerrar
+      // Weakening (Debilitamiento): si la meta es A -> B y ya conocemos B,
+      // entonces A -> B es válida (B ⊢ A -> B en lógica clásica).
       if (
         goal.kind === 'implies' &&
         goal.args?.[0] &&
@@ -1064,7 +1084,7 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
         formulasEqual(goal.args[1], f1)
       ) {
         changed =
-          addDerivedFormula(state, goal, 'Introduccion de implicacion', [
+          addDerivedFormula(state, goal, 'Debilitamiento (B ⊢ A → B)', [
             findStep(state.steps, f1),
           ]) || changed;
       }
@@ -1261,6 +1281,8 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
 
     const atomList = Array.from(atoms).sort();
 
+    let semanticResult: boolean;
+
     // Fast path: bitset semantic check
     const allPure = allAxiomFormulas.every(isPurePropositional) && isPurePropositional(goal);
     if (allPure && atomList.length <= 26) {
@@ -1272,18 +1294,9 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
       for (const pb of premiseBits) premisesConj = bvAnd(premisesConj, pb);
       // Valid if: wherever premises are true, goal is also true
       // i.e., premisesConj & ~goalBits === 0
-      if (bvIsZero(bvAnd(premisesConj, bvNot(goalBits, allOnes)))) {
-        return {
-          goal,
-          steps: state.steps,
-          status: 'complete',
-          derivedFrom: premiseNames,
-        };
-      }
+      semanticResult = bvIsZero(bvAnd(premisesConj, bvNot(goalBits, allOnes)));
     } else if (allPure && atomList.length > 26) {
       // DPLL fallback for >26 atoms
-      // Build: (premise1 & premise2 & ... & premiseN) -> goal
-      // Valid iff NOT satisfiable: (premises & !goal)
       let conjunction: Formula = allAxiomFormulas[0];
       for (let i = 1; i < allAxiomFormulas.length; i++) {
         conjunction = { kind: 'and', args: [conjunction, allAxiomFormulas[i]] };
@@ -1291,33 +1304,48 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
       const negGoal: Formula = { kind: 'not', args: [goal] };
       const check: Formula = { kind: 'and', args: [conjunction, negGoal] };
       const result = dpll(check);
-      if (!result.satisfiable) {
-        return {
-          goal,
-          steps: state.steps,
-          status: 'complete',
-          derivedFrom: premiseNames,
-        };
-      }
+      semanticResult = !result.satisfiable;
     } else {
       // Classic fallback
       const valuations = generateValuations(atomList);
-      let semanticallyValid = true;
+      semanticResult = true;
       for (const v of valuations) {
         const premisesTrue = allAxiomFormulas.every((f) => evaluateClassical(f, v));
         if (premisesTrue && !evaluateClassical(goal, v)) {
-          semanticallyValid = false;
+          semanticResult = false;
           break;
         }
       }
-      if (semanticallyValid) {
-        return {
-          goal,
-          steps: state.steps,
-          status: 'complete',
-          derivedFrom: premiseNames,
-        };
+    }
+
+    if (semanticResult) {
+      // Generate a synthetic final proof step so the user sees a complete derivation
+      // instead of just "derivado exitosamente" with no proof trace.
+      const goalHash = formulaHash(goal);
+      if (!state.known.has(goalHash)) {
+        const premiseStepNums = premiseNames
+          .map((n) => {
+            const f = theory.axioms.get(n) || theory.theorems.get(n);
+            return f ? findStep(state.steps, f) : 0;
+          })
+          .filter((n) => n > 0);
+        state.stepCount++;
+        state.steps.push({
+          stepNumber: state.stepCount,
+          formula: goal,
+          justification:
+            'Verificacion semantica (todas las valuaciones satisfacen la consecuencia)',
+          premises: premiseStepNums,
+        });
+        state.known.set(goalHash, goal);
       }
+      const relevantSteps = traceBack(state.steps, goal);
+      return {
+        goal,
+        steps: relevantSteps,
+        status: 'complete',
+        derivedFrom: premiseNames,
+      };
     }
   }
 

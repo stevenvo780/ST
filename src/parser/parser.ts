@@ -290,13 +290,16 @@ export class Parser {
     throw new Error(`Se esperaba 'valid', 'satisfiable' o 'equivalent' despues de 'check'`);
   }
 
-  // prove FORMULA from {a1, a2}
+  // prove FORMULA [from {a1, a2}]
   private parseProveCmd(): ProveCmdNode {
     const src = this.loc();
     this.expect(TokenType.PROVE);
     const goal = this.parseFormula();
-    this.expect(TokenType.FROM);
-    const premises = this.parseIdList();
+    // 'from' is optional — if omitted, prove from entire theory
+    let premises: string[] = [];
+    if (this.match(TokenType.FROM)) {
+      premises = this.parseIdList();
+    }
     return { kind: 'prove_cmd', goal, premises, source: src };
   }
 

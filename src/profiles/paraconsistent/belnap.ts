@@ -195,9 +195,30 @@ export class ParaconsistentBelnap implements LogicProfile {
     }
 
     const cm = tt.rows.find((r) => !designated.has(String(r.result)));
+    let output = `${formulaToString(formula)} no es valida en Belnap`;
+
+    // Educational note for biconditionals: explain why equivalence ≠ tautology
+    if (formula.kind === 'biconditional') {
+      // Check if the two sides are functionally equivalent (same Belnap value always)
+      const lhs = formula.args?.[0];
+      const rhs = formula.args?.[1];
+      if (lhs && rhs) {
+        const ttL = this.generateBelnapTable(lhs);
+        const ttR = this.generateBelnapTable(rhs);
+        const areEquiv =
+          ttL.rows.length === ttR.rows.length &&
+          ttL.rows.every((r, i) => String(r.result) === String(ttR.rows[i].result));
+        if (areEquiv) {
+          output += `\n  ⚠ Nota: Los dos lados son funcionalmente equivalentes (mismo valor Belnap en toda valuación).`;
+          output += `\n  Sin embargo, el bicondicional material (A <-> B) = (A→B) ∧ (B→A) no es siempre designado`;
+          output += `\n  porque N→N = N (no designado). Use 'check equivalent' para equivalencia funcional.`;
+        }
+      }
+    }
+
     return {
       status: 'invalid',
-      output: `${formulaToString(formula)} no es valida en Belnap`,
+      output,
       truthTable: tt,
       model: cm ? { type: 'propositional', valuation: cm.valuation } : undefined,
       diagnostics: [],
@@ -422,12 +443,14 @@ export class ParaconsistentBelnap implements LogicProfile {
     out += `  ✗ (P ∧ ¬P) → Q (Ex falso): Falla — la explosión no vale\n`;
     out += `  ✗ P → P (Identidad): Falla cuando P=N (N→N = N, no designado)\n\n`;
 
-    // Laws that HOLD (#18)
-    out += `Leyes clásicas que SE MANTIENEN en Belnap:\n`;
+    // Laws that HOLD (#18) — as functional equivalences (≡), not material biconditionals (<->)
+    out += `Equivalencias funcionales que SE MANTIENEN en Belnap (mismo valor en toda valuación):\n`;
     out += `  ✓ De Morgan: ¬(P∧Q) ≡ ¬P∨¬Q y ¬(P∨Q) ≡ ¬P∧¬Q\n`;
     out += `  ✓ Distributividad: P∧(Q∨R) ≡ (P∧Q)∨(P∧R)\n`;
     out += `  ✓ Idempotencia: P∧P ≡ P y P∨P ≡ P\n`;
-    out += `  ✓ Doble negación: ¬¬P ≡ P\n\n`;
+    out += `  ✓ Doble negación: ¬¬P ≡ P\n`;
+    out += `  ⚠ Nota: ≡ significa "mismo valor Belnap", NO que el material bicondicional (↔) sea designado.\n`;
+    out += `    Ej: P ≡ P pero P↔P = N cuando P=N (no designado). Use 'check equivalent' para verificar.\n\n`;
 
     // Classical comparison (#19)
     out += `Comparación con lógica clásica:\n`;

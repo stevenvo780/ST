@@ -119,11 +119,12 @@ export class ClassicalFirstOrder implements LogicProfile {
   checkValid(formula: Formula): RunResult {
     const negated = toNNF({ kind: 'not', args: [formula] });
     const res = this.solve([{ formula: negated }]);
+    const fStr = formulaToString(formula);
     return {
       status: res.closed ? 'valid' : 'invalid',
       output: res.closed
-        ? `${formulaToString(formula)} es VÁLIDA`
-        : `${formulaToString(formula)} NO es válida`,
+        ? `${fStr} es VÁLIDA en lógica de primer orden`
+        : `${fStr} NO es válida en lógica de primer orden`,
       tableauTrace: res.trace,
       diagnostics: [],
       formula,
@@ -133,9 +134,12 @@ export class ClassicalFirstOrder implements LogicProfile {
   checkSatisfiable(formula: Formula): RunResult {
     const nnf = toNNF(formula);
     const isClosed = this.solve([{ formula: nnf }]).closed;
+    const fStr = formulaToString(formula);
     return {
       status: !isClosed ? 'satisfiable' : 'unsatisfiable',
-      output: !isClosed ? `Satisfacible` : `Insatisfacible`,
+      output: !isClosed
+        ? `${fStr} es SATISFACIBLE en lógica de primer orden`
+        : `${fStr} es INSATISFACIBLE en lógica de primer orden`,
       diagnostics: [],
       formula,
     };
@@ -148,9 +152,12 @@ export class ClassicalFirstOrder implements LogicProfile {
       { formula: toNNF({ kind: 'not', args: [goal] }) },
     ];
     const res = this.solve(nodes);
+    const fStr = formulaToString(goal);
     return {
       status: res.closed ? 'provable' : 'refutable',
-      output: res.closed ? 'Demostrado' : 'No demostrable',
+      output: res.closed
+        ? `${fStr} es DEMOSTRABLE desde la teoría`
+        : `${fStr} NO es demostrable desde la teoría`,
       tableauTrace: res.trace,
       diagnostics: [],
       formula: goal,
@@ -166,9 +173,12 @@ export class ClassicalFirstOrder implements LogicProfile {
       { formula: toNNF({ kind: 'not', args: [goal] }) },
     ];
     const res = this.solve(nodes);
+    const fStr = formulaToString(goal);
     return {
       status: res.closed ? 'provable' : 'refutable',
-      output: res.closed ? 'Derivado' : 'No derivable',
+      output: res.closed
+        ? `${fStr} es DERIVABLE desde {${premises.join(', ')}}`
+        : `${fStr} NO es derivable desde {${premises.join(', ')}}`,
       tableauTrace: res.trace,
       diagnostics: [],
       formula: goal,
@@ -178,17 +188,51 @@ export class ClassicalFirstOrder implements LogicProfile {
   countermodel(formula: Formula): RunResult {
     const nnf = toNNF(formula);
     const res = this.solve([{ formula: { kind: 'not', args: [nnf] } }]);
+    const fStr = formulaToString(formula);
     return {
       status: res.closed ? 'valid' : 'invalid',
-      output: res.closed ? 'Válida' : 'Inválida',
+      output: res.closed
+        ? `No hay contramodelo — ${fStr} es válida en lógica de primer orden`
+        : `Existe contramodelo para ${fStr} (no válida en lógica de primer orden)`,
       tableauTrace: res.trace,
       diagnostics: [],
       formula,
     };
   }
 
-  explain(_formula: Formula): RunResult {
-    return { status: 'unknown', output: 'Explain no implementado en Hardened', diagnostics: [] };
+  explain(formula: Formula): RunResult {
+    const fStr = formulaToString(formula);
+    const negated = toNNF({ kind: 'not', args: [formula] });
+    const res = this.solve([{ formula: negated }]);
+    const valid = res.closed;
+
+    let explanation = `Fórmula: ${fStr}\n\n`;
+    explanation += [
+      'Sistema: Lógica Clásica de Primer Orden (FOL)',
+      '',
+      'Cuantificadores:',
+      '  ∀x P(x) — "para todo x, P(x)" (universal)',
+      '  ∃x P(x) — "existe al menos un x tal que P(x)" (existencial)',
+      '',
+      'Reglas de inferencia:',
+      '  ∀-Eliminación: de ∀x P(x), derivar P(t) para cualquier término t',
+      '  ∃-Introducción: de P(t), derivar ∃x P(x)',
+      '  Modus Ponens: de P(a) y ∀x(P(x)→Q(x)), derivar Q(a)',
+      '',
+      'Motor de prueba: Tableau analítico de primer orden',
+      '  • Regla Gamma (∀): instancia con constantes conocidas',
+      '  • Regla Delta (∃): introduce constante de Skolem fresca',
+      '  • Profundidad máxima: 200 (safety limit)',
+    ].join('\n');
+    explanation += `\n\nEstatus: ${valid ? 'VÁLIDA' : 'NO válida'} en lógica de primer orden`;
+
+    return {
+      status: valid ? 'valid' : 'invalid',
+      output: explanation,
+      tableauTrace: res.trace,
+      diagnostics: [],
+      formula,
+    };
   }
 
   checkEquivalent(a: Formula, b: Formula): RunResult {
