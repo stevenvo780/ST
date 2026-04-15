@@ -746,7 +746,7 @@ function addDerivedFormula(
   return true;
 }
 
-function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof | null {
+function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth: number = 0): Proof | null {
   const state: DerivationState = {
     known: new Map(),
     steps: [],
@@ -984,6 +984,36 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           }
         }
 
+        // Dilema Constructivo (implicaciones separadas): P->Q, R->S, P|R ⊢ Q|S
+        // No requiere que las implicaciones estén en conjunción
+        if (
+          f1.kind === 'implies' &&
+          f1.args?.[0] &&
+          f1.args?.[1] &&
+          f2.kind === 'implies' &&
+          f2.args?.[0] &&
+          f2.args?.[1] &&
+          !formulasEqual(f1, f2)
+        ) {
+          // Search for a disjunction P|R in known formulas
+          const p = f1.args[0];
+          const q = f1.args[1];
+          const r = f2.args[0];
+          const s = f2.args[1];
+          const disjHash = formulaHash({ kind: 'or', args: [p, r] });
+          const disjHashRev = formulaHash({ kind: 'or', args: [r, p] });
+          if (state.known.has(disjHash) || state.known.has(disjHashRev)) {
+            const qs: Formula = { kind: 'or', args: [q, s] };
+            const disjFormula = state.known.get(disjHash) || state.known.get(disjHashRev)!;
+            changed =
+              addDerivedFormula(state, qs, 'Dilema Constructivo', [
+                findStep(state.steps, f1),
+                findStep(state.steps, f2),
+                findStep(state.steps, disjFormula),
+              ]) || changed;
+          }
+        }
+
         // Resolución: P|Q, !P|R derivar Q|R
         if (
           f1.kind === 'or' &&
@@ -1207,6 +1237,92 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
           addDerivedFormula(state, dm2, 'De Morgan (OR)', [findStep(state.steps, f1)]) || changed;
       }
 
+      // Distribución 1: P & (Q | R) ⊢ (P & Q) | (P & R)
+      if (
+        f1.kind === 'and' &&
+        f1.args?.[0] &&
+        f1.args?.[1]?.kind === 'or' &&
+        f1.args[1].args?.[0] &&
+        f1.args[1].args?.[1]
+      ) {
+        const dist: Formula = {
+          kind: 'or',
+          args: [
+            { kind: 'and', args: [f1.args[0], f1.args[1].args[0]] },
+            { kind: 'and', args: [f1.args[0], f1.args[1].args[1]] },
+          ],
+        };
+        changed =
+          addDerivedFormula(state, dist, 'Distribucion (AND sobre OR)', [
+            findStep(state.steps, f1),
+          ]) || changed;
+      }
+      // Distribución 1b: (Q | R) & P ⊢ (Q & P) | (R & P)
+      if (
+        f1.kind === 'and' &&
+        f1.args?.[0]?.kind === 'or' &&
+        f1.args[0].args?.[0] &&
+        f1.args[0].args?.[1] &&
+        f1.args?.[1]
+      ) {
+        const dist: Formula = {
+          kind: 'or',
+          args: [
+            { kind: 'and', args: [f1.args[0].args[0], f1.args[1]] },
+            { kind: 'and', args: [f1.args[0].args[1], f1.args[1]] },
+          ],
+        };
+        changed =
+          addDerivedFormula(state, dist, 'Distribucion (AND sobre OR)', [
+            findStep(state.steps, f1),
+          ]) || changed;
+      }
+
+      // Distribución 2: P | (Q & R) ⊢ (P | Q) & (P | R)
+      if (
+        f1.kind === 'or' &&
+        f1.args?.[0] &&
+        f1.args?.[1]?.kind === 'and' &&
+        f1.args[1].args?.[0] &&
+        f1.args[1].args?.[1]
+      ) {
+        const dist: Formula = {
+          kind: 'and',
+          args: [
+            { kind: 'or', args: [f1.args[0], f1.args[1].args[0]] },
+            { kind: 'or', args: [f1.args[0], f1.args[1].args[1]] },
+          ],
+        };
+        if (isRelevantToGoal(dist, goal)) {
+          changed =
+            addDerivedFormula(state, dist, 'Distribucion (OR sobre AND)', [
+              findStep(state.steps, f1),
+            ]) || changed;
+        }
+      }
+      // Distribución 2b: (Q & R) | P ⊢ (Q | P) & (R | P)
+      if (
+        f1.kind === 'or' &&
+        f1.args?.[0]?.kind === 'and' &&
+        f1.args[0].args?.[0] &&
+        f1.args[0].args?.[1] &&
+        f1.args?.[1]
+      ) {
+        const dist: Formula = {
+          kind: 'and',
+          args: [
+            { kind: 'or', args: [f1.args[0].args[0], f1.args[1]] },
+            { kind: 'or', args: [f1.args[0].args[1], f1.args[1]] },
+          ],
+        };
+        if (isRelevantToGoal(dist, goal)) {
+          changed =
+            addDerivedFormula(state, dist, 'Distribucion (OR sobre AND)', [
+              findStep(state.steps, f1),
+            ]) || changed;
+        }
+      }
+
       // RAA (Reductio ad Absurdum) #29:
       // Si tenemos P→Q y P→¬Q (o ¬Q→P y Q→P), derivar ¬P
       if (f1.kind === 'implies' && f1.args?.[0] && f1.args?.[1]) {
@@ -1267,6 +1383,262 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[]): Proof
       status: 'complete',
       derivedFrom: premiseNames,
     };
+  }
+
+  // --- Sub-derivaciones recursivas (antes del fallback semántico) ---
+  const MAX_SUB_DEPTH = 2;
+
+  // Prueba Condicional real (→-Introducción / Deduction Theorem):
+  // Para derivar A→B, asumimos A como premisa temporal y derivamos B.
+  if (
+    depth < MAX_SUB_DEPTH &&
+    goal.kind === 'implies' &&
+    goal.args?.[0] &&
+    goal.args?.[1]
+  ) {
+    const assumption = goal.args[0];
+    const subGoal = goal.args[1];
+    // Create a temporary theory with the assumption added
+    const tempTheory: Theory = {
+      profile: theory.profile,
+      axioms: new Map(theory.axioms),
+      theorems: new Map(theory.theorems),
+      claims: theory.claims,
+      judgments: theory.judgments,
+    };
+    const assumptionName = `__assumption_${depth}_${formulaHash(assumption)}`;
+    tempTheory.axioms.set(assumptionName, assumption);
+    const subPremises = [...premiseNames, assumptionName];
+    const subProof = tryDerive(subGoal, tempTheory, subPremises, depth + 1);
+    if (subProof && subProof.status === 'complete') {
+      // Check the sub-proof doesn't rely solely on semantic fallback
+      const isSyntactic = subProof.steps.every(
+        (s) => !s.justification.startsWith('Verificacion semantica'),
+      );
+      if (isSyntactic) {
+        // Build the main proof: premises + sub-derivation steps + conditional proof conclusion
+        const mainSteps: ProofStep[] = [];
+        let stepNum = 0;
+
+        // Copy premise steps from current state
+        for (const s of state.steps) {
+          if (s.justification.startsWith('Premisa')) {
+            stepNum++;
+            mainSteps.push({ ...s, stepNumber: stepNum, premises: [] });
+          }
+        }
+
+        // Add assumption step
+        stepNum++;
+        const assumptionStepNum = stepNum;
+        mainSteps.push({
+          stepNumber: stepNum,
+          formula: assumption,
+          justification: 'Supuesto (para prueba condicional)',
+          premises: [],
+        });
+
+        // Add sub-derivation steps (renumber, adjusting premise references)
+        const subStepOffset = stepNum;
+        const subStepMap = new Map<number, number>();
+        for (const s of subProof.steps) {
+          if (s.justification.startsWith('Premisa') && formulasEqual(s.formula, assumption)) {
+            subStepMap.set(s.stepNumber, assumptionStepNum);
+            continue;
+          }
+          if (s.justification.startsWith('Premisa')) {
+            // Find existing premise step in main
+            const existing = mainSteps.find(
+              (ms) => ms.justification.startsWith('Premisa') && formulasEqual(ms.formula, s.formula),
+            );
+            if (existing) {
+              subStepMap.set(s.stepNumber, existing.stepNumber);
+              continue;
+            }
+          }
+          stepNum++;
+          subStepMap.set(s.stepNumber, stepNum);
+          mainSteps.push({
+            stepNumber: stepNum,
+            formula: s.formula,
+            justification: s.justification,
+            premises: s.premises.map((p) => subStepMap.get(p) || p),
+          });
+        }
+
+        // Add final conditional proof step
+        stepNum++;
+        const subGoalStepNum = subStepMap.get(
+          subProof.steps[subProof.steps.length - 1]?.stepNumber ?? 0,
+        ) ?? (stepNum - 1);
+        mainSteps.push({
+          stepNumber: stepNum,
+          formula: goal,
+          justification: 'Prueba Condicional (Teorema de Deduccion)',
+          premises: [assumptionStepNum, subGoalStepNum],
+        });
+
+        return {
+          goal,
+          steps: mainSteps,
+          status: 'complete',
+          derivedFrom: premiseNames,
+        };
+      }
+    }
+  }
+
+  // Prueba por Casos (∨-Eliminación / Disjunction Elimination):
+  // Si tenemos A|B y queremos derivar C, asumimos A→C y B→C por separado.
+  if (depth < MAX_SUB_DEPTH) {
+    const disjunctions = Array.from(state.known.values()).filter(
+      (f) => f.kind === 'or' && f.args?.[0] && f.args?.[1],
+    );
+    for (const disj of disjunctions) {
+      const left = disj.args![0];
+      const right = disj.args![1];
+
+      // Try to derive goal assuming left
+      const tempTheoryL: Theory = {
+        profile: theory.profile,
+        axioms: new Map(theory.axioms),
+        theorems: new Map(theory.theorems),
+        claims: theory.claims,
+        judgments: theory.judgments,
+      };
+      const leftName = `__case_left_${depth}_${formulaHash(left)}`;
+      tempTheoryL.axioms.set(leftName, left);
+      const subPremisesL = [...premiseNames, leftName];
+      const subProofL = tryDerive(goal, tempTheoryL, subPremisesL, depth + 1);
+      if (!subProofL || subProofL.status !== 'complete') continue;
+      const isSyntacticL = subProofL.steps.every(
+        (s) => !s.justification.startsWith('Verificacion semantica'),
+      );
+      if (!isSyntacticL) continue;
+
+      // Try to derive goal assuming right
+      const tempTheoryR: Theory = {
+        profile: theory.profile,
+        axioms: new Map(theory.axioms),
+        theorems: new Map(theory.theorems),
+        claims: theory.claims,
+        judgments: theory.judgments,
+      };
+      const rightName = `__case_right_${depth}_${formulaHash(right)}`;
+      tempTheoryR.axioms.set(rightName, right);
+      const subPremisesR = [...premiseNames, rightName];
+      const subProofR = tryDerive(goal, tempTheoryR, subPremisesR, depth + 1);
+      if (!subProofR || subProofR.status !== 'complete') continue;
+      const isSyntacticR = subProofR.steps.every(
+        (s) => !s.justification.startsWith('Verificacion semantica'),
+      );
+      if (!isSyntacticR) continue;
+
+      // Both cases succeed — build proof by cases
+      const mainSteps: ProofStep[] = [];
+      let stepNum = 0;
+
+      // Copy premise steps
+      for (const s of state.steps) {
+        if (s.justification.startsWith('Premisa')) {
+          stepNum++;
+          mainSteps.push({ ...s, stepNumber: stepNum, premises: [] });
+        }
+      }
+      const disjStepNum = mainSteps.find(
+        (ms) => formulasEqual(ms.formula, disj),
+      )?.stepNumber ?? 0;
+
+      // Left case sub-derivation
+      stepNum++;
+      const leftAssumptionStep = stepNum;
+      mainSteps.push({
+        stepNumber: stepNum,
+        formula: left,
+        justification: 'Supuesto (caso izquierdo)',
+        premises: [],
+      });
+      const leftStepMap = new Map<number, number>();
+      for (const s of subProofL.steps) {
+        if (s.justification.startsWith('Premisa') && formulasEqual(s.formula, left)) {
+          leftStepMap.set(s.stepNumber, leftAssumptionStep);
+          continue;
+        }
+        if (s.justification.startsWith('Premisa')) {
+          const existing = mainSteps.find(
+            (ms) => ms.justification.startsWith('Premisa') && formulasEqual(ms.formula, s.formula),
+          );
+          if (existing) {
+            leftStepMap.set(s.stepNumber, existing.stepNumber);
+            continue;
+          }
+        }
+        stepNum++;
+        leftStepMap.set(s.stepNumber, stepNum);
+        mainSteps.push({
+          stepNumber: stepNum,
+          formula: s.formula,
+          justification: s.justification,
+          premises: s.premises.map((p) => leftStepMap.get(p) || p),
+        });
+      }
+      const leftGoalStep = leftStepMap.get(
+        subProofL.steps[subProofL.steps.length - 1]?.stepNumber ?? 0,
+      ) ?? stepNum;
+
+      // Right case sub-derivation
+      stepNum++;
+      const rightAssumptionStep = stepNum;
+      mainSteps.push({
+        stepNumber: stepNum,
+        formula: right,
+        justification: 'Supuesto (caso derecho)',
+        premises: [],
+      });
+      const rightStepMap = new Map<number, number>();
+      for (const s of subProofR.steps) {
+        if (s.justification.startsWith('Premisa') && formulasEqual(s.formula, right)) {
+          rightStepMap.set(s.stepNumber, rightAssumptionStep);
+          continue;
+        }
+        if (s.justification.startsWith('Premisa')) {
+          const existing = mainSteps.find(
+            (ms) => ms.justification.startsWith('Premisa') && formulasEqual(ms.formula, s.formula),
+          );
+          if (existing) {
+            rightStepMap.set(s.stepNumber, existing.stepNumber);
+            continue;
+          }
+        }
+        stepNum++;
+        rightStepMap.set(s.stepNumber, stepNum);
+        mainSteps.push({
+          stepNumber: stepNum,
+          formula: s.formula,
+          justification: s.justification,
+          premises: s.premises.map((p) => rightStepMap.get(p) || p),
+        });
+      }
+      const rightGoalStep = rightStepMap.get(
+        subProofR.steps[subProofR.steps.length - 1]?.stepNumber ?? 0,
+      ) ?? stepNum;
+
+      // Final disjunction elimination step
+      stepNum++;
+      mainSteps.push({
+        stepNumber: stepNum,
+        formula: goal,
+        justification: 'Eliminacion de disyuncion (prueba por casos)',
+        premises: [disjStepNum, leftGoalStep, rightGoalStep],
+      });
+
+      return {
+        goal,
+        steps: mainSteps,
+        status: 'complete',
+        derivedFrom: premiseNames,
+      };
+    }
   }
 
   // Fallback: verificar semánticamente
