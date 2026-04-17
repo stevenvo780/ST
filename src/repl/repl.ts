@@ -6,10 +6,24 @@ import * as readline from 'readline';
 import { Interpreter } from '../runtime/interpreter';
 import { formulaToString } from '../profiles/classical/propositional';
 import { registry } from '../profiles/interface';
+import { createReplCompatState, transformReplInput } from '../runtime/compat';
+import type { ExecutionOutput } from '../types';
 
 export class REPL {
   private interpreter: Interpreter;
   private rl: readline.Interface | null = null;
+  private compatState = createReplCompatState();
+
+  private collectKnownPremises(): string[] {
+    const theory = this.interpreter.getTheory();
+    return Array.from(
+      new Set([
+        ...this.interpreter.getLetBindings().keys(),
+        ...theory.axioms.keys(),
+        ...theory.theorems.keys(),
+      ]),
+    );
+  }
 
   constructor() {
     this.interpreter = new Interpreter();
@@ -70,7 +84,24 @@ export class REPL {
   }
 
   private executeBuffer(source: string): void {
-    const output = this.interpreter.executeSingle(source);
+    const transformed = transformReplInput(source, this.compatState, {
+      knownPremises: this.collectKnownPremises(),
+    });
+    let output: ExecutionOutput;
+
+    if (transformed.kind === 'buffered') {
+      output = {
+        stdout: transformed.message,
+        stderr: '',
+        exitCode: 0,
+        diagnostics: [],
+        results: [],
+      };
+    } else if (transformed.kind === 'execute') {
+      output = this.interpreter.execute(transformed.source, '<repl>');
+    } else {
+      output = this.interpreter.executeSingle(transformed.source);
+    }
 
     if (output.stdout) {
       console.log(output.stdout);
@@ -116,6 +147,7 @@ export class REPL {
 
       case ':reset':
         this.interpreter.reset();
+        this.compatState = createReplCompatState();
         console.log('Estado reiniciado.');
         break;
 
@@ -153,6 +185,9 @@ Sintaxis ST:
   logic <perfil>                         Seleccionar perfil logico
   axiom <nombre> = <formula>             Declarar axioma
   theorem <nombre> = <formula>           Declarar teorema
+  premise <formula>                      Registrar premisa temporal
+  conclusion <formula>                   Cerrar premisas y demostrar meta
+  1. P premise / 3. Q MP 1,2             Prueba numerada estilo aula
   derive <formula> from {p1, p2, ...}    Derivar formula
   check valid <formula>                  Verificar validez (tautologia)
   check satisfiable <formula>            Verificar satisfacibilidad
@@ -172,16 +207,16 @@ Sintaxis ST:
 
 Alias en espanol:
   axioma, teorema, derivar...desde, verificar, probar,
-  contramodelo, tabla_verdad, explicar, analizar,
+  contramodelo, tabla_verdad, explicar, analizar, premisa, por_tanto,
   paratodo (forall), existe (exists)
 
 Formulas:
   P, Q, R       Atomos proposicionales
-  !P             Negacion  (¬)
+  !P, ~P         Negacion  (¬, ∼)
   P & Q          Conjuncion (∧)
   P | Q          Disyuncion (∨)
-  P -> Q         Implicacion (→)
-  P <-> Q        Bicondicional (↔)
+  P -> Q, P => Q Implicacion (→, ⇒)
+  P <-> Q        Bicondicional (↔, ⇔, <=>)
   [](P)          Necesidad / Obligacion / Siempre (□)
   <>(P)          Posibilidad / Permision / Eventualmente (◇)
   forall x (Fx)  Universal (∀)

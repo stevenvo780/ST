@@ -5,6 +5,7 @@
 import { Token, TokenType } from '../lexer/tokens';
 import { Lexer } from '../lexer/lexer';
 import { Formula, Diagnostic, SourceLocation } from '../types';
+import { normalizeSTSource } from '../runtime/compat';
 import {
   Program,
   Statement,
@@ -88,7 +89,8 @@ export class Parser {
   }
 
   parse(source: string): Program {
-    const lexer = new Lexer(source, this.file, this.initialProfile);
+    const normalizedSource = normalizeSTSource(source);
+    const lexer = new Lexer(normalizedSource, this.file, this.initialProfile);
     this.tokens = lexer.tokenize();
     this.diagnostics.push(...lexer.diagnostics);
     this.pos = 0;

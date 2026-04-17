@@ -1196,9 +1196,44 @@ export class Interpreter {
   private execDeriveCmd(stmt: DeriveCmdNode): void {
     const profile = this.requireProfile();
     const resolved = this.resolveFormula(stmt.goal);
+
+    // Warn about non-existent premises (check name, let bindings, and formula-value match)
+    for (const name of stmt.premises) {
+      if (this.theory.axioms.has(name) || this.theory.theorems.has(name) || this.letBindings.has(name)) {
+        continue;
+      }
+      // Check if any axiom/theorem has this as its formula atom name
+      let foundByFormula = false;
+      for (const [, formula] of this.theory.axioms) {
+        if (formula.kind === 'atom' && formula.name === name) { foundByFormula = true; break; }
+      }
+      if (!foundByFormula) {
+        for (const [, formula] of this.theory.theorems) {
+          if (formula.kind === 'atom' && formula.name === name) { foundByFormula = true; break; }
+        }
+      }
+      if (!foundByFormula) {
+        this.diagnostics.push({
+          severity: 'warning',
+          message: `Premisa '${name}' no encontrada en la teoría actual`,
+          file: stmt.source.file,
+          line: stmt.source.line,
+          column: stmt.source.column,
+        });
+      }
+    }
+
     const result = profile.derive(resolved, stmt.premises, this.theory);
     this.results.push(result);
     this.emitResult('derive', result);
+
+    // Auto-register successful derivations as theorems so they can be reused
+    if (result.status === 'valid' || result.status === 'provable') {
+      const theoremName = `derived_${this.theory.theorems.size + 1}`;
+      this.theory.theorems.set(theoremName, resolved);
+      // Also register as axiom so it can be used as premise in subsequent derives
+      this.theory.axioms.set(theoremName, resolved);
+    }
   }
 
   private execCheckValidCmd(stmt: CheckValidCmdNode): void {
@@ -1625,7 +1660,11 @@ export class Interpreter {
 
     this.executeStatementsIterative(stmt.body, stmt.source.file);
 
-    const premiseNames = stmt.assumptions.map((a) => a.name);
+    // Include ALL axioms and theorems available in the theory (external + assumptions + body results)
+    const premiseNames = Array.from(new Set([
+      ...Array.from(this.theory.axioms.keys()),
+      ...Array.from(this.theory.theorems.keys()),
+    ]));
     const result = profile.derive(resolvedGoal, premiseNames, this.theory);
     this.results.push(result);
 

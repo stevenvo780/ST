@@ -309,6 +309,12 @@ export class ProtocolHandler {
       theorem:
         '**theorem**\n\nDeclara un teorema nombrado dentro de una teoría o script.\n\nEjemplo: `theorem identidad : P -> P`',
       let: '**let**\n\nCrea un alias reutilizable para fórmulas, descripciones o pasajes.',
+      premise:
+        '**premise**\n\nAlias didáctico de `assume` para registrar una premisa temporal dentro de una demostración de aula.',
+      conclusion:
+        '**conclusion**\n\nCierra un bloque de `premise` y demuestra la meta indicada. Si no hay premisas temporales, intenta derivar desde la teoría actual.',
+      therefore:
+        '**therefore**\n\nAlias de `conclusion` para notación de aula o demostraciones cortas.',
       derive:
         '**derive**\n\nIntenta derivar una conclusión a partir de premisas nombradas.\n\nEjemplo: `derive Q from {regla, hecho}`',
       check: '**check**\n\nEvalúa propiedades como validez, satisfacibilidad o equivalencia.',
@@ -360,6 +366,12 @@ export class ProtocolHandler {
       '>=': '**>=**\n\nCompara si el operando izquierdo es mayor o igual.',
       '≤': '**≤**\n\nVersión Unicode de `<=`.',
       '≥': '**≥**\n\nVersión Unicode de `>=`.',
+      '~': '**~**\n\nAlias de negación. `~P` se normaliza como `!P`.',
+      '∼': '**∼**\n\nVersión Unicode alternativa de negación.',
+      '=>': '**=>**\n\nAlias ASCII de implicación. Se normaliza como `->`.',
+      '⇒': '**⇒**\n\nVersión Unicode alternativa de implicación.',
+      '<=>': '**<=>**\n\nAlias ASCII de bicondicional. Se normaliza como `<->`.',
+      '⇔': '**⇔**\n\nVersión Unicode alternativa de bicondicional.',
       '^': '**^** (XOR)\n\nDisyunción exclusiva. Verdadera si solo uno de los operandos es verdadero.',
       '⊕': '**⊕** (XOR)\n\nVersión Unicode de `^`.',
       xor: '**xor**\n\nVersión textual de `^`.',
@@ -369,12 +381,18 @@ export class ProtocolHandler {
       '!|': '**!|** (NOR)\n\nNegación conjunta (Peirce arrow). Verdadera solo si ambos operandos son falsos.',
       '↓': '**↓** (NOR)\n\nVersión Unicode de `!|`.',
       nor: '**nor**\n\nVersión textual de `!|`.',
+      '|-': '**|-**\n\nNotación de secuente. `P, P -> Q |- Q` se interpreta como una derivación desde premisas hacia una meta.',
+      '⊢': '**⊢**\n\nVersión Unicode de `|-`.',
+      '⊥': '**⊥**\n\nConstante de falsedad (bottom).',
+      '⊤': '**⊤**\n\nConstante de verdad (top).',
     };
 
     const aliases: Record<string, string> = {
       logica: keywordInfo.logic,
       axioma: keywordInfo.axiom,
       teorema: keywordInfo.theorem,
+      premisa: keywordInfo.premise,
+      por_tanto: keywordInfo.conclusion,
       derivar: keywordInfo.derive,
       contramodelo: keywordInfo.countermodel,
       tabla_verdad: keywordInfo.truth_table,
@@ -736,6 +754,30 @@ export class ProtocolHandler {
         insertText: 'theorem ${1:name} : ${2:formula}',
       },
       {
+        label: 'premise',
+        kind: 'keyword',
+        detail: 'Registrar premisa temporal de aula',
+        insertText: 'premise ${1:formula}',
+      },
+      {
+        label: 'conclusion',
+        kind: 'keyword',
+        detail: 'Cerrar bloque de premisas y demostrar meta',
+        insertText: 'conclusion ${1:formula}',
+      },
+      {
+        label: 'numbered proof',
+        kind: 'snippet',
+        detail: 'Plantilla de prueba numerada estilo aula',
+        insertText: '1. ${1:P} premise\n2. ${2:P -> Q} premise\n3. ${3:Q} MP 1,2',
+      },
+      {
+        label: 'therefore',
+        kind: 'keyword',
+        detail: 'Alias de conclusion',
+        insertText: 'therefore ${1:formula}',
+      },
+      {
         label: 'let',
         kind: 'keyword',
         detail: 'Declarar variable/fórmula',
@@ -816,6 +858,18 @@ export class ProtocolHandler {
         kind: 'keyword',
         detail: 'Declarar teorema (español)',
         insertText: 'teorema ${1:nombre} : ${2:formula}',
+      },
+      {
+        label: 'premisa',
+        kind: 'keyword',
+        detail: 'Registrar premisa temporal (español)',
+        insertText: 'premisa ${1:formula}',
+      },
+      {
+        label: 'por_tanto',
+        kind: 'keyword',
+        detail: 'Cerrar premisas y demostrar meta (español)',
+        insertText: 'por_tanto ${1:formula}',
       },
       {
         label: 'derivar',

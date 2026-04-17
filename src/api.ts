@@ -8,11 +8,13 @@
 
 import { Parser } from './parser/parser';
 import { Interpreter } from './runtime/interpreter';
+import { createReplCompatState, transformReplInput } from './runtime/compat';
 import { ProtocolHandler } from './protocol/handler';
 import { registry } from './profiles/interface';
 import type {
   Diagnostic,
   RunResult,
+  ExecutionOutput,
   SymbolInfo,
   HoverInfo,
   CompletionItem,
@@ -174,18 +176,49 @@ export interface TheorySummary {
 export function createInterpreter(): STInterpreter {
   const inner = new Interpreter();
   const history: STEvalResult[] = [];
+  const replCompatState = createReplCompatState();
+  const collectKnownPremises = (): string[] => {
+    const theory = inner.getTheory();
+    return Array.from(
+      new Set([
+        ...inner.getLetBindings().keys(),
+        ...theory.axioms.keys(),
+        ...theory.theorems.keys(),
+      ]),
+    );
+  };
+
+  const toResult = (output: ExecutionOutput): STEvalResult => ({
+    ok: output.exitCode === 0,
+    stdout: output.stdout,
+    stderr: output.stderr,
+    exitCode: output.exitCode,
+    results: output.results,
+    diagnostics: output.diagnostics,
+  });
 
   return {
     exec(source: string): STEvalResult {
-      const output = inner.executeSingle(source);
-      const result: STEvalResult = {
-        ok: output.exitCode === 0,
-        stdout: output.stdout,
-        stderr: output.stderr,
-        exitCode: output.exitCode,
-        results: output.results,
-        diagnostics: output.diagnostics,
-      };
+      const transformed = transformReplInput(source, replCompatState, {
+        knownPremises: collectKnownPremises(),
+      });
+      let output: ExecutionOutput;
+
+      if (transformed.kind === 'buffered') {
+        output = {
+          stdout: transformed.message,
+          stderr: '',
+          exitCode: 0,
+          diagnostics: [],
+          results: [],
+        };
+      } else if (transformed.kind === 'execute') {
+        output = inner.execute(transformed.source, '<repl>');
+      } else {
+        output = inner.executeSingle(transformed.source);
+      }
+
+      const result = toResult(output);
       history.push(result);
       return result;
     },
@@ -193,6 +226,8 @@ export function createInterpreter(): STInterpreter {
     reset(): void {
       inner.reset();
       history.length = 0;
+      replCompatState.nextId = 1;
+      replCompatState.pendingPremises = [];
     },
 
     getProfile(): string | null {

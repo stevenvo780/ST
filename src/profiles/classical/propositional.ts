@@ -755,7 +755,27 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
 
   // Cargar premisas
   for (const name of premiseNames) {
-    const f = theory.axioms.get(name) || theory.theorems.get(name);
+    let f = theory.axioms.get(name) || theory.theorems.get(name);
+
+    // Fallback: if name not found directly, search for an axiom/theorem whose formula
+    // matches the bare atom name (e.g., premise "Q" matches a theorem whose formula is atom Q)
+    if (!f) {
+      for (const [, formula] of theory.axioms) {
+        if (formula.kind === 'atom' && formula.name === name) {
+          f = formula;
+          break;
+        }
+      }
+      if (!f) {
+        for (const [, formula] of theory.theorems) {
+          if (formula.kind === 'atom' && formula.name === name) {
+            f = formula;
+            break;
+          }
+        }
+      }
+    }
+
     if (f) {
       state.stepCount++;
       state.steps.push({
@@ -1117,6 +1137,43 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
           addDerivedFormula(state, goal, 'Debilitamiento (B ⊢ A → B)', [
             findStep(state.steps, f1),
           ]) || changed;
+      }
+
+      // Implicación material (→ a ∨): de A->B, derivar !A|B
+      if (
+        f1.kind === 'implies' &&
+        f1.args?.[0] &&
+        f1.args?.[1]
+      ) {
+        const matImpl: Formula = {
+          kind: 'or',
+          args: [{ kind: 'not', args: [f1.args[0]] }, f1.args[1]],
+        };
+        if (isRelevantToGoal(matImpl, goal)) {
+          changed =
+            addDerivedFormula(state, matImpl, 'Implicacion material (→ a ∨)', [
+              findStep(state.steps, f1),
+            ]) || changed;
+        }
+      }
+
+      // Implicación material inversa (∨ a →): de !A|B, derivar A->B
+      if (
+        f1.kind === 'or' &&
+        f1.args?.[0]?.kind === 'not' &&
+        f1.args[0].args?.[0] &&
+        f1.args?.[1]
+      ) {
+        const impl: Formula = {
+          kind: 'implies',
+          args: [f1.args[0].args[0], f1.args[1]],
+        };
+        if (isRelevantToGoal(impl, goal)) {
+          changed =
+            addDerivedFormula(state, impl, 'Implicacion material (∨ a →)', [
+              findStep(state.steps, f1),
+            ]) || changed;
+        }
       }
 
       // Contraposition: de A->B, derivar !B->!A
@@ -1750,7 +1807,18 @@ function traceBack(steps: ProofStep[], goal: Formula): ProofStep[] {
   }
 
   trace(goalStep.stepNumber);
-  return steps.filter((s) => needed.has(s.stepNumber));
+  const filtered = steps.filter((s) => needed.has(s.stepNumber));
+
+  // Compact renumbering: eliminate gaps in step numbers
+  const oldToNew = new Map<number, number>();
+  filtered.forEach((s, i) => {
+    oldToNew.set(s.stepNumber, i + 1);
+  });
+  return filtered.map((s) => ({
+    ...s,
+    stepNumber: oldToNew.get(s.stepNumber) ?? s.stepNumber,
+    premises: s.premises.map((p) => oldToNew.get(p) ?? p),
+  }));
 }
 
 // --- Perfil Classical Propositional ---
@@ -1952,6 +2020,92 @@ export class ClassicalPropositional implements LogicProfile {
         status: 'provable',
         output: `${formulaToString(goal)} es DEMOSTRABLE desde la teoria`,
         proof,
+        educationalNote: pickEducationalNote({ op: 'prove', ok: true }),
+        diagnostics: [],
+        formula: goal,
+      };
+    }
+
+    // Semantic fallback: verify via SAT/truth-table whether goal follows from axioms
+    const allAxiomFormulas = premiseNames
+      .map((n) => theory.axioms.get(n) || theory.theorems.get(n))
+      .filter((f): f is Formula => f !== undefined);
+
+    let semanticResult = false;
+    const atoms = new Set<string>();
+    for (const f of allAxiomFormulas) collectAtoms(f).forEach((a) => atoms.add(a));
+    collectAtoms(goal).forEach((a) => atoms.add(a));
+    const atomList = Array.from(atoms).sort();
+
+    if (allAxiomFormulas.length > 0) {
+      // With premises: check if premises entail goal
+      const allPure = allAxiomFormulas.every(isPurePropositional) && isPurePropositional(goal);
+      if (allPure && atomList.length <= 26) {
+        const premiseBits = allAxiomFormulas.map((f) => evaluateBitset(f, atomList).result);
+        const goalBits = evaluateBitset(goal, atomList).result;
+        const allOnes = bvOnes(1 << atomList.length);
+        let premisesConj = allOnes;
+        for (const pb of premiseBits) premisesConj = bvAnd(premisesConj, pb);
+        semanticResult = bvIsZero(bvAnd(premisesConj, bvNot(goalBits, allOnes)));
+      } else if (allPure && atomList.length > 26) {
+        let conjunction: Formula = allAxiomFormulas[0];
+        for (let i = 1; i < allAxiomFormulas.length; i++) {
+          conjunction = { kind: 'and', args: [conjunction, allAxiomFormulas[i]] };
+        }
+        const negGoal: Formula = { kind: 'not', args: [goal] };
+        const check: Formula = { kind: 'and', args: [conjunction, negGoal] };
+        semanticResult = !dpll(check).satisfiable;
+      } else {
+        const valuations = generateValuations(atomList);
+        semanticResult = true;
+        for (const v of valuations) {
+          const premisesTrue = allAxiomFormulas.every((f) => evaluateClassical(f, v));
+          if (premisesTrue && !evaluateClassical(goal, v)) {
+            semanticResult = false;
+            break;
+          }
+        }
+      }
+    } else {
+      // No premises: check if goal is a tautology
+      if (isPurePropositional(goal) && atomList.length <= 26) {
+        const { result, allOnes } = evaluateBitset(goal, atomList);
+        semanticResult = bvEquals(result, allOnes);
+      } else if (isPurePropositional(goal) && atomList.length > 26) {
+        const negated: Formula = { kind: 'not', args: [goal] };
+        semanticResult = !dpll(negated).satisfiable;
+      } else {
+        const valuations = generateValuations(atomList);
+        semanticResult = valuations.every((v) => evaluateClassical(goal, v));
+      }
+    }
+
+    if (semanticResult) {
+      const semanticProof: Proof = {
+        goal,
+        steps: [
+          ...premiseNames
+            .map((n, i) => {
+              const f = theory.axioms.get(n) || theory.theorems.get(n);
+              return f
+                ? { stepNumber: i + 1, formula: f, justification: `Premisa (${n})`, premises: [] as number[] }
+                : null;
+            })
+            .filter((s): s is ProofStep => s !== null),
+          {
+            stepNumber: premiseNames.length + 1,
+            formula: goal,
+            justification: 'Verificacion semantica (tautologia o consecuencia logica)',
+            premises: premiseNames.map((_, i) => i + 1),
+          },
+        ],
+        status: 'complete',
+        derivedFrom: premiseNames,
+      };
+      return {
+        status: 'provable',
+        output: `${formulaToString(goal)} es DEMOSTRABLE desde la teoria`,
+        proof: semanticProof,
         educationalNote: pickEducationalNote({ op: 'prove', ok: true }),
         diagnostics: [],
         formula: goal,
