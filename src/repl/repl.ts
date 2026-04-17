@@ -43,8 +43,6 @@ export class REPL {
 
     this.rl.prompt();
 
-    let buffer = '';
-
     this.rl.on('line', (line: string) => {
       const trimmed = line.trim();
       const rl = this.rl;
@@ -57,23 +55,12 @@ export class REPL {
         return;
       }
 
-      // Línea vacía ejecuta el buffer si hay algo
-      if (trimmed === '' && buffer !== '') {
-        this.executeBuffer(buffer);
-        buffer = '';
+      if (trimmed === '' && this.compatState.pendingBlockLines.length === 0) {
         rl.prompt();
         return;
       }
 
-      if (trimmed === '') {
-        rl.prompt();
-        return;
-      }
-
-      // Acumular o ejecutar directo
-      buffer = trimmed;
-      this.executeBuffer(buffer);
-      buffer = '';
+      this.executeBuffer(line);
       rl.prompt();
     });
 

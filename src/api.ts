@@ -228,6 +228,10 @@ export function createInterpreter(): STInterpreter {
       history.length = 0;
       replCompatState.nextId = 1;
       replCompatState.pendingPremises = [];
+      replCompatState.pendingBlockLines = [];
+      replCompatState.pendingBlockBraceDepth = 0;
+      replCompatState.pendingBlockProofDepth = 0;
+      replCompatState.pendingBlockProofAwaitingShow = [];
     },
 
     getProfile(): string | null {

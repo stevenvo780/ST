@@ -204,4 +204,50 @@ check valid ((P -> Q) -> (!Q -> !P))
     parser.parse('axiom = invalid syntax 123 @@');
     expect(parser.diagnostics.some((d) => d.severity === 'error')).toBe(true);
   });
+
+  it('parsea proof blocks anidados', () => {
+    const parser = new Parser();
+    const program = parser.parse(`
+logic classical.propositional
+assume h1 : P
+show (Q -> P)
+  assume h2 : Q
+  show P
+  derive P from {h1}
+  qed
+qed
+`);
+
+    expect(parser.diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
+    const proofBlock = program.statements[1];
+    expect(proofBlock.kind).toBe('proof_block');
+    if (proofBlock.kind === 'proof_block') {
+      expect(proofBlock.body[0]?.kind).toBe('proof_block');
+    }
+  });
+
+  it('mantiene el siguiente statement al recuperarse de brackets incompletos', () => {
+    const parser = new Parser();
+    const program = parser.parse(`
+axiom broken = (P & Q
+axiom ok = P
+`);
+
+    expect(parser.diagnostics.some((d) => d.severity === 'error')).toBe(true);
+    expect(
+      program.statements.some((stmt) => stmt.kind === 'axiom_decl' && (stmt as AxiomDeclNode).name === 'ok'),
+    ).toBe(true);
+  });
+
+  it('reporta contexto util cuando falta qed', () => {
+    const parser = new Parser();
+    parser.parse(`
+assume h1 : P
+show P
+`);
+
+    const error = parser.diagnostics.find((diag) => diag.severity === 'error');
+    expect(error?.message).toContain("Se esperaba 'qed'");
+    expect(error?.message).toContain('bloque de prueba');
+  });
 });

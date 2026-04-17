@@ -14,6 +14,7 @@ import {
   Formula,
   DefinitionEntry,
   SourceInfo,
+  isFormula,
 } from '../types';
 import { Parser } from '../parser/parser';
 import {
@@ -419,6 +420,14 @@ export class Interpreter {
     return owner === 'global' ? this.letBindings.get(name) : owner.bindings.get(name);
   }
 
+  private requireFormulaBinding(name: string): Formula {
+    const binding = this.getBinding(name);
+    if (!binding) {
+      throw new Error(`Binding '${name}' no encontrado.`);
+    }
+    return binding;
+  }
+
   private defineBinding(name: string, value: Formula, description?: string): void {
     this.invalidateResolveCache();
     if (this.currentBindingFrame) {
@@ -467,12 +476,18 @@ export class Interpreter {
       return;
     }
 
-    if (snapshot.owner === 'global') {
-      this.letBindings.set(name, snapshot.value as Formula);
+    if (!snapshot.value) {
+      if (snapshot.owner === 'global') this.letBindings.delete(name);
+      else snapshot.owner.bindings.delete(name);
       return;
     }
 
-    snapshot.owner.bindings.set(name, snapshot.value as Formula);
+    if (snapshot.owner === 'global') {
+      this.letBindings.set(name, snapshot.value);
+      return;
+    }
+
+    snapshot.owner.bindings.set(name, snapshot.value);
   }
 
   private shouldEmitLocalBindings(): boolean {
@@ -972,21 +987,31 @@ export class Interpreter {
     switch (s.kind) {
       case 'let_decl':
         if (s.letType === 'formula') {
-          this.exportedBindings.set(s.name, this.letBindings.get(s.name) as Formula);
-          this.exportedAxioms.set(s.name, this.theory.axioms.get(s.name) as Formula);
+          const binding = this.letBindings.get(s.name);
+          const axiom = this.theory.axioms.get(s.name);
+          if (binding) this.exportedBindings.set(s.name, binding);
+          if (axiom) this.exportedAxioms.set(s.name, axiom);
         }
         break;
       case 'axiom_decl':
-        this.exportedAxioms.set(s.name, this.theory.axioms.get(s.name) as Formula);
+        if (this.theory.axioms.has(s.name)) {
+          this.exportedAxioms.set(s.name, this.theory.axioms.get(s.name)!);
+        }
         break;
       case 'theorem_decl':
-        this.exportedTheorems.set(s.name, this.theory.theorems.get(s.name) as Formula);
+        if (this.theory.theorems.has(s.name)) {
+          this.exportedTheorems.set(s.name, this.theory.theorems.get(s.name)!);
+        }
         break;
       case 'fn_decl':
-        this.exportedFunctions.set(s.name, this.functions.get(s.name) as FnDeclNode);
+        if (this.functions.has(s.name)) {
+          this.exportedFunctions.set(s.name, this.functions.get(s.name)!);
+        }
         break;
       case 'theory_decl':
-        this.exportedTheories.set(s.name, this.theories.get(s.name) as TheoryScope);
+        if (this.theories.has(s.name)) {
+          this.exportedTheories.set(s.name, this.theories.get(s.name)!);
+        }
         break;
       case 'define_decl': {
         const defEntry = this.definitions.get(s.name);
@@ -1040,7 +1065,7 @@ export class Interpreter {
       if (this.hasBinding(f.name)) {
         if (visited.has(f.name)) return f;
         visited.add(f.name);
-        const result = this.resolveFormulaRecursive(this.getBinding(f.name) as Formula, visited);
+        const result = this.resolveFormulaRecursive(this.requireFormulaBinding(f.name), visited);
         visited.delete(f.name);
         return result;
       }
@@ -1051,7 +1076,7 @@ export class Interpreter {
 
         // 1. Intentar resolver el prefijo como una variable local (instancia)
         if (this.hasBinding(prefix)) {
-          const resolvedPrefix = this.getBinding(prefix) as Formula;
+          const resolvedPrefix = this.requireFormulaBinding(prefix);
           if (resolvedPrefix.kind === 'atom' && resolvedPrefix.name) {
             const actualInstanceName = resolvedPrefix.name;
             const scope = this.theories.get(actualInstanceName);
@@ -1091,20 +1116,14 @@ export class Interpreter {
       if (this.theory.axioms.has(f.name)) {
         if (visited.has(f.name)) return f;
         visited.add(f.name);
-        const result = this.resolveFormulaRecursive(
-          this.theory.axioms.get(f.name) as Formula,
-          visited,
-        );
+        const result = this.resolveFormulaRecursive(this.theory.axioms.get(f.name)!, visited);
         visited.delete(f.name);
         return result;
       }
       if (this.theory.theorems.has(f.name)) {
         if (visited.has(f.name)) return f;
         visited.add(f.name);
-        const result = this.resolveFormulaRecursive(
-          this.theory.theorems.get(f.name) as Formula,
-          visited,
-        );
+        const result = this.resolveFormulaRecursive(this.theory.theorems.get(f.name)!, visited);
         visited.delete(f.name);
         return result;
       }
@@ -1382,19 +1401,18 @@ export class Interpreter {
       else this.letDescriptions.set(stmt.name, stmt.description);
       if (this.shouldEmitLocalBindings()) this.emit(`Let ${stmt.name} = "${stmt.description}"`);
     } else if (stmt.letType === 'action') {
-      const actionStmt = stmt as { name: string; action: RuntimeActionExpr };
-      const captured = this.executeActionExpr(actionStmt.action);
+      const captured = this.executeActionExpr(stmt.action);
       this.results.push(captured.result);
       this.bindCapturedAction(
-        actionStmt.name,
-        actionStmt.action.action,
+        stmt.name,
+        stmt.action.action,
         captured.primary,
         captured.result,
         captured.formulas,
         captured.extraBindings,
       );
       if (this.shouldEmitLocalBindings()) {
-        this.emit(`Let ${actionStmt.name} = ${formulaToUnicode(captured.primary)}`);
+        this.emit(`Let ${stmt.name} = ${formulaToUnicode(captured.primary)}`);
       }
     } else if (stmt.letType === 'formula' && stmt.formula) {
       // Resolve bindings but preserve symbolic structure (no constant-folding)
@@ -2221,7 +2239,7 @@ export class Interpreter {
       const [prefix, methodName] = stmt.name.split('.', 2);
       let actualInstanceName = prefix;
       if (this.hasBinding(prefix)) {
-        const resolved = this.getBinding(prefix) as Formula;
+        const resolved = this.requireFormulaBinding(prefix);
         if (resolved.kind === 'atom' && resolved.name) actualInstanceName = resolved.name;
       }
       const scope = this.theories.get(actualInstanceName);
@@ -2615,7 +2633,7 @@ export class Interpreter {
 
     switch (action.action) {
       case 'check_valid': {
-        const formula = this.resolveFormula(action.formula as Formula);
+        const formula = this.requireActionFormula(action, 'formula');
         return {
           result: profile.checkValid(formula),
           primary: formula,
@@ -2624,7 +2642,7 @@ export class Interpreter {
         };
       }
       case 'check_satisfiable': {
-        const formula = this.resolveFormula(action.formula as Formula);
+        const formula = this.requireActionFormula(action, 'formula');
         return {
           result: profile.checkSatisfiable(formula),
           primary: formula,
@@ -2636,8 +2654,8 @@ export class Interpreter {
         if (!profile.checkEquivalent) {
           throw new Error('Este perfil no soporta check equivalent');
         }
-        const left = this.resolveFormula(action.left as Formula);
-        const right = this.resolveFormula(action.right as Formula);
+        const left = this.requireActionFormula(action, 'left');
+        const right = this.requireActionFormula(action, 'right');
         const comparison: Formula = {
           kind: 'biconditional',
           args: [left, right],
@@ -2662,8 +2680,8 @@ export class Interpreter {
         };
       }
       case 'derive': {
-        const goal = this.resolveFormula(action.goal as Formula);
-        const premises = action.premises || [];
+        const goal = this.requireActionFormula(action, 'goal');
+        const premises = this.requireActionPremises(action);
         const result = profile.derive(goal, premises, this.theory);
         const premiseFormulas = premises
           .map((premise) => this.theory.axioms.get(premise) || this.theory.theorems.get(premise))
@@ -2681,8 +2699,8 @@ export class Interpreter {
         };
       }
       case 'prove': {
-        const goal = this.resolveFormula(action.goal as Formula);
-        const premises = action.premises || [];
+        const goal = this.requireActionFormula(action, 'goal');
+        const premises = this.requireActionPremises(action);
         const result = profile.prove(goal, this.theory);
         const premiseFormulas = premises
           .map((premise) => this.theory.axioms.get(premise) || this.theory.theorems.get(premise))
@@ -2700,7 +2718,7 @@ export class Interpreter {
         };
       }
       case 'countermodel': {
-        const formula = this.resolveFormula(action.formula as Formula);
+        const formula = this.requireActionFormula(action, 'formula');
         const result = profile.countermodel(formula);
         return {
           result,
@@ -2718,7 +2736,7 @@ export class Interpreter {
         if (!profile.truthTable) {
           throw new Error('Este perfil no soporta truth_table');
         }
-        const formula = this.resolveFormula(action.formula as Formula);
+        const formula = this.requireActionFormula(action, 'formula');
         const tt = profile.truthTable(formula);
         const result: RunResult = {
           status: tt.isTautology ? 'valid' : tt.isSatisfiable ? 'satisfiable' : 'unsatisfiable',
@@ -2742,7 +2760,7 @@ export class Interpreter {
         };
       }
       case 'explain': {
-        const formula = this.resolveFormula(action.formula as Formula);
+        const formula = this.requireActionFormula(action, 'formula');
         return {
           result: profile.explain(formula),
           primary: formula,
@@ -2751,6 +2769,28 @@ export class Interpreter {
         };
       }
     }
+  }
+
+  private requireActionFormula(
+    action: RuntimeActionExpr,
+    field: 'formula' | 'left' | 'right' | 'goal',
+  ): Formula {
+    const value = action[field];
+    if (!isFormula(value)) {
+      throw new Error(`La accion '${action.action}' requiere una formula valida en '${field}'.`);
+    }
+    return this.resolveFormula(value);
+  }
+
+  private requireActionPremises(action: RuntimeActionExpr): string[] {
+    if (action.premises === undefined) return [];
+    if (
+      !Array.isArray(action.premises) ||
+      action.premises.some((premise) => typeof premise !== 'string')
+    ) {
+      throw new Error(`La accion '${action.action}' requiere una lista valida de premisas.`);
+    }
+    return action.premises;
   }
 
   private bindCapturedAction(
@@ -2928,7 +2968,7 @@ export class Interpreter {
     if (result.tableauTrace && result.tableauTrace.length > 0 && verbosity === 'on') {
       this.emit('  Traza del tableau:');
       for (let i = 0; i < result.tableauTrace.length; i++)
-        this.emit(`    ${i + 1}. ${String(result.tableauTrace[i])}`);
+        this.emit(`    ${i + 1}. ${result.tableauTrace[i].message}`);
     }
   }
 

@@ -77,6 +77,12 @@ export interface Formula {
   source?: SourceLocation;
 }
 
+export function isFormula(value: unknown): value is Formula {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<Formula>;
+  return typeof candidate.kind === 'string';
+}
+
 export interface SourceLocation {
   file?: string;
   line: number;
@@ -179,6 +185,19 @@ export interface ProofStep {
   formula: Formula;
   justification: string;
   premises: number[];
+  subproofs?: Proof[];
+}
+
+export type ProofMethod = 'natural_deduction' | 'tableau' | 'semantic' | 'sat';
+
+export interface PremiseRef {
+  name: string;
+  location?: SourceLocation;
+}
+
+export interface ProofMetadata {
+  createdAt?: string;
+  profile?: string;
 }
 
 export interface Proof {
@@ -186,9 +205,36 @@ export interface Proof {
   steps: ProofStep[];
   status: 'complete' | 'incomplete' | 'failed';
   derivedFrom?: string[];
+  premiseRefs?: PremiseRef[];
+  method?: ProofMethod;
+  subproofs?: Proof[];
+  metadata?: ProofMetadata;
 }
 
 // --- Resultado de ejecución ---
+
+export interface TableauTraceEntry {
+  message: string;
+  branchId?: string;
+  depth?: number;
+  rule?:
+    | 'start'
+    | 'literal'
+    | 'close'
+    | 'open'
+    | 'alpha'
+    | 'beta'
+    | 'gamma'
+    | 'delta'
+    | 'frame'
+    | 'limit'
+    | 'info';
+  status?: 'expanded' | 'closed' | 'open' | 'limit';
+  world?: string;
+  formula?: string;
+  nodeId?: string;
+  parentNodeId?: string;
+}
 
 export interface RunResult {
   status: LogicStatus;
@@ -217,7 +263,7 @@ export interface RunResult {
     connectivesUsed?: string[];
   };
   crossSystemComparison?: Record<string, string>;
-  tableauTrace?: unknown[];
+  tableauTrace?: TableauTraceEntry[];
   educationalNote?: string;
   paradoxWarning?: string;
 }

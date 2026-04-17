@@ -184,6 +184,24 @@ describe('ClassicalPropositional.derive', () => {
     const result = cp.derive(atom('Q'), ['a1'], theory);
     expect(result.status).toBe('refutable');
   });
+
+  it('usa conmutatividad explicita cuando la meta lo requiere', () => {
+    const theory = makeTheory({
+      a1: and(atom('P'), atom('Q')),
+    });
+    const result = cp.derive(and(atom('Q'), atom('P')), ['a1'], theory);
+    expect(result.status).toBe('provable');
+    expect(result.proof?.steps.some((step) => step.justification === 'Conmutatividad')).toBe(true);
+  });
+
+  it('usa absorcion explicita cuando la meta lo requiere', () => {
+    const theory = makeTheory({
+      a1: or(atom('P'), and(atom('P'), atom('Q'))),
+    });
+    const result = cp.derive(atom('P'), ['a1'], theory);
+    expect(result.status).toBe('provable');
+    expect(result.proof?.steps.some((step) => step.justification === 'Absorcion')).toBe(true);
+  });
 });
 
 describe('ClassicalPropositional.countermodel', () => {
@@ -263,6 +281,31 @@ describe('ClassicalPropositional.explain', () => {
     expect(result.output).toBeDefined();
     expect(result.output).toContain('Átomos');
     expect(result.output).toContain('satisfacible');
+  });
+
+  it('rechaza formulas no proposicionales con diagnostico util', () => {
+    const f: Formula = { kind: 'modal_necessity', args: [atom('P')] };
+    const result = cp.explain(f);
+    expect(result.status).toBe('error');
+    expect(result.diagnostics[0]?.message).toContain('no proposicionales');
+  });
+});
+
+describe('ClassicalPropositional.prove', () => {
+  const cp = new ClassicalPropositional();
+
+  it('adjunta subpruebas en pruebas condicionales recursivas', () => {
+    const result = cp.prove(implies(atom('P'), implies(atom('Q'), atom('P'))), makeTheory({}));
+    expect(result.status).toBe('provable');
+    expect(result.proof?.method).toBe('natural_deduction');
+    expect(result.proof?.subproofs?.length).toBeGreaterThan(0);
+    expect(result.proof?.steps.at(-1)?.subproofs?.length).toBeGreaterThan(0);
+  });
+
+  it('puede demostrar tercero excluido con regla derivada explicita', () => {
+    const result = cp.prove(or(atom('P'), not(atom('P'))), makeTheory({}));
+    expect(result.status).toBe('provable');
+    expect(result.proof?.steps.some((step) => step.justification === 'Tercero excluido')).toBe(true);
   });
 });
 

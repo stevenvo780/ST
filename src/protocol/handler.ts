@@ -23,36 +23,44 @@ export class ProtocolHandler {
   }
 
   handle(request: ProtocolRequest): ProtocolResponse {
-    switch (request.method) {
-      case 'parse':
-        return this.handleParse(request);
-      case 'check':
-        return this.handleCheck(request);
-      case 'run':
-        return this.handleRun(request);
-      case 'hover':
-        return this.handleHover(request);
-      case 'symbols':
-        return this.handleSymbols(request);
-      case 'goto_definition':
-        return this.handleGotoDefinition(request);
-      case 'completion':
-        return this.handleCompletion(request);
-      case 'render':
-        return this.handleRender(request);
-      default: {
-        const method = request.method;
-        return {
-          id: request.id,
-          error: { code: -1, message: `Metodo desconocido: ${String(method)}` },
-        };
+    try {
+      switch (request.method) {
+        case 'parse':
+          return this.handleParse(request);
+        case 'check':
+          return this.handleCheck(request);
+        case 'run':
+          return this.handleRun(request);
+        case 'hover':
+          return this.handleHover(request);
+        case 'symbols':
+          return this.handleSymbols(request);
+        case 'goto_definition':
+          return this.handleGotoDefinition(request);
+        case 'completion':
+          return this.handleCompletion(request);
+        case 'render':
+          return this.handleRender(request);
+        default: {
+          const method = request.method;
+          return {
+            id: request.id,
+            error: { code: -1, message: `Metodo desconocido: ${String(method)}` },
+          };
+        }
       }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Solicitud invalida';
+      return {
+        id: request.id,
+        error: { code: -32602, message },
+      };
     }
   }
 
   private handleParse(request: ProtocolRequest): ProtocolResponse {
-    const source = request.params.source as string;
-    const file = (request.params.file as string) || '<stdin>';
+    const source = this.requireStringParam(request, 'source');
+    const file = this.optionalStringParam(request, 'file', '<stdin>');
     const parser = new Parser(file);
     const program = parser.parse(source);
     return {
@@ -63,8 +71,8 @@ export class ProtocolHandler {
   }
 
   private handleCheck(request: ProtocolRequest): ProtocolResponse {
-    const source = request.params.source as string;
-    const file = (request.params.file as string) || '<stdin>';
+    const source = this.requireStringParam(request, 'source');
+    const file = this.optionalStringParam(request, 'file', '<stdin>');
     const parser = new Parser(file);
     const program = parser.parse(source);
     const diagnostics = [...parser.diagnostics];
@@ -86,8 +94,8 @@ export class ProtocolHandler {
   }
 
   private handleRun(request: ProtocolRequest): ProtocolResponse {
-    const source = request.params.source as string;
-    const file = (request.params.file as string) || '<stdin>';
+    const source = this.requireStringParam(request, 'source');
+    const file = this.optionalStringParam(request, 'file', '<stdin>');
     const output = this.interpreter.execute(source, file);
     return {
       id: request.id,
@@ -97,10 +105,10 @@ export class ProtocolHandler {
   }
 
   private handleHover(request: ProtocolRequest): ProtocolResponse {
-    const source = request.params.source as string;
-    const line = request.params.line as number;
-    const column = request.params.column as number;
-    const file = (request.params.file as string) || '<stdin>';
+    const source = this.requireStringParam(request, 'source');
+    const line = this.requireIntegerParam(request, 'line');
+    const column = this.requireIntegerParam(request, 'column');
+    const file = this.optionalStringParam(request, 'file', '<stdin>');
 
     const parser = new Parser(file);
     const program = parser.parse(source);
@@ -451,8 +459,8 @@ export class ProtocolHandler {
   }
 
   private handleSymbols(request: ProtocolRequest): ProtocolResponse {
-    const source = request.params.source as string;
-    const file = (request.params.file as string) || '<stdin>';
+    const source = this.requireStringParam(request, 'source');
+    const file = this.optionalStringParam(request, 'file', '<stdin>');
     const parser = new Parser(file);
     const program = parser.parse(source);
 
@@ -632,9 +640,9 @@ export class ProtocolHandler {
   }
 
   private handleGotoDefinition(request: ProtocolRequest): ProtocolResponse {
-    const source = request.params.source as string;
-    const name = request.params.name as string;
-    const file = (request.params.file as string) || '<stdin>';
+    const source = this.requireStringParam(request, 'source');
+    const name = this.requireStringParam(request, 'name');
+    const file = this.optionalStringParam(request, 'file', '<stdin>');
     const parser = new Parser(file);
     const program = parser.parse(source);
 
@@ -1491,9 +1499,9 @@ export class ProtocolHandler {
   }
 
   private handleRender(request: ProtocolRequest): ProtocolResponse {
-    const source = request.params.source as string;
-    const format = (request.params.format as string) || 'markdown';
-    const file = (request.params.file as string) || '<stdin>';
+    const source = this.requireStringParam(request, 'source');
+    const format = this.optionalStringParam(request, 'format', 'markdown');
+    const file = this.optionalStringParam(request, 'file', '<stdin>');
 
     const output = this.interpreter.execute(source, file);
     const rendered = this.renderOutput(output, format);
@@ -1596,5 +1604,50 @@ export class ProtocolHandler {
       }
     }
     return md;
+  }
+
+  private requireParamsObject(request: ProtocolRequest): Record<string, unknown> {
+    if (!request.params || typeof request.params !== 'object' || Array.isArray(request.params)) {
+      throw new Error(`Parametros invalidos para '${request.method}': se esperaba un objeto.`);
+    }
+    return request.params;
+  }
+
+  private requireStringParam(request: ProtocolRequest, key: string): string {
+    const params = this.requireParamsObject(request);
+    const value = params[key];
+    if (typeof value !== 'string' || value.trim() === '') {
+      throw new Error(
+        `Parametro invalido para '${request.method}': '${key}' debe ser una cadena no vacia.`,
+      );
+    }
+    return value;
+  }
+
+  private optionalStringParam(
+    request: ProtocolRequest,
+    key: string,
+    fallback: string,
+  ): string {
+    const params = this.requireParamsObject(request);
+    const value = params[key];
+    if (value === undefined || value === null || value === '') return fallback;
+    if (typeof value !== 'string') {
+      throw new Error(
+        `Parametro invalido para '${request.method}': '${key}' debe ser una cadena.`,
+      );
+    }
+    return value;
+  }
+
+  private requireIntegerParam(request: ProtocolRequest, key: string): number {
+    const params = this.requireParamsObject(request);
+    const value = params[key];
+    if (!Number.isInteger(value) || Number(value) < 1) {
+      throw new Error(
+        `Parametro invalido para '${request.method}': '${key}' debe ser un entero positivo.`,
+      );
+    }
+    return Number(value);
   }
 }

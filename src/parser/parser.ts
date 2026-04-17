@@ -67,6 +67,7 @@ export class Parser {
   private pos: number = 0;
   private file: string;
   public diagnostics: Diagnostic[] = [];
+  private contextStack: string[] = [];
   private knownFunctionNames: Set<string> = new Set([
     'typeof',
     'is_valid',
@@ -94,6 +95,7 @@ export class Parser {
     this.tokens = lexer.tokenize();
     this.diagnostics.push(...lexer.diagnostics);
     this.pos = 0;
+    this.contextStack = [];
 
     const statements: Statement[] = [];
 
@@ -132,7 +134,7 @@ export class Parser {
       this.peek(1) === TokenType.LPAREN &&
       (tok.type === TokenType.IDENTIFIER || this.knownFunctionNames.has(tok.value))
     ) {
-      return this.parseFnCall();
+      return this.withContext(`llamada a funcion '${tok.value}'`, () => this.parseFnCall());
     }
 
     // Detección de llamada a método: objeto.metodo(...)
@@ -142,87 +144,93 @@ export class Parser {
       this.peek(2) === TokenType.IDENTIFIER &&
       this.peek(3) === TokenType.LPAREN
     ) {
-      return this.parseMemberFnCall();
+      return this.withContext(`llamada a metodo '${tok.value}'`, () => this.parseMemberFnCall());
     }
 
-    switch (tok.type) {
-      case TokenType.LOGIC:
-        return this.parseLogicDecl();
-      case TokenType.AXIOM:
-        return this.parseAxiomDecl();
-      case TokenType.THEOREM:
-        return this.parseTheoremDecl();
-      case TokenType.DERIVE:
-        return this.parseDeriveCmd();
-      case TokenType.CHECK:
-        return this.parseCheckCmd();
-      case TokenType.PROVE:
-        return this.parseProveCmd();
-      case TokenType.COUNTERMODEL:
-      case TokenType.REFUTE:
-        return this.parseCountermodelCmd();
-      case TokenType.TRUTH_TABLE:
-        return this.parseTruthTableCmd();
-      case TokenType.LET:
-        return this.parseLetDecl();
-      case TokenType.CLAIM:
-        return this.parseClaimDecl();
-      case TokenType.SUPPORT:
-        return this.parseSupportDecl();
-      case TokenType.CONFIDENCE:
-        return this.parseConfidenceDecl();
-      case TokenType.CONTEXT:
-        return this.parseContextDecl();
-      case TokenType.RENDER:
-        return this.parseRenderCmd();
-      case TokenType.ANALYZE:
-        return this.parseAnalyzeCmd();
-      case TokenType.EXPLAIN:
-        return this.parseExplainCmd();
-      case TokenType.IMPORT:
-        return this.parseImportDecl();
-      case TokenType.ASSUME:
-        return this.parseProofBlock();
-      case TokenType.THEORY:
-        return this.parseTheoryDecl();
-      case TokenType.PRINT:
-        return this.parsePrintCmd();
-      case TokenType.SET:
-        return this.parseSetCmd();
-      case TokenType.IF:
-        return this.parseIfStmt();
-      case TokenType.FOR:
-        return this.parseForStmt();
-      case TokenType.WHILE:
-        return this.parseWhileStmt();
-      case TokenType.FN:
-        return this.parseFnDecl();
-      case TokenType.RETURN:
-        return this.parseReturnStmt();
-      case TokenType.EXPORT:
-        return this.parseExportDecl();
-      case TokenType.DEFINE:
-        return this.parseDefineDecl();
-      case TokenType.UNFOLD:
-        return this.parseUnfoldCmd();
-      case TokenType.FOLD:
-        return this.parseFoldCmd();
-      case TokenType.SOURCE_KW:
-        return this.parseSourceDecl();
-      case TokenType.INTERPRET:
-        return this.parseInterpretCmd();
-      case TokenType.GLOSSARY:
-        return this.parseGlossaryCmd();
-      case TokenType.IDENTIFIER:
-        throw new Error(`Statement inesperado: '${tok.value}' (${tok.type})`);
-      case TokenType.NEWLINE:
-        this.advance();
-        return null;
-      case TokenType.EOF:
-        return null;
-      default:
-        throw new Error(`Statement inesperado: '${tok.value}' (${tok.type})`);
-    }
+    return this.withContext(this.describeStatementContext(tok), () => {
+      switch (tok.type) {
+        case TokenType.LOGIC:
+          return this.parseLogicDecl();
+        case TokenType.AXIOM:
+          return this.parseAxiomDecl();
+        case TokenType.THEOREM:
+          return this.parseTheoremDecl();
+        case TokenType.DERIVE:
+          return this.parseDeriveCmd();
+        case TokenType.CHECK:
+          return this.parseCheckCmd();
+        case TokenType.PROVE:
+          return this.parseProveCmd();
+        case TokenType.COUNTERMODEL:
+        case TokenType.REFUTE:
+          return this.parseCountermodelCmd();
+        case TokenType.TRUTH_TABLE:
+          return this.parseTruthTableCmd();
+        case TokenType.LET:
+          return this.parseLetDecl();
+        case TokenType.CLAIM:
+          return this.parseClaimDecl();
+        case TokenType.SUPPORT:
+          return this.parseSupportDecl();
+        case TokenType.CONFIDENCE:
+          return this.parseConfidenceDecl();
+        case TokenType.CONTEXT:
+          return this.parseContextDecl();
+        case TokenType.RENDER:
+          return this.parseRenderCmd();
+        case TokenType.ANALYZE:
+          return this.parseAnalyzeCmd();
+        case TokenType.EXPLAIN:
+          return this.parseExplainCmd();
+        case TokenType.IMPORT:
+          return this.parseImportDecl();
+        case TokenType.ASSUME:
+          return this.parseProofBlock();
+        case TokenType.THEORY:
+          return this.parseTheoryDecl();
+        case TokenType.PRINT:
+          return this.parsePrintCmd();
+        case TokenType.SET:
+          return this.parseSetCmd();
+        case TokenType.IF:
+          return this.parseIfStmt();
+        case TokenType.FOR:
+          return this.parseForStmt();
+        case TokenType.WHILE:
+          return this.parseWhileStmt();
+        case TokenType.FN:
+          return this.parseFnDecl();
+        case TokenType.RETURN:
+          return this.parseReturnStmt();
+        case TokenType.EXPORT:
+          return this.parseExportDecl();
+        case TokenType.DEFINE:
+          return this.parseDefineDecl();
+        case TokenType.UNFOLD:
+          return this.parseUnfoldCmd();
+        case TokenType.FOLD:
+          return this.parseFoldCmd();
+        case TokenType.SOURCE_KW:
+          return this.parseSourceDecl();
+        case TokenType.INTERPRET:
+          return this.parseInterpretCmd();
+        case TokenType.GLOSSARY:
+          return this.parseGlossaryCmd();
+        case TokenType.IDENTIFIER:
+          throw new Error(
+            this.contextualize(`Statement inesperado: '${tok.value}' (${tok.type})`),
+          );
+        case TokenType.NEWLINE:
+          this.advance();
+          return null;
+        case TokenType.EOF:
+          return null;
+        default:
+          throw new Error(
+            this.contextualize(`Statement inesperado: '${tok.value}' (${tok.type})`),
+          );
+      }
+    });
   }
 
   // logic classical.propositional
@@ -641,10 +649,10 @@ export class Parser {
       this.skipNewlines();
       if (this.checkType(TokenType.QED)) break;
       try {
-        const stmt = this.parseStatement();
+        const stmt = this.checkType(TokenType.ASSUME) ? this.parseProofBlock() : this.parseStatement();
         if (stmt) body.push(stmt);
       } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : 'Error de parseo';
+        const message = e instanceof Error ? e.message : 'Error de parseo en bloque de prueba';
         this.diagnostics.push({
           severity: 'error',
           message,
@@ -654,6 +662,11 @@ export class Parser {
         });
         this.advanceToNextStatement();
       }
+    }
+    if (this.isAtEnd()) {
+      throw new Error(
+        `Se esperaba 'qed' para cerrar el bloque de prueba abierto en linea ${src.line}, columna ${src.column}`,
+      );
     }
     this.expect(TokenType.QED);
 
@@ -1588,8 +1601,10 @@ export class Parser {
       return this.advance();
     }
     throw new Error(
-      `Se esperaba ${type}, encontrado '${this.current().value}' (${this.current().type}) ` +
-        `en linea ${this.current().line}, columna ${this.current().column}`,
+      this.contextualize(
+        `Se esperaba ${type}, encontrado '${this.current().value}' (${this.current().type}) ` +
+          `en linea ${this.current().line}, columna ${this.current().column}`,
+      ),
     );
   }
 
@@ -1600,8 +1615,10 @@ export class Parser {
       }
     }
     throw new Error(
-      `Se esperaba ${types.join(' o ')}, encontrado '${this.current().value}' (${this.current().type}) ` +
-        `en linea ${this.current().line}, columna ${this.current().column}`,
+      this.contextualize(
+        `Se esperaba ${types.join(' o ')}, encontrado '${this.current().value}' (${this.current().type}) ` +
+          `en linea ${this.current().line}, columna ${this.current().column}`,
+      ),
     );
   }
 
@@ -1643,9 +1660,99 @@ export class Parser {
       return tok.value;
     }
     throw new Error(
-      `Se esperaba nombre/identificador, encontrado '${tok.value}' (${tok.type}) ` +
-        `en linea ${tok.line}, columna ${tok.column}`,
+      this.contextualize(
+        `Se esperaba nombre/identificador, encontrado '${tok.value}' (${tok.type}) ` +
+          `en linea ${tok.line}, columna ${tok.column}`,
+      ),
     );
+  }
+
+  private contextualize(message: string): string {
+    if (this.contextStack.length === 0) return message;
+    return `${message} mientras se parseaba ${this.contextStack.join(' > ')}`;
+  }
+
+  private withContext<T>(context: string, fn: () => T): T {
+    this.contextStack.push(context);
+    try {
+      return fn();
+    } finally {
+      this.contextStack.pop();
+    }
+  }
+
+  private describeStatementContext(tok: Token): string {
+    switch (tok.type) {
+      case TokenType.LOGIC:
+        return 'declaracion logic';
+      case TokenType.AXIOM:
+        return 'declaracion de axioma';
+      case TokenType.THEOREM:
+        return 'declaracion de teorema';
+      case TokenType.DERIVE:
+        return 'comando derive';
+      case TokenType.CHECK:
+        return 'comando check';
+      case TokenType.PROVE:
+        return 'comando prove';
+      case TokenType.COUNTERMODEL:
+      case TokenType.REFUTE:
+        return 'comando countermodel';
+      case TokenType.TRUTH_TABLE:
+        return 'comando truth_table';
+      case TokenType.LET:
+        return 'declaracion let';
+      case TokenType.CLAIM:
+        return 'declaracion claim';
+      case TokenType.SUPPORT:
+        return 'declaracion support';
+      case TokenType.CONFIDENCE:
+        return 'declaracion confidence';
+      case TokenType.CONTEXT:
+        return 'declaracion context';
+      case TokenType.RENDER:
+        return 'comando render';
+      case TokenType.ANALYZE:
+        return 'comando analyze';
+      case TokenType.EXPLAIN:
+        return 'comando explain';
+      case TokenType.IMPORT:
+        return 'declaracion import';
+      case TokenType.ASSUME:
+        return 'bloque de prueba';
+      case TokenType.THEORY:
+        return 'declaracion theory';
+      case TokenType.PRINT:
+        return 'comando print';
+      case TokenType.SET:
+        return 'comando set';
+      case TokenType.IF:
+        return 'sentencia if';
+      case TokenType.FOR:
+        return 'sentencia for';
+      case TokenType.WHILE:
+        return 'sentencia while';
+      case TokenType.FN:
+        return 'declaracion fn';
+      case TokenType.RETURN:
+        return 'sentencia return';
+      case TokenType.EXPORT:
+        return 'declaracion export';
+      case TokenType.DEFINE:
+        return 'declaracion define';
+      case TokenType.UNFOLD:
+        return 'comando unfold';
+      case TokenType.FOLD:
+        return 'comando fold';
+      case TokenType.SOURCE_KW:
+        return 'declaracion source';
+      case TokenType.INTERPRET:
+        return 'comando interpret';
+      case TokenType.GLOSSARY:
+        return 'comando glossary';
+      default:
+        return `statement '${tok.value}'`;
+    }
   }
 
   private loc(): SourceLocation {
@@ -1700,13 +1807,41 @@ export class Parser {
       TokenType.INTERPRET,
       TokenType.GLOSSARY,
     ]);
+    let parenDepth = 0;
+    let braceDepth = 0;
+    let bracketDepth = 0;
     while (!this.isAtEnd()) {
-      if (this.checkType(TokenType.NEWLINE)) {
+      if (
+        this.checkType(TokenType.NEWLINE) &&
+        parenDepth === 0 &&
+        braceDepth === 0 &&
+        bracketDepth === 0
+      ) {
         this.skipNewlines();
         return;
       }
-      if (statementStarters.has(this.current().type)) {
+      if (
+        parenDepth === 0 &&
+        braceDepth === 0 &&
+        bracketDepth === 0 &&
+        statementStarters.has(this.current().type)
+      ) {
         return; // Encontramos el inicio del siguiente statement
+      }
+      if (this.checkType(TokenType.LPAREN)) parenDepth += 1;
+      else if (this.checkType(TokenType.RPAREN)) parenDepth = Math.max(0, parenDepth - 1);
+      else if (this.checkType(TokenType.LBRACE)) braceDepth += 1;
+      else if (this.checkType(TokenType.RBRACE)) braceDepth = Math.max(0, braceDepth - 1);
+      else if (
+        this.checkType(TokenType.LBRACKET) ||
+        this.checkType(TokenType.LBRACKET_DOUBLE)
+      ) {
+        bracketDepth += 1;
+      } else if (
+        this.checkType(TokenType.RBRACKET) ||
+        this.checkType(TokenType.RBRACKET_DOUBLE)
+      ) {
+        bracketDepth = Math.max(0, bracketDepth - 1);
       }
       this.advance();
     }

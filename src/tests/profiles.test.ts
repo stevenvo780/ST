@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Interpreter } from '../runtime/interpreter';
+import { FRAME_KD, makeBranch } from '../profiles/shared/tableau-engine';
+import type { Formula } from '../types';
 
 // ============================================================
 // Tests para perfiles lógicos extendidos
@@ -44,6 +46,15 @@ check valid ([](!P) -> !<>(P))
 `;
     const output = interpreter.execute(source);
     expect(output.results[0].status).toBe('valid');
+  });
+
+  it('fuerza serialidad tambien para mundos con diamantes pendientes', () => {
+    const formula: Formula = { kind: 'modal_possibility', args: [{ kind: 'atom', name: 'P' }] };
+    const branch = makeBranch([{ formula, world: 'w0' }]);
+    const applied = FRAME_KD.enforceFrameConditions?.(branch) ?? false;
+
+    expect(applied).toBe(true);
+    expect(branch.accessibility.get('w0')?.size).toBe(1);
   });
 });
 

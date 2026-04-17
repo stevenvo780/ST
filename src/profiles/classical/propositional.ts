@@ -746,6 +746,86 @@ function addDerivedFormula(
   return true;
 }
 
+function buildPremiseRefs(theory: Theory, premiseNames: string[]) {
+  return premiseNames.map((name) => ({
+    name,
+    location: (theory.axioms.get(name) || theory.theorems.get(name))?.source,
+  }));
+}
+
+function buildProof(
+  goal: Formula,
+  steps: ProofStep[],
+  premiseNames: string[],
+  theory: Theory,
+  method: Proof['method'] = 'natural_deduction',
+  subproofs?: Proof[],
+): Proof {
+  return {
+    goal,
+    steps,
+    status: 'complete',
+    derivedFrom: premiseNames,
+    premiseRefs: buildPremiseRefs(theory, premiseNames),
+    method,
+    subproofs,
+    metadata: {
+      createdAt: new Date().toISOString(),
+      profile: theory.profile,
+    },
+  };
+}
+
+function isNegationOf(a: Formula, b: Formula): boolean {
+  return a.kind === 'not' && !!a.args?.[0] && formulasEqual(a.args[0], b);
+}
+
+function isExcludedMiddleFormula(formula: Formula): boolean {
+  if (formula.kind !== 'or' || !formula.args?.[0] || !formula.args?.[1]) return false;
+  return isNegationOf(formula.args[0], formula.args[1]) || isNegationOf(formula.args[1], formula.args[0]);
+}
+
+function getCommutativeVariant(formula: Formula): Formula | null {
+  if ((formula.kind === 'and' || formula.kind === 'or') && formula.args?.[0] && formula.args?.[1]) {
+    return { kind: formula.kind, args: [formula.args[1], formula.args[0]] };
+  }
+  return null;
+}
+
+function getAssociativeVariants(formula: Formula): Formula[] {
+  const variants: Formula[] = [];
+  if ((formula.kind === 'and' || formula.kind === 'or') && formula.args?.[0] && formula.args?.[1]) {
+    const [left, right] = formula.args;
+    if (left.kind === formula.kind && left.args?.[0] && left.args?.[1]) {
+      variants.push({
+        kind: formula.kind,
+        args: [left.args[0], { kind: formula.kind, args: [left.args[1], right] }],
+      });
+    }
+    if (right.kind === formula.kind && right.args?.[0] && right.args?.[1]) {
+      variants.push({
+        kind: formula.kind,
+        args: [{ kind: formula.kind, args: [left, right.args[0]] }, right.args[1]],
+      });
+    }
+  }
+  return variants;
+}
+
+function getAbsorptionResult(formula: Formula): Formula | null {
+  if (formula.kind === 'and' && formula.args?.[0] && formula.args?.[1]) {
+    const [left, right] = formula.args;
+    if (right.kind === 'or' && right.args?.some((arg) => formulasEqual(arg, left))) return left;
+    if (left.kind === 'or' && left.args?.some((arg) => formulasEqual(arg, right))) return right;
+  }
+  if (formula.kind === 'or' && formula.args?.[0] && formula.args?.[1]) {
+    const [left, right] = formula.args;
+    if (right.kind === 'and' && right.args?.some((arg) => formulasEqual(arg, left))) return left;
+    if (left.kind === 'and' && left.args?.some((arg) => formulasEqual(arg, right))) return right;
+  }
+  return null;
+}
+
 function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth: number = 0): Proof | null {
   const state: DerivationState = {
     known: new Map(),
@@ -786,6 +866,10 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
       });
       state.known.set(formulaHash(f), f);
     }
+  }
+
+  if (isExcludedMiddleFormula(goal)) {
+    addDerivedFormula(state, goal, 'Tercero excluido', []);
   }
 
   // Intentar derivar con BFS aplicando reglas (optimizado)
@@ -1079,6 +1163,43 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
               findStep(state.steps, f1),
             ]) || changed;
         }
+      }
+
+      const commutative = getCommutativeVariant(f1);
+      if (commutative && isRelevantToGoal(commutative, goal)) {
+        changed =
+          addDerivedFormula(state, commutative, 'Conmutatividad', [
+            findStep(state.steps, f1),
+          ]) || changed;
+      }
+
+      for (const associative of getAssociativeVariants(f1)) {
+        if (isRelevantToGoal(associative, goal)) {
+          changed =
+            addDerivedFormula(state, associative, 'Asociatividad', [
+              findStep(state.steps, f1),
+            ]) || changed;
+        }
+      }
+
+      if (
+        (f1.kind === 'and' || f1.kind === 'or') &&
+        f1.args?.[0] &&
+        f1.args?.[1] &&
+        formulasEqual(f1.args[0], f1.args[1])
+      ) {
+        changed =
+          addDerivedFormula(state, f1.args[0], 'Idempotencia', [
+            findStep(state.steps, f1),
+          ]) || changed;
+      }
+
+      const absorbed = getAbsorptionResult(f1);
+      if (absorbed) {
+        changed =
+          addDerivedFormula(state, absorbed, 'Absorcion', [
+            findStep(state.steps, f1),
+          ]) || changed;
       }
 
       // Disjunction Introduction: de A, derivar A | B
@@ -1434,12 +1555,7 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
   if (state.known.has(formulaHash(goal))) {
     // Filtrar solo pasos relevantes para la derivación
     const relevantSteps = traceBack(state.steps, goal);
-    return {
-      goal,
-      steps: relevantSteps,
-      status: 'complete',
-      derivedFrom: premiseNames,
-    };
+    return buildProof(goal, relevantSteps, premiseNames, theory);
   }
 
   // --- Sub-derivaciones recursivas (antes del fallback semántico) ---
@@ -1496,7 +1612,6 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
         });
 
         // Add sub-derivation steps (renumber, adjusting premise references)
-        const subStepOffset = stepNum;
         const subStepMap = new Map<number, number>();
         for (const s of subProof.steps) {
           if (s.justification.startsWith('Premisa') && formulasEqual(s.formula, assumption)) {
@@ -1533,14 +1648,10 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
           formula: goal,
           justification: 'Prueba Condicional (Teorema de Deduccion)',
           premises: [assumptionStepNum, subGoalStepNum],
+          subproofs: [subProof],
         });
 
-        return {
-          goal,
-          steps: mainSteps,
-          status: 'complete',
-          derivedFrom: premiseNames,
-        };
+        return buildProof(goal, mainSteps, premiseNames, theory, 'natural_deduction', [subProof]);
       }
     }
   }
@@ -1687,14 +1798,13 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
         formula: goal,
         justification: 'Eliminacion de disyuncion (prueba por casos)',
         premises: [disjStepNum, leftGoalStep, rightGoalStep],
+        subproofs: [subProofL, subProofR],
       });
 
-      return {
-        goal,
-        steps: mainSteps,
-        status: 'complete',
-        derivedFrom: premiseNames,
-      };
+      return buildProof(goal, mainSteps, premiseNames, theory, 'natural_deduction', [
+        subProofL,
+        subProofR,
+      ]);
     }
   }
 
@@ -1769,12 +1879,7 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
         state.known.set(goalHash, goal);
       }
       const relevantSteps = traceBack(state.steps, goal);
-      return {
-        goal,
-        steps: relevantSteps,
-        status: 'complete',
-        derivedFrom: premiseNames,
-      };
+      return buildProof(goal, relevantSteps, premiseNames, theory, 'semantic');
     }
   }
 
@@ -2081,27 +2186,34 @@ export class ClassicalPropositional implements LogicProfile {
     }
 
     if (semanticResult) {
-      const semanticProof: Proof = {
+      const semanticProofSteps: ProofStep[] = [
+        ...premiseNames
+          .map((n, i) => {
+            const f = theory.axioms.get(n) || theory.theorems.get(n);
+            return f
+              ? {
+                  stepNumber: i + 1,
+                  formula: f,
+                  justification: `Premisa (${n})`,
+                  premises: [] as number[],
+                }
+              : null;
+          })
+          .filter((s): s is ProofStep => s !== null),
+        {
+          stepNumber: premiseNames.length + 1,
+          formula: goal,
+          justification: 'Verificacion semantica (tautologia o consecuencia logica)',
+          premises: premiseNames.map((_, i) => i + 1),
+        },
+      ];
+      const semanticProof = buildProof(
         goal,
-        steps: [
-          ...premiseNames
-            .map((n, i) => {
-              const f = theory.axioms.get(n) || theory.theorems.get(n);
-              return f
-                ? { stepNumber: i + 1, formula: f, justification: `Premisa (${n})`, premises: [] as number[] }
-                : null;
-            })
-            .filter((s): s is ProofStep => s !== null),
-          {
-            stepNumber: premiseNames.length + 1,
-            formula: goal,
-            justification: 'Verificacion semantica (tautologia o consecuencia logica)',
-            premises: premiseNames.map((_, i) => i + 1),
-          },
-        ],
-        status: 'complete',
-        derivedFrom: premiseNames,
-      };
+        semanticProofSteps,
+        premiseNames,
+        theory,
+        'semantic',
+      );
       return {
         status: 'provable',
         output: `${formulaToString(goal)} es DEMOSTRABLE desde la teoria`,
@@ -2261,6 +2373,22 @@ export class ClassicalPropositional implements LogicProfile {
   }
 
   explain(formula: Formula): RunResult {
+    if (!isPurePropositional(formula)) {
+      return {
+        status: 'error',
+        output: `explain solo esta disponible para formulas puramente proposicionales: ${formulaToUnicode(formula)}`,
+        diagnostics: [
+          {
+            severity: 'error',
+            message:
+              'La formula incluye operadores no proposicionales; use un perfil con explain semantico especifico.',
+          },
+          ...this.checkWellFormed(formula),
+        ],
+        formula,
+      };
+    }
+
     const wf = this.checkWellFormed(formula);
     if (wf.length > 0) {
       return { status: 'error', diagnostics: wf, formula };

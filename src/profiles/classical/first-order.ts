@@ -2,7 +2,14 @@
 // ST Classical First-Order — Motor de Tableau Sistematico (Hardened)
 // ============================================================
 
-import { Formula, Diagnostic, RunResult, Theory, LogicProfile } from '../../types';
+import {
+  Formula,
+  Diagnostic,
+  RunResult,
+  Theory,
+  LogicProfile,
+  TableauTraceEntry,
+} from '../../types';
 import { formulaToString, toNNF } from './propositional';
 
 interface FONode {
@@ -23,6 +30,14 @@ function getNewVar() {
 let skolemCounter = 0;
 function getSkolem(isFunc: boolean) {
   return isFunc ? `f${skolemCounter++}` : `c${skolemCounter++}`;
+}
+
+function toTypedTrace(trace: string[]): TableauTraceEntry[] {
+  return trace.map((message, index) => ({
+    message,
+    rule: 'info',
+    nodeId: `fo-${index + 1}`,
+  }));
 }
 
 export function toPrenex(f: Formula): Formula {
@@ -125,7 +140,7 @@ export class ClassicalFirstOrder implements LogicProfile {
       output: res.closed
         ? `${fStr} es VÁLIDA en lógica de primer orden`
         : `${fStr} NO es válida en lógica de primer orden`,
-      tableauTrace: res.trace,
+      tableauTrace: toTypedTrace(res.trace),
       diagnostics: [],
       formula,
     };
@@ -158,7 +173,7 @@ export class ClassicalFirstOrder implements LogicProfile {
       output: res.closed
         ? `${fStr} es DEMOSTRABLE desde la teoría`
         : `${fStr} NO es demostrable desde la teoría`,
-      tableauTrace: res.trace,
+      tableauTrace: toTypedTrace(res.trace),
       diagnostics: [],
       formula: goal,
     };
@@ -179,7 +194,7 @@ export class ClassicalFirstOrder implements LogicProfile {
       output: res.closed
         ? `${fStr} es DERIVABLE desde {${premises.join(', ')}}`
         : `${fStr} NO es derivable desde {${premises.join(', ')}}`,
-      tableauTrace: res.trace,
+      tableauTrace: toTypedTrace(res.trace),
       diagnostics: [],
       formula: goal,
     };
@@ -194,7 +209,7 @@ export class ClassicalFirstOrder implements LogicProfile {
       output: res.closed
         ? `No hay contramodelo — ${fStr} es válida en lógica de primer orden`
         : `Existe contramodelo para ${fStr} (no válida en lógica de primer orden)`,
-      tableauTrace: res.trace,
+      tableauTrace: toTypedTrace(res.trace),
       diagnostics: [],
       formula,
     };
@@ -229,7 +244,7 @@ export class ClassicalFirstOrder implements LogicProfile {
     return {
       status: valid ? 'valid' : 'invalid',
       output: explanation,
-      tableauTrace: res.trace,
+      tableauTrace: toTypedTrace(res.trace),
       diagnostics: [],
       formula,
     };

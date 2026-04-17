@@ -5,7 +5,7 @@
 // sistemas modales (K, KD, S4, S5, etc.) sin duplicar código.
 // ============================================================
 
-import { Formula } from '../../types';
+import { Formula, TableauTraceEntry } from '../../types';
 import { toNNF } from '../classical/propositional';
 
 // ── Tipos públicos ──────────────────────────────────────────
@@ -28,7 +28,8 @@ export interface Branch {
   gammaWatchers: GammaWatcher[];
   processed: Set<string>;
   worldCounter: number;
-  trace: string[];
+  branchId: string;
+  trace: TableauTraceEntry[];
 }
 
 /**
@@ -78,10 +79,15 @@ export const FRAME_KD: FrameRules = {
     return branch.gammaWatchers.filter((gw) => gw.sourceWorld === source);
   },
   enforceFrameConditions(branch) {
-    const worldsWithGamma = new Set<string>();
-    for (const gw of branch.gammaWatchers) worldsWithGamma.add(gw.sourceWorld);
+    const worldsRequiringSuccessor = new Set<string>();
+    for (const gw of branch.gammaWatchers) worldsRequiringSuccessor.add(gw.sourceWorld);
+    for (const pending of branch.pending) {
+      if (classify(pending.formula) === 'delta') {
+        worldsRequiringSuccessor.add(pending.world);
+      }
+    }
     let applied = false;
-    for (const w of worldsWithGamma) {
+    for (const w of worldsRequiringSuccessor) {
       const successors = branch.accessibility.get(w);
       if (!successors || successors.size === 0) {
         const newWorld = `w${branch.worldCounter++}`;
@@ -362,6 +368,31 @@ function closes(branch: Branch, node: LabeledNode): boolean {
 
 const branchPool: Branch[] = [];
 const MAX_POOL_SIZE = 32;
+let nextBranchId = 1;
+let nextTraceNodeId = 1;
+
+function pushTrace(
+  branch: Branch,
+  message: string,
+  options?: {
+    depth?: number;
+    rule?: TableauTraceEntry['rule'];
+    status?: TableauTraceEntry['status'];
+    world?: string;
+    formula?: Formula;
+  },
+): void {
+  branch.trace.push({
+    message,
+    branchId: branch.branchId,
+    depth: options?.depth,
+    rule: options?.rule ?? 'info',
+    status: options?.status,
+    world: options?.world,
+    formula: options?.formula ? formulaHash(options.formula) : undefined,
+    nodeId: `tt-${nextTraceNodeId++}`,
+  });
+}
 
 function acquireBranch(): Branch {
   if (branchPool.length > 0) {
@@ -376,6 +407,7 @@ function acquireBranch(): Branch {
     gammaWatchers: [],
     processed: new Set(),
     worldCounter: 0,
+    branchId: `b${nextBranchId++}`,
     trace: [],
   };
 }
@@ -390,6 +422,7 @@ function _releaseBranch(b: Branch): void {
     b.gammaWatchers.length = 0;
     b.processed.clear();
     b.worldCounter = 0;
+    b.branchId = `b${nextBranchId++}`;
     b.trace.length = 0;
     branchPool.push(b);
   }
@@ -406,6 +439,7 @@ function cloneBranch(b: Branch): Branch {
   clone.gammaWatchers.push(...b.gammaWatchers);
   for (const p of b.processed) clone.processed.add(p);
   clone.worldCounter = b.worldCounter;
+  clone.branchId = `b${nextBranchId++}`;
   clone.trace.push(...b.trace);
   return clone;
 }
@@ -419,12 +453,16 @@ const MAX_DEPTH = 200;
 export interface ExpandResult {
   closed: boolean;
   openBranch?: Branch;
-  trace: string[];
+  trace: TableauTraceEntry[];
 }
 
 function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult {
   if (depth > MAX_DEPTH) {
-    branch.trace.push(`[${depth}] ⚠ MAX_DEPTH reached. Aborting.`);
+    pushTrace(branch, `[${depth}] ⚠ MAX_DEPTH reached. Aborting.`, {
+      depth,
+      rule: 'limit',
+      status: 'limit',
+    });
     return { closed: false, openBranch: branch, trace: branch.trace };
   }
 
@@ -436,12 +474,24 @@ function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult 
     const key = `${next.world}:${formulaHash(next.formula)}`;
     if (branch.processed.has(key)) continue;
     branch.processed.add(key);
-    branch.trace.push(
-      `[${depth}] Analizando literal: ${formulaHash(next.formula)} en ${next.world}`,
-    );
+    pushTrace(branch, `[${depth}] Analizando literal: ${formulaHash(next.formula)} en ${next.world}`, {
+      depth,
+      rule: 'literal',
+      status: 'expanded',
+      world: next.world,
+      formula: next.formula,
+    });
     if (closes(branch, next)) {
-      branch.trace.push(
+      pushTrace(
+        branch,
         `[${depth}] ✕ Rama cerrada por contradicción con ${formulaHash(next.formula)} en ${next.world}`,
+        {
+          depth,
+          rule: 'close',
+          status: 'closed',
+          world: next.world,
+          formula: next.formula,
+        },
       );
       return { closed: true, trace: branch.trace };
     }
@@ -451,10 +501,18 @@ function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult 
   if (branch.pending.length === 0) {
     // Hook: enforceFrameConditions
     if (rules.enforceFrameConditions?.(branch)) {
-      branch.trace.push(`[${depth}] Aplicando enforceFrameConditions (serialidad/etc)`);
+      pushTrace(branch, `[${depth}] Aplicando enforceFrameConditions (serialidad/etc)`, {
+        depth,
+        rule: 'frame',
+        status: 'expanded',
+      });
       return expand(branch, depth + 1, rules);
     }
-    branch.trace.push(`[${depth}] ✓ Rama saturada y ABIERTA.`);
+    pushTrace(branch, `[${depth}] ✓ Rama saturada y ABIERTA.`, {
+      depth,
+      rule: 'open',
+      status: 'open',
+    });
     return { closed: false, openBranch: branch, trace: branch.trace };
   }
 
@@ -472,8 +530,16 @@ function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult 
       case 'alpha': {
         if (branch.processed.has(key)) return expand(branch, depth + 1, rules);
         branch.processed.add(key);
-        branch.trace.push(
+        pushTrace(
+          branch,
           `[${depth}] Regla Alpha (Conjunción) en ${node.world}: ${formulaHash(node.formula)}`,
+          {
+            depth,
+            rule: 'alpha',
+            status: 'expanded',
+            world: node.world,
+            formula: node.formula,
+          },
         );
         const f = node.formula;
         let children: Formula[];
@@ -509,8 +575,16 @@ function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult 
         const inner = fullNNF(rawDeltaInner);
 
         const newWorld = `w${branch.worldCounter++}`;
-        branch.trace.push(
+        pushTrace(
+          branch,
           `[${depth}] Regla Delta (Posibilidad/Existe) en ${node.world}: ${formulaHash(node.formula)} ─> nuevo mundo ${newWorld}`,
+          {
+            depth,
+            rule: 'delta',
+            status: 'expanded',
+            world: node.world,
+            formula: node.formula,
+          },
         );
         if (!branch.accessibility.has(node.world)) branch.accessibility.set(node.world, new Set());
         (branch.accessibility.get(node.world) as Set<string>).add(newWorld);
@@ -534,8 +608,16 @@ function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult 
         if (!rawInner) return expand(branch, depth + 1, rules);
         const inner = fullNNF(rawInner);
 
-        branch.trace.push(
+        pushTrace(
+          branch,
           `[${depth}] Regla Gamma (Necesidad/ParaTodo) en ${node.world}: ${formulaHash(node.formula)}`,
+          {
+            depth,
+            rule: 'gamma',
+            status: 'expanded',
+            world: node.world,
+            formula: node.formula,
+          },
         );
         const exists = branch.gammaWatchers.some(
           (gw) => gw.sourceWorld === node.world && formulaEqual(gw.innerFormula, inner),
@@ -554,8 +636,16 @@ function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult 
       case 'beta': {
         if (branch.processed.has(key)) return expand(branch, depth + 1, rules);
         branch.processed.add(key);
-        branch.trace.push(
+        pushTrace(
+          branch,
           `[${depth}] Regla Beta (Disyunción/Impl) en ${node.world}: ${formulaHash(node.formula)}. Bifurcando...`,
+          {
+            depth,
+            rule: 'beta',
+            status: 'expanded',
+            world: node.world,
+            formula: node.formula,
+          },
         );
         const f = node.formula;
         let disjuncts: Formula[];
@@ -596,7 +686,13 @@ function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult 
         for (let i = 0; i < disjuncts.length; i++) {
           const d = disjuncts[i];
           const child = cloneBranch(branch);
-          child.trace.push(`[${depth}]   -> Rama Beta ${i + 1}: ${formulaHash(d)}`);
+          pushTrace(child, `[${depth}]   -> Rama Beta ${i + 1}: ${formulaHash(d)}`, {
+            depth,
+            rule: 'beta',
+            status: 'expanded',
+            world: node.world,
+            formula: d,
+          });
           child.pending.push({ formula: d, world: node.world });
           const res = expand(child, depth + 1, rules);
           if (!res.closed) {
@@ -629,12 +725,21 @@ export function checkTableau(
   if (isValidityCheck) {
     const negated = fullNNF({ kind: 'not', args: [formula] });
     const branch = makeBranch([{ formula: negated, world: 'w0' }]);
-    branch.trace.push(`Iniciando prueba de validez por refutación para: ${formulaHash(formula)}`);
+    pushTrace(
+      branch,
+      `Iniciando prueba de validez por refutación para: ${formulaHash(formula)}`,
+      { rule: 'start', status: 'expanded', world: 'w0', formula },
+    );
     return expand(branch, 0, rules);
   } else {
     const nnf = fullNNF(formula);
     const branch = makeBranch([{ formula: nnf, world: 'w0' }]);
-    branch.trace.push(`Iniciando prueba de satisfacibilidad para: ${formulaHash(formula)}`);
+    pushTrace(branch, `Iniciando prueba de satisfacibilidad para: ${formulaHash(formula)}`, {
+      rule: 'start',
+      status: 'expanded',
+      world: 'w0',
+      formula,
+    });
     return expand(branch, 0, rules);
   }
 }

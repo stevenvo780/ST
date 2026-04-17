@@ -22,6 +22,10 @@ interface TransformState {
 export interface ReplCompatState {
   nextId: number;
   pendingPremises: Array<{ name: string; formula: string }>;
+  pendingBlockLines: string[];
+  pendingBlockBraceDepth: number;
+  pendingBlockProofDepth: number;
+  pendingBlockProofAwaitingShow: boolean[];
 }
 
 export interface ReplCompatContext {
@@ -864,7 +868,84 @@ export function createReplCompatState(): ReplCompatState {
   return {
     nextId: 1,
     pendingPremises: [],
+    pendingBlockLines: [],
+    pendingBlockBraceDepth: 0,
+    pendingBlockProofDepth: 0,
+    pendingBlockProofAwaitingShow: [],
   };
+}
+
+function analyzeReplBlockLine(line: string): { braceDelta: number; trimmed: string } {
+  const { code } = splitLineComment(line);
+  let braceDelta = 0;
+  let inString = false;
+
+  for (let index = 0; index < code.length; index += 1) {
+    const current = code[index];
+    if (inString) {
+      if (current === '\\' && index + 1 < code.length) {
+        index += 1;
+        continue;
+      }
+      if (current === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (current === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (current === '{') braceDelta += 1;
+    if (current === '}') braceDelta -= 1;
+  }
+
+  return { braceDelta, trimmed: code.trim() };
+}
+
+function isReplMultilineStart(line: string): boolean {
+  const { braceDelta, trimmed } = analyzeReplBlockLine(line);
+  if (!trimmed) return false;
+  if (/^(assume|asumir)\b/i.test(trimmed)) return true;
+  return braceDelta > 0;
+}
+
+function appendReplBlockLine(state: ReplCompatState, line: string): boolean {
+  state.pendingBlockLines.push(line);
+  const { braceDelta, trimmed } = analyzeReplBlockLine(line);
+  state.pendingBlockBraceDepth = Math.max(0, state.pendingBlockBraceDepth + braceDelta);
+
+  if (/^(assume|asumir)\b/i.test(trimmed)) {
+    const insideProofBody =
+      state.pendingBlockProofDepth > 0 &&
+      state.pendingBlockProofAwaitingShow[state.pendingBlockProofAwaitingShow.length - 1] === false;
+    if (state.pendingBlockProofDepth === 0 || insideProofBody) {
+      state.pendingBlockProofDepth += 1;
+      state.pendingBlockProofAwaitingShow.push(true);
+    }
+  } else if (/^(show|demostrar)\b/i.test(trimmed)) {
+    if (state.pendingBlockProofAwaitingShow.length > 0) {
+      state.pendingBlockProofAwaitingShow[state.pendingBlockProofAwaitingShow.length - 1] = false;
+    }
+  } else if (/^qed\b/i.test(trimmed)) {
+    if (state.pendingBlockProofDepth > 0) {
+      state.pendingBlockProofDepth -= 1;
+      state.pendingBlockProofAwaitingShow.pop();
+    }
+  }
+
+  return state.pendingBlockBraceDepth === 0 && state.pendingBlockProofDepth === 0;
+}
+
+function consumeReplBlock(state: ReplCompatState): string {
+  const source = state.pendingBlockLines.join('\n');
+  state.pendingBlockLines = [];
+  state.pendingBlockBraceDepth = 0;
+  state.pendingBlockProofDepth = 0;
+  state.pendingBlockProofAwaitingShow = [];
+  return source;
 }
 
 export function transformReplInput(
@@ -875,7 +956,25 @@ export function transformReplInput(
   const normalized = normalizeUnicodeSyntax(source);
 
   if (normalized.includes('\n')) {
+    state.pendingBlockLines = [];
+    state.pendingBlockBraceDepth = 0;
+    state.pendingBlockProofDepth = 0;
+    state.pendingBlockProofAwaitingShow = [];
     return { kind: 'executeSingle', source: normalizeSTSource(normalized) };
+  }
+
+  if (state.pendingBlockLines.length > 0) {
+    if (appendReplBlockLine(state, normalized)) {
+      return {
+        kind: 'executeSingle',
+        source: normalizeSTSource(consumeReplBlock(state)),
+      };
+    }
+    return {
+      kind: 'buffered',
+      source: '',
+      message: `Bloque multilinea en curso (${state.pendingBlockLines.length} lineas)...`,
+    };
   }
 
   const trimmed = normalized.trim();
@@ -921,6 +1020,20 @@ export function transformReplInput(
     return {
       kind: 'executeSingle',
       source: `check valid ${goal}`,
+    };
+  }
+
+  if (isReplMultilineStart(normalized)) {
+    if (appendReplBlockLine(state, normalized)) {
+      return {
+        kind: 'executeSingle',
+        source: normalizeSTSource(consumeReplBlock(state)),
+      };
+    }
+    return {
+      kind: 'buffered',
+      source: '',
+      message: `Bloque multilinea en curso (${state.pendingBlockLines.length} lineas)...`,
     };
   }
 

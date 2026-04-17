@@ -194,6 +194,37 @@ describe('ST engine compatibility', () => {
     expect(result.results[0]?.status).toBe('provable');
   });
 
+  it('buffers raw proof blocks in createInterpreter', () => {
+    const interpreter = createInterpreter();
+
+    interpreter.exec('logic classical.propositional');
+    interpreter.exec('assume h1 : P -> Q');
+    interpreter.exec('assume h2 : P');
+    interpreter.exec('show Q');
+    const result = interpreter.exec('qed');
+
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.stdout).toContain('QED');
+  });
+
+  it('buffers nested proof blocks in createInterpreter', () => {
+    const interpreter = createInterpreter();
+
+    interpreter.exec('logic classical.propositional');
+    interpreter.exec('assume h1 : P');
+    interpreter.exec('show (Q -> P)');
+    interpreter.exec('assume h2 : Q');
+    interpreter.exec('show P');
+    interpreter.exec('derive P from {h1}');
+    interpreter.exec('qed');
+    const result = interpreter.exec('qed');
+
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.stdout).toContain('QED');
+  });
+
   it('accepts flat numbered classroom proofs directly in the engine', () => {
     const result = evaluate(
       'logic classical.propositional\n1. P premise\n2. P -> Q premise\n3. Q MP 1,2',

@@ -29,18 +29,42 @@ export function createTextLayerState(): TextLayerState {
   };
 }
 
+const HEADING_ANCHOR_RE = /^h[1-6](?:[-_.:][A-Za-z0-9._-]+)?$/;
+const PARAGRAPH_ANCHOR_RE = /^p\d+(?:[-_.:][A-Za-z0-9._-]+)?$/;
+const RANGE_ANCHOR_RE = /^r\d+(?:-\d+)?$/;
+const BLOCK_ANCHOR_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
+
 // Parsear anchor path: "archivo.md#heading" -> Anchor
 export function parseAnchorPath(raw: string): Anchor {
-  const parts = raw.split('#');
-  const path = parts[0].trim();
-  const fragment = parts[1]?.trim();
+  if (typeof raw !== 'string') {
+    throw new Error('Anchor invalido: se esperaba una cadena');
+  }
+
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    throw new Error('Anchor invalido: la ruta no puede estar vacia');
+  }
+
+  const firstHash = trimmed.indexOf('#');
+  const lastHash = trimmed.lastIndexOf('#');
+  if (firstHash !== lastHash) {
+    throw new Error(`Anchor invalido: '${raw}' contiene multiples fragmentos '#'`);
+  }
+
+  const path = (firstHash >= 0 ? trimmed.slice(0, firstHash) : trimmed).trim();
+  const fragment = (firstHash >= 0 ? trimmed.slice(firstHash + 1) : '').trim() || undefined;
+
+  if (!path) {
+    throw new Error(`Anchor invalido: '${raw}' debe incluir una ruta antes de '#'`);
+  }
 
   let type: Anchor['type'] = 'block';
   if (fragment) {
-    if (fragment.startsWith('h')) type = 'heading';
-    else if (fragment.startsWith('p')) type = 'paragraph';
-    else if (fragment.startsWith('r')) type = 'range';
-    else type = 'block';
+    if (HEADING_ANCHOR_RE.test(fragment)) type = 'heading';
+    else if (PARAGRAPH_ANCHOR_RE.test(fragment)) type = 'paragraph';
+    else if (RANGE_ANCHOR_RE.test(fragment)) type = 'range';
+    else if (BLOCK_ANCHOR_RE.test(fragment)) type = 'block';
+    else throw new Error(`Anchor invalido: fragmento '${fragment}' no reconocido`);
   }
 
   return { path, fragment, type };
@@ -52,7 +76,13 @@ export function registerPassage(
   name: string,
   anchorPath: string,
 ): Diagnostic[] {
-  const anchor = parseAnchorPath(anchorPath);
+  let anchor: Anchor;
+  try {
+    anchor = parseAnchorPath(anchorPath);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Anchor invalido';
+    return [{ severity: 'error', message }];
+  }
   state.passages.set(name, { name, anchor });
   return [];
 }
