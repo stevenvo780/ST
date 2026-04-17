@@ -995,22 +995,26 @@ export class Interpreter {
         break;
       case 'axiom_decl':
         if (this.theory.axioms.has(s.name)) {
-          this.exportedAxioms.set(s.name, this.theory.axioms.get(s.name)!);
+          const ax = this.theory.axioms.get(s.name);
+          if (ax) this.exportedAxioms.set(s.name, ax);
         }
         break;
       case 'theorem_decl':
         if (this.theory.theorems.has(s.name)) {
-          this.exportedTheorems.set(s.name, this.theory.theorems.get(s.name)!);
+          const th = this.theory.theorems.get(s.name);
+          if (th) this.exportedTheorems.set(s.name, th);
         }
         break;
       case 'fn_decl':
         if (this.functions.has(s.name)) {
-          this.exportedFunctions.set(s.name, this.functions.get(s.name)!);
+          const fn = this.functions.get(s.name);
+          if (fn) this.exportedFunctions.set(s.name, fn);
         }
         break;
       case 'theory_decl':
         if (this.theories.has(s.name)) {
-          this.exportedTheories.set(s.name, this.theories.get(s.name)!);
+          const thScope = this.theories.get(s.name);
+          if (thScope) this.exportedTheories.set(s.name, thScope);
         }
         break;
       case 'define_decl': {
@@ -1116,14 +1120,18 @@ export class Interpreter {
       if (this.theory.axioms.has(f.name)) {
         if (visited.has(f.name)) return f;
         visited.add(f.name);
-        const result = this.resolveFormulaRecursive(this.theory.axioms.get(f.name)!, visited);
+        const axVal = this.theory.axioms.get(f.name);
+        if (!axVal) return f;
+        const result = this.resolveFormulaRecursive(axVal, visited);
         visited.delete(f.name);
         return result;
       }
       if (this.theory.theorems.has(f.name)) {
         if (visited.has(f.name)) return f;
         visited.add(f.name);
-        const result = this.resolveFormulaRecursive(this.theory.theorems.get(f.name)!, visited);
+        const thVal = this.theory.theorems.get(f.name);
+        if (!thVal) return f;
+        const result = this.resolveFormulaRecursive(thVal, visited);
         visited.delete(f.name);
         return result;
       }
@@ -1218,17 +1226,27 @@ export class Interpreter {
 
     // Warn about non-existent premises (check name, let bindings, and formula-value match)
     for (const name of stmt.premises) {
-      if (this.theory.axioms.has(name) || this.theory.theorems.has(name) || this.letBindings.has(name)) {
+      if (
+        this.theory.axioms.has(name) ||
+        this.theory.theorems.has(name) ||
+        this.letBindings.has(name)
+      ) {
         continue;
       }
       // Check if any axiom/theorem has this as its formula atom name
       let foundByFormula = false;
       for (const [, formula] of this.theory.axioms) {
-        if (formula.kind === 'atom' && formula.name === name) { foundByFormula = true; break; }
+        if (formula.kind === 'atom' && formula.name === name) {
+          foundByFormula = true;
+          break;
+        }
       }
       if (!foundByFormula) {
         for (const [, formula] of this.theory.theorems) {
-          if (formula.kind === 'atom' && formula.name === name) { foundByFormula = true; break; }
+          if (formula.kind === 'atom' && formula.name === name) {
+            foundByFormula = true;
+            break;
+          }
         }
       }
       if (!foundByFormula) {
@@ -1679,10 +1697,12 @@ export class Interpreter {
     this.executeStatementsIterative(stmt.body, stmt.source.file);
 
     // Include ALL axioms and theorems available in the theory (external + assumptions + body results)
-    const premiseNames = Array.from(new Set([
-      ...Array.from(this.theory.axioms.keys()),
-      ...Array.from(this.theory.theorems.keys()),
-    ]));
+    const premiseNames = Array.from(
+      new Set([
+        ...Array.from(this.theory.axioms.keys()),
+        ...Array.from(this.theory.theorems.keys()),
+      ]),
+    );
     const result = profile.derive(resolvedGoal, premiseNames, this.theory);
     this.results.push(result);
 

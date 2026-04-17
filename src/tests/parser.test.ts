@@ -235,7 +235,7 @@ axiom ok = P
 
     expect(parser.diagnostics.some((d) => d.severity === 'error')).toBe(true);
     expect(
-      program.statements.some((stmt) => stmt.kind === 'axiom_decl' && (stmt as AxiomDeclNode).name === 'ok'),
+      program.statements.some((stmt) => stmt.kind === 'axiom_decl' && stmt.name === 'ok'),
     ).toBe(true);
   });
 

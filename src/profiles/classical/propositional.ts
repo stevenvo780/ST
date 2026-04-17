@@ -782,7 +782,9 @@ function isNegationOf(a: Formula, b: Formula): boolean {
 
 function isExcludedMiddleFormula(formula: Formula): boolean {
   if (formula.kind !== 'or' || !formula.args?.[0] || !formula.args?.[1]) return false;
-  return isNegationOf(formula.args[0], formula.args[1]) || isNegationOf(formula.args[1], formula.args[0]);
+  return (
+    isNegationOf(formula.args[0], formula.args[1]) || isNegationOf(formula.args[1], formula.args[0])
+  );
 }
 
 function getCommutativeVariant(formula: Formula): Formula | null {
@@ -826,7 +828,12 @@ function getAbsorptionResult(formula: Formula): Formula | null {
   return null;
 }
 
-function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth: number = 0): Proof | null {
+function tryDerive(
+  goal: Formula,
+  theory: Theory,
+  premiseNames: string[],
+  depth: number = 0,
+): Proof | null {
   const state: DerivationState = {
     known: new Map(),
     steps: [],
@@ -1108,7 +1115,8 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
           const disjHashRev = formulaHash({ kind: 'or', args: [r, p] });
           if (state.known.has(disjHash) || state.known.has(disjHashRev)) {
             const qs: Formula = { kind: 'or', args: [q, s] };
-            const disjFormula = state.known.get(disjHash) || state.known.get(disjHashRev)!;
+            const disjFormula = state.known.get(disjHash) ?? state.known.get(disjHashRev);
+            if (!disjFormula) continue;
             changed =
               addDerivedFormula(state, qs, 'Dilema Constructivo', [
                 findStep(state.steps, f1),
@@ -1168,17 +1176,15 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
       const commutative = getCommutativeVariant(f1);
       if (commutative && isRelevantToGoal(commutative, goal)) {
         changed =
-          addDerivedFormula(state, commutative, 'Conmutatividad', [
-            findStep(state.steps, f1),
-          ]) || changed;
+          addDerivedFormula(state, commutative, 'Conmutatividad', [findStep(state.steps, f1)]) ||
+          changed;
       }
 
       for (const associative of getAssociativeVariants(f1)) {
         if (isRelevantToGoal(associative, goal)) {
           changed =
-            addDerivedFormula(state, associative, 'Asociatividad', [
-              findStep(state.steps, f1),
-            ]) || changed;
+            addDerivedFormula(state, associative, 'Asociatividad', [findStep(state.steps, f1)]) ||
+            changed;
         }
       }
 
@@ -1189,17 +1195,14 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
         formulasEqual(f1.args[0], f1.args[1])
       ) {
         changed =
-          addDerivedFormula(state, f1.args[0], 'Idempotencia', [
-            findStep(state.steps, f1),
-          ]) || changed;
+          addDerivedFormula(state, f1.args[0], 'Idempotencia', [findStep(state.steps, f1)]) ||
+          changed;
       }
 
       const absorbed = getAbsorptionResult(f1);
       if (absorbed) {
         changed =
-          addDerivedFormula(state, absorbed, 'Absorcion', [
-            findStep(state.steps, f1),
-          ]) || changed;
+          addDerivedFormula(state, absorbed, 'Absorcion', [findStep(state.steps, f1)]) || changed;
       }
 
       // Disjunction Introduction: de A, derivar A | B
@@ -1261,11 +1264,7 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
       }
 
       // Implicación material (→ a ∨): de A->B, derivar !A|B
-      if (
-        f1.kind === 'implies' &&
-        f1.args?.[0] &&
-        f1.args?.[1]
-      ) {
+      if (f1.kind === 'implies' && f1.args?.[0] && f1.args?.[1]) {
         const matImpl: Formula = {
           kind: 'or',
           args: [{ kind: 'not', args: [f1.args[0]] }, f1.args[1]],
@@ -1563,12 +1562,7 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
 
   // Prueba Condicional real (→-Introducción / Deduction Theorem):
   // Para derivar A→B, asumimos A como premisa temporal y derivamos B.
-  if (
-    depth < MAX_SUB_DEPTH &&
-    goal.kind === 'implies' &&
-    goal.args?.[0] &&
-    goal.args?.[1]
-  ) {
+  if (depth < MAX_SUB_DEPTH && goal.kind === 'implies' && goal.args?.[0] && goal.args?.[1]) {
     const assumption = goal.args[0];
     const subGoal = goal.args[1];
     // Create a temporary theory with the assumption added
@@ -1621,7 +1615,8 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
           if (s.justification.startsWith('Premisa')) {
             // Find existing premise step in main
             const existing = mainSteps.find(
-              (ms) => ms.justification.startsWith('Premisa') && formulasEqual(ms.formula, s.formula),
+              (ms) =>
+                ms.justification.startsWith('Premisa') && formulasEqual(ms.formula, s.formula),
             );
             if (existing) {
               subStepMap.set(s.stepNumber, existing.stepNumber);
@@ -1640,9 +1635,8 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
 
         // Add final conditional proof step
         stepNum++;
-        const subGoalStepNum = subStepMap.get(
-          subProof.steps[subProof.steps.length - 1]?.stepNumber ?? 0,
-        ) ?? (stepNum - 1);
+        const subGoalStepNum =
+          subStepMap.get(subProof.steps[subProof.steps.length - 1]?.stepNumber ?? 0) ?? stepNum - 1;
         mainSteps.push({
           stepNumber: stepNum,
           formula: goal,
@@ -1663,8 +1657,9 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
       (f) => f.kind === 'or' && f.args?.[0] && f.args?.[1],
     );
     for (const disj of disjunctions) {
-      const left = disj.args![0];
-      const right = disj.args![1];
+      const left = disj.args?.[0];
+      const right = disj.args?.[1];
+      if (!left || !right) continue;
 
       // Try to derive goal assuming left
       const tempTheoryL: Theory = {
@@ -1713,9 +1708,7 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
           mainSteps.push({ ...s, stepNumber: stepNum, premises: [] });
         }
       }
-      const disjStepNum = mainSteps.find(
-        (ms) => formulasEqual(ms.formula, disj),
-      )?.stepNumber ?? 0;
+      const disjStepNum = mainSteps.find((ms) => formulasEqual(ms.formula, disj))?.stepNumber ?? 0;
 
       // Left case sub-derivation
       stepNum++;
@@ -1750,9 +1743,8 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
           premises: s.premises.map((p) => leftStepMap.get(p) || p),
         });
       }
-      const leftGoalStep = leftStepMap.get(
-        subProofL.steps[subProofL.steps.length - 1]?.stepNumber ?? 0,
-      ) ?? stepNum;
+      const leftGoalStep =
+        leftStepMap.get(subProofL.steps[subProofL.steps.length - 1]?.stepNumber ?? 0) ?? stepNum;
 
       // Right case sub-derivation
       stepNum++;
@@ -1787,9 +1779,8 @@ function tryDerive(goal: Formula, theory: Theory, premiseNames: string[], depth:
           premises: s.premises.map((p) => rightStepMap.get(p) || p),
         });
       }
-      const rightGoalStep = rightStepMap.get(
-        subProofR.steps[subProofR.steps.length - 1]?.stepNumber ?? 0,
-      ) ?? stepNum;
+      const rightGoalStep =
+        rightStepMap.get(subProofR.steps[subProofR.steps.length - 1]?.stepNumber ?? 0) ?? stepNum;
 
       // Final disjunction elimination step
       stepNum++;
@@ -2136,7 +2127,7 @@ export class ClassicalPropositional implements LogicProfile {
       .map((n) => theory.axioms.get(n) || theory.theorems.get(n))
       .filter((f): f is Formula => f !== undefined);
 
-    let semanticResult = false;
+    let semanticResult: boolean;
     const atoms = new Set<string>();
     for (const f of allAxiomFormulas) collectAtoms(f).forEach((a) => atoms.add(a));
     collectAtoms(goal).forEach((a) => atoms.add(a));
@@ -2207,13 +2198,7 @@ export class ClassicalPropositional implements LogicProfile {
           premises: premiseNames.map((_, i) => i + 1),
         },
       ];
-      const semanticProof = buildProof(
-        goal,
-        semanticProofSteps,
-        premiseNames,
-        theory,
-        'semantic',
-      );
+      const semanticProof = buildProof(goal, semanticProofSteps, premiseNames, theory, 'semantic');
       return {
         status: 'provable',
         output: `${formulaToString(goal)} es DEMOSTRABLE desde la teoria`,

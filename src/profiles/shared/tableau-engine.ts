@@ -474,13 +474,17 @@ function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult 
     const key = `${next.world}:${formulaHash(next.formula)}`;
     if (branch.processed.has(key)) continue;
     branch.processed.add(key);
-    pushTrace(branch, `[${depth}] Analizando literal: ${formulaHash(next.formula)} en ${next.world}`, {
-      depth,
-      rule: 'literal',
-      status: 'expanded',
-      world: next.world,
-      formula: next.formula,
-    });
+    pushTrace(
+      branch,
+      `[${depth}] Analizando literal: ${formulaHash(next.formula)} en ${next.world}`,
+      {
+        depth,
+        rule: 'literal',
+        status: 'expanded',
+        world: next.world,
+        formula: next.formula,
+      },
+    );
     if (closes(branch, next)) {
       pushTrace(
         branch,
@@ -725,11 +729,12 @@ export function checkTableau(
   if (isValidityCheck) {
     const negated = fullNNF({ kind: 'not', args: [formula] });
     const branch = makeBranch([{ formula: negated, world: 'w0' }]);
-    pushTrace(
-      branch,
-      `Iniciando prueba de validez por refutación para: ${formulaHash(formula)}`,
-      { rule: 'start', status: 'expanded', world: 'w0', formula },
-    );
+    pushTrace(branch, `Iniciando prueba de validez por refutación para: ${formulaHash(formula)}`, {
+      rule: 'start',
+      status: 'expanded',
+      world: 'w0',
+      formula,
+    });
     return expand(branch, 0, rules);
   } else {
     const nnf = fullNNF(formula);

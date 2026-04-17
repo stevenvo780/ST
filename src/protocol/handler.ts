@@ -1624,18 +1624,12 @@ export class ProtocolHandler {
     return value;
   }
 
-  private optionalStringParam(
-    request: ProtocolRequest,
-    key: string,
-    fallback: string,
-  ): string {
+  private optionalStringParam(request: ProtocolRequest, key: string, fallback: string): string {
     const params = this.requireParamsObject(request);
     const value = params[key];
     if (value === undefined || value === null || value === '') return fallback;
     if (typeof value !== 'string') {
-      throw new Error(
-        `Parametro invalido para '${request.method}': '${key}' debe ser una cadena.`,
-      );
+      throw new Error(`Parametro invalido para '${request.method}': '${key}' debe ser una cadena.`);
     }
     return value;
   }

@@ -305,7 +305,9 @@ describe('ClassicalPropositional.prove', () => {
   it('puede demostrar tercero excluido con regla derivada explicita', () => {
     const result = cp.prove(or(atom('P'), not(atom('P'))), makeTheory({}));
     expect(result.status).toBe('provable');
-    expect(result.proof?.steps.some((step) => step.justification === 'Tercero excluido')).toBe(true);
+    expect(result.proof?.steps.some((step) => step.justification === 'Tercero excluido')).toBe(
+      true,
+    );
   });
 });
 

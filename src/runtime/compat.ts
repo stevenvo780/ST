@@ -206,12 +206,7 @@ function splitTopLevel(value: string, delimiter = ','): string[] {
     if (char === '[') depthBracket += 1;
     if (char === ']') depthBracket = Math.max(0, depthBracket - 1);
 
-    if (
-      char === delimiter &&
-      depthParen === 0 &&
-      depthBrace === 0 &&
-      depthBracket === 0
-    ) {
+    if (char === delimiter && depthParen === 0 && depthBrace === 0 && depthBracket === 0) {
       const trimmed = current.trim();
       if (trimmed) {
         parts.push(trimmed);
@@ -330,7 +325,10 @@ function flushPendingBareProofSteps(state: TransformState): string[] {
   const lastName = rememberNumberedLine(state, last.lineNumber, last.formula);
   const premiseNames = pending
     .slice(0, -1)
-    .map((step) => state.numberedLineNames.get(step.lineNumber) ?? compatProofLineName(step.lineNumber));
+    .map(
+      (step) =>
+        state.numberedLineNames.get(step.lineNumber) ?? compatProofLineName(step.lineNumber),
+    );
 
   lines.push(
     ...appendComment(
@@ -426,7 +424,7 @@ function extractPrefixJustifiedStep(rest: string): { formula: string; refs: stri
 function transformNumberedProofLine(line: string, state: TransformState): string[] | null {
   const { code, comment } = splitLineComment(line);
   const stripped = stripLeadingProofBars(code);
-  const numberedLineMatch = stripped.code.match(/^\s*(?:\[(\d+)\]|(\d+)[\.\):])\s+(.+?)\s*$/);
+  const numberedLineMatch = stripped.code.match(/^\s*(?:\[(\d+)\]|(\d+)[.):])\s+(.+?)\s*$/);
   if (!numberedLineMatch) {
     return null;
   }
@@ -468,7 +466,17 @@ function transformNumberedProofLine(line: string, state: TransformState): string
       });
       return prefix;
     }
-    return [...prefix, ...emitPendingDerivedStep(state, { lineNumber, formula, refs, indent, comment, originalLine: line })];
+    return [
+      ...prefix,
+      ...emitPendingDerivedStep(state, {
+        lineNumber,
+        formula,
+        refs,
+        indent,
+        comment,
+        originalLine: line,
+      }),
+    ];
   }
 
   state.pendingBareProofSteps.push({
@@ -758,8 +766,7 @@ function transformLine(line: string, state: TransformState): string[] {
     // - Non-bare identifiers (e.g. h1, a1): always pass through as names
     const requiresExpansion = premiseItems.some(
       (item) =>
-        !IDENTIFIER_RE.test(item) ||
-        (BARE_ATOM_RE.test(item) && !state.knownFormulas.has(item)),
+        !IDENTIFIER_RE.test(item) || (BARE_ATOM_RE.test(item) && !state.knownFormulas.has(item)),
     );
 
     if (!requiresExpansion) {

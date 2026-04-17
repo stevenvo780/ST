@@ -217,18 +217,14 @@ export class Parser {
         case TokenType.GLOSSARY:
           return this.parseGlossaryCmd();
         case TokenType.IDENTIFIER:
-          throw new Error(
-            this.contextualize(`Statement inesperado: '${tok.value}' (${tok.type})`),
-          );
+          throw new Error(this.contextualize(`Statement inesperado: '${tok.value}' (${tok.type})`));
         case TokenType.NEWLINE:
           this.advance();
           return null;
         case TokenType.EOF:
           return null;
         default:
-          throw new Error(
-            this.contextualize(`Statement inesperado: '${tok.value}' (${tok.type})`),
-          );
+          throw new Error(this.contextualize(`Statement inesperado: '${tok.value}' (${tok.type})`));
       }
     });
   }
@@ -649,7 +645,9 @@ export class Parser {
       this.skipNewlines();
       if (this.checkType(TokenType.QED)) break;
       try {
-        const stmt = this.checkType(TokenType.ASSUME) ? this.parseProofBlock() : this.parseStatement();
+        const stmt = this.checkType(TokenType.ASSUME)
+          ? this.parseProofBlock()
+          : this.parseStatement();
         if (stmt) body.push(stmt);
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : 'Error de parseo en bloque de prueba';
@@ -1832,15 +1830,9 @@ export class Parser {
       else if (this.checkType(TokenType.RPAREN)) parenDepth = Math.max(0, parenDepth - 1);
       else if (this.checkType(TokenType.LBRACE)) braceDepth += 1;
       else if (this.checkType(TokenType.RBRACE)) braceDepth = Math.max(0, braceDepth - 1);
-      else if (
-        this.checkType(TokenType.LBRACKET) ||
-        this.checkType(TokenType.LBRACKET_DOUBLE)
-      ) {
+      else if (this.checkType(TokenType.LBRACKET) || this.checkType(TokenType.LBRACKET_DOUBLE)) {
         bracketDepth += 1;
-      } else if (
-        this.checkType(TokenType.RBRACKET) ||
-        this.checkType(TokenType.RBRACKET_DOUBLE)
-      ) {
+      } else if (this.checkType(TokenType.RBRACKET) || this.checkType(TokenType.RBRACKET_DOUBLE)) {
         bracketDepth = Math.max(0, bracketDepth - 1);
       }
       this.advance();
