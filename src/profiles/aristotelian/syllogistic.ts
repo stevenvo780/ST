@@ -340,14 +340,30 @@ export class AristotelianSyllogistic implements LogicProfile {
     };
   }
 
-  prove(goal: Formula, theory: Theory): RunResult {
-    const axioms = Array.from(theory.axioms.entries());
+  prove(goal: Formula, theory: Theory, premises?: string[]): RunResult {
+    const useRestricted = premises !== undefined && premises.length > 0;
+    const diagnostics: Diagnostic[] = [];
+    let axioms: [string, Formula][];
+    if (useRestricted) {
+      axioms = [];
+      for (const n of premises) {
+        const f = theory.axioms.get(n) || theory.theorems.get(n);
+        if (f) axioms.push([n, f]);
+        else
+          diagnostics.push({
+            severity: 'warning',
+            message: `Premisa '${n}' no encontrada en la teoría; será ignorada en prove`,
+          });
+      }
+    } else {
+      axioms = Array.from(theory.axioms.entries());
+    }
     const conclusion = extractCategorical(goal);
     if (!conclusion || axioms.length < 2) {
       return {
         status: 'unknown',
         output: 'Se necesitan al menos 2 premisas categóricas para un silogismo',
-        diagnostics: [],
+        diagnostics,
         formula: goal,
       };
     }
@@ -364,7 +380,7 @@ export class AristotelianSyllogistic implements LogicProfile {
             return {
               status: 'provable',
               output: `DEMOSTRADO por ${syl.name} (Figura ${syl.figure})\n  [${axioms[i][0]}] ${categoricalToString(p1)}\n  [${axioms[j][0]}] ${categoricalToString(p2)}\n  ∴ ${categoricalToString(conclusion)}`,
-              diagnostics: [],
+              diagnostics,
               formula: goal,
             };
           }
@@ -373,9 +389,9 @@ export class AristotelianSyllogistic implements LogicProfile {
     }
 
     return {
-      status: 'refutable',
+      status: 'unknown',
       output: `No se encontró silogismo válido para derivar: ${formulaToString(goal)}`,
-      diagnostics: [],
+      diagnostics,
       formula: goal,
     };
   }
@@ -484,8 +500,8 @@ export class AristotelianSyllogistic implements LogicProfile {
     }
 
     return {
-      status: 'refutable',
-      output: `No se puede derivar por silogismo válido`,
+      status: 'unknown',
+      output: `No se encontró derivación por silogismo válido (incompletitud de la heurística)`,
       diagnostics: [],
       formula: goal,
     };

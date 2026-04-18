@@ -244,8 +244,23 @@ export class ParaconsistentBelnap implements LogicProfile {
     };
   }
 
-  prove(goal: Formula, theory: Theory): RunResult {
-    const axioms = Array.from(theory.axioms.values());
+  prove(goal: Formula, theory: Theory, premises?: string[]): RunResult {
+    const useRestricted = premises !== undefined && premises.length > 0;
+    const proveDiagnostics: import('../../types').Diagnostic[] = [];
+    const axioms: Formula[] = [];
+    if (useRestricted) {
+      for (const n of premises) {
+        const f = theory.axioms.get(n) || theory.theorems.get(n);
+        if (f) axioms.push(f);
+        else
+          proveDiagnostics.push({
+            severity: 'warning',
+            message: `Premisa '${n}' no encontrada en la teoría; será ignorada en prove`,
+          });
+      }
+    } else {
+      axioms.push(...theory.axioms.values());
+    }
     if (axioms.length === 0) return this.checkValid(goal);
 
     const allFormulas = [...axioms, goal];
@@ -269,14 +284,14 @@ export class ParaconsistentBelnap implements LogicProfile {
         return {
           status: 'provable',
           output: `${formulaToString(goal)} se sigue de la teoria en Belnap (preserva valores designados)`,
-          diagnostics: [],
+          diagnostics: proveDiagnostics,
           formula: goal,
         };
       }
       return {
         status: 'refutable',
         output: `${formulaToString(goal)} no es demostrable en Belnap (premisas designadas pero goal no)`,
-        diagnostics: [],
+        diagnostics: proveDiagnostics,
         formula: goal,
       };
     }
@@ -502,15 +517,13 @@ export class ParaconsistentBelnap implements LogicProfile {
     };
   }
 
-  private conjoin(formulas: Formula[]): Formula {
-    if (formulas.length === 0) return { kind: 'atom', name: 'T' }; // Top
-    if (formulas.length === 1) return formulas[0];
-    return { kind: 'and', args: [formulas[0], this.conjoin(formulas.slice(1))] };
-  }
-
   private evaluateBelnap(f: Formula, v: Record<string, BelnapValue>): BelnapValue {
     const args = f.args || [];
     switch (f.kind) {
+      case 'true':
+        return 'T';
+      case 'false':
+        return 'F';
       case 'atom':
         return f.name ? (v[f.name] ?? 'N') : 'N';
       case 'not':

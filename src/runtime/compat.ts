@@ -1,5 +1,3 @@
-const COMPAT_FALSE_ATOM = '__ST_COMPAT_FALSE__';
-const COMPAT_TRUE_ATOM = '__ST_COMPAT_TRUE__';
 const IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*$/;
 const BARE_ATOM_RE = /^[A-Z][A-Z0-9_]*$/;
 
@@ -602,11 +600,11 @@ function normalizeUnicodeSyntax(source: string): string {
       continue;
     }
     if (current === '⊥') {
-      output += `(${COMPAT_FALSE_ATOM} & !${COMPAT_FALSE_ATOM})`;
+      output += '⊥';
       continue;
     }
     if (current === '⊤') {
-      output += `(${COMPAT_TRUE_ATOM} -> ${COMPAT_TRUE_ATOM})`;
+      output += '⊤';
       continue;
     }
     if (current === '∴') {

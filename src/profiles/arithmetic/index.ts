@@ -176,39 +176,57 @@ export class ArithmeticProfile implements LogicProfile {
     return this.result('satisfiable', 'La fórmula contiene variables; asumida satisfacible.');
   }
 
-  prove(goal: Formula, theory: Theory): RunResult {
-    // Intentar evaluar con axiomas como asignaciones numéricas
+  prove(goal: Formula, theory: Theory, premises?: string[]): RunResult {
+    const useRestricted = premises !== undefined && premises.length > 0;
+    const diagnostics: Diagnostic[] = [];
     const vars = new Map<string, number>();
-    theory.axioms.forEach((formula, name) => {
+    const collect = (name: string, formula: Formula): void => {
       if (formula.kind === 'number') {
         const numericValue = Number(formula.value);
         if (!Number.isNaN(numericValue)) {
           vars.set(name, numericValue);
         }
       }
-    });
+    };
+    if (useRestricted) {
+      for (const n of premises) {
+        const f = theory.axioms.get(n) || theory.theorems.get(n);
+        if (f) collect(n, f);
+        else
+          diagnostics.push({
+            severity: 'warning',
+            message: `Premisa '${n}' no encontrada en la teoría; será ignorada en prove`,
+          });
+      }
+    } else {
+      theory.axioms.forEach((formula, name) => collect(name, formula));
+    }
 
     const atoms = collectAtoms(goal);
     const unresolvedAtoms = [...atoms].filter((a) => !vars.has(a));
 
     if (unresolvedAtoms.length === 0) {
       const result = evalComparison(goal, vars);
-      return this.result(
+      const r = this.result(
         result ? 'provable' : 'refutable',
         result
           ? 'Demostrado: la expresión aritmética es verdadera con los axiomas dados'
           : 'Refutado: la expresión aritmética es falsa con los axiomas dados',
       );
+      if (diagnostics.length) r.diagnostics = [...(r.diagnostics || []), ...diagnostics];
+      return r;
     }
 
-    return this.result(
+    const r = this.result(
       'unknown',
       `No se puede probar: variables sin valor numérico: ${unresolvedAtoms.join(', ')}`,
     );
+    if (diagnostics.length) r.diagnostics = [...(r.diagnostics || []), ...diagnostics];
+    return r;
   }
 
   derive(goal: Formula, premises: string[], theory: Theory): RunResult {
-    return this.prove(goal, theory);
+    return this.prove(goal, theory, premises);
   }
 
   countermodel(formula: Formula): RunResult {

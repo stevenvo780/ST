@@ -71,6 +71,8 @@ export enum TokenType {
   NAND = 'NAND', // ↑ (NAND)
   NOR = 'NOR', // ↓ (NOR)
   XOR = 'XOR', // ⊕ (XOR)
+  TRUE_CONST = 'TRUE_CONST', // ⊤ / true / verdadero
+  FALSE_CONST = 'FALSE_CONST', // ⊥ / false / falso
 
   // Arithmetic operators
   PLUS = 'PLUS', // +
@@ -163,6 +165,10 @@ export const CORE_KEYWORDS: Record<string, TokenType> = {
   nand: TokenType.NAND,
   nor: TokenType.NOR,
   xor: TokenType.XOR,
+  true: TokenType.TRUE_CONST,
+  false: TokenType.FALSE_CONST,
+  verdadero: TokenType.TRUE_CONST,
+  falso: TokenType.FALSE_CONST,
   define: TokenType.DEFINE,
   unfold: TokenType.UNFOLD,
   fold: TokenType.FOLD,

@@ -1254,6 +1254,18 @@ export class Parser {
   }
 
   private parseAtom(): Formula {
+    // Constantes lógicas ⊤/⊥ (true/false/verdadero/falso)
+    if (this.checkType(TokenType.TRUE_CONST)) {
+      const tok = this.current();
+      this.advance();
+      return { kind: 'true', source: { line: tok.line, column: tok.column } };
+    }
+    if (this.checkType(TokenType.FALSE_CONST)) {
+      const tok = this.current();
+      this.advance();
+      return { kind: 'false', source: { line: tok.line, column: tok.column } };
+    }
+
     // Literal numérico
     if (this.checkType(TokenType.NUMBER)) {
       const tok = this.current();

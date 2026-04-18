@@ -350,6 +350,10 @@ function classify(f: Formula): FormulaClass {
 function closes(branch: Branch, node: LabeledNode): boolean {
   const f = node.formula;
   const w = node.world;
+  // ⊥ alone closes the branch; ¬⊤ does too. (NNF turns ¬⊤ into ⊥, so the
+  // second case is a safety net if non-NNF formulas reach here.)
+  if (f.kind === 'false') return true;
+  if (f.kind === 'not' && f.args?.[0]?.kind === 'true') return true;
   if (f.kind === 'not' && f.args?.[0]) {
     return branch.literals.some(
       (l) => l.world === w && formulaEqual(l.formula, (f.args as Formula[])[0]),

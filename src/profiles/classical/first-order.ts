@@ -160,8 +160,23 @@ export class ClassicalFirstOrder implements LogicProfile {
     };
   }
 
-  prove(goal: Formula, theory: Theory): RunResult {
-    const axioms = Array.from(theory.axioms.values());
+  prove(goal: Formula, theory: Theory, premises?: string[]): RunResult {
+    const useRestricted = premises !== undefined && premises.length > 0;
+    const diagnostics: import('../../types').Diagnostic[] = [];
+    const axioms: Formula[] = [];
+    if (useRestricted) {
+      for (const n of premises) {
+        const f = theory.axioms.get(n) || theory.theorems.get(n);
+        if (f) axioms.push(f);
+        else
+          diagnostics.push({
+            severity: 'warning',
+            message: `Premisa '${n}' no encontrada en la teoría; será ignorada en prove`,
+          });
+      }
+    } else {
+      axioms.push(...theory.axioms.values());
+    }
     const nodes: FONode[] = [
       ...axioms.map((a) => ({ formula: toNNF(a) })),
       { formula: toNNF({ kind: 'not', args: [goal] }) },
@@ -174,7 +189,7 @@ export class ClassicalFirstOrder implements LogicProfile {
         ? `${fStr} es DEMOSTRABLE desde la teoría`
         : `${fStr} NO es demostrable desde la teoría`,
       tableauTrace: toTypedTrace(res.trace),
-      diagnostics: [],
+      diagnostics,
       formula: goal,
     };
   }

@@ -9,6 +9,11 @@ import { registry } from '../profiles/interface';
 import { createReplCompatState, transformReplInput } from '../runtime/compat';
 import type { ExecutionOutput } from '../types';
 
+// Version read at build time from package.json — keep REPL banner in sync
+// with actual package version rather than a hardcoded literal.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { version: PKG_VERSION } = require('../../package.json') as { version: string };
+
 export class REPL {
   private interpreter: Interpreter;
   private rl: readline.Interface | null = null;
@@ -37,7 +42,7 @@ export class REPL {
       terminal: true,
     });
 
-    console.log('ST REPL v1.0.0');
+    console.log(`ST REPL v${PKG_VERSION}`);
     console.log('Lenguaje ejecutable con nucleo logico y capa textual');
     console.log('Escribe :help para ver comandos. :quit para salir.\n');
 

@@ -186,6 +186,14 @@ export class Lexer {
           this.addToken(TokenType.NOR, '\u2193');
           this.advance();
           break;
+        case '\u22A4': // ⊤
+          this.addToken(TokenType.TRUE_CONST, '\u22A4');
+          this.advance();
+          break;
+        case '\u22A5': // ⊥
+          this.addToken(TokenType.FALSE_CONST, '\u22A5');
+          this.advance();
+          break;
         case '!':
           if (this.peek(1) === '&') {
             this.addToken(TokenType.NAND, '!&');

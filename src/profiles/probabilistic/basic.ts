@@ -203,12 +203,33 @@ export class ProbabilisticBasic implements LogicProfile {
     };
   }
 
-  prove(goal: Formula, theory: Theory): RunResult {
-    const axioms = Array.from(theory.axioms.values());
-    if (axioms.length === 0) return this.checkValid(goal);
+  prove(goal: Formula, theory: Theory, premises?: string[]): RunResult {
+    const useRestricted = premises !== undefined && premises.length > 0;
+    const diagnostics: Diagnostic[] = [];
+    const axioms: Formula[] = [];
+    if (useRestricted) {
+      for (const n of premises) {
+        const f = theory.axioms.get(n) || theory.theorems.get(n);
+        if (f) axioms.push(f);
+        else
+          diagnostics.push({
+            severity: 'warning',
+            message: `Premisa '${n}' no encontrada en la teoría; será ignorada en prove`,
+          });
+      }
+    } else {
+      axioms.push(...theory.axioms.values());
+    }
+    if (axioms.length === 0) {
+      const r = this.checkValid(goal);
+      if (diagnostics.length) r.diagnostics = [...(r.diagnostics || []), ...diagnostics];
+      return r;
+    }
     const conj: Formula = axioms.reduce((a, b) => ({ kind: 'and' as const, args: [a, b] }));
     const impl: Formula = { kind: 'implies', args: [conj, goal] };
-    return this.checkValid(impl);
+    const r = this.checkValid(impl);
+    if (diagnostics.length) r.diagnostics = [...(r.diagnostics || []), ...diagnostics];
+    return r;
   }
 
   derive(goal: Formula, premises: string[], theory: Theory): RunResult {

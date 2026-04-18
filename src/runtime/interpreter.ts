@@ -1264,8 +1264,13 @@ export class Interpreter {
     this.results.push(result);
     this.emitResult('derive', result);
 
-    // Auto-register successful derivations as theorems so they can be reused
-    if (result.status === 'valid' || result.status === 'provable') {
+    // Auto-register successful derivations as theorems so they can be reused.
+    // Skip semantic-only proofs: they validate entailment without producing a
+    // syntactic derivation, so registering them as theorems would hide the gap.
+    if (
+      (result.status === 'valid' || result.status === 'provable') &&
+      result.proof?.method !== 'semantic'
+    ) {
       const theoremName = `derived_${this.theory.theorems.size + 1}`;
       this.theory.theorems.set(theoremName, resolved);
       // Also register as axiom so it can be used as premise in subsequent derives
@@ -1304,7 +1309,7 @@ export class Interpreter {
   private execProveCmd(stmt: ProveCmdNode): void {
     const profile = this.requireProfile();
     const resolved = this.resolveFormula(stmt.goal);
-    const result = profile.prove(resolved, this.theory);
+    const result = profile.prove(resolved, this.theory, stmt.premises);
     this.results.push(result);
     this.emitResult('prove', result);
   }
@@ -2721,7 +2726,7 @@ export class Interpreter {
       case 'prove': {
         const goal = this.requireActionFormula(action, 'goal');
         const premises = this.requireActionPremises(action);
-        const result = profile.prove(goal, this.theory);
+        const result = profile.prove(goal, this.theory, premises);
         const premiseFormulas = premises
           .map((premise) => this.theory.axioms.get(premise) || this.theory.theorems.get(premise))
           .filter((value): value is Formula => !!value)

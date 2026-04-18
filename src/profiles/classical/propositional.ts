@@ -44,6 +44,10 @@ function computeCollectAtoms(f: Formula): Set<string> {
 
 export function evaluateClassical(f: Formula, v: Valuation): boolean {
   switch (f.kind) {
+    case 'true':
+      return true;
+    case 'false':
+      return false;
     case 'atom':
       return f.name ? (v[f.name] ?? false) : false;
     case 'not':
@@ -327,6 +331,10 @@ export function formulaToString(f: Formula): string {
 
 function computeFormulaToString(f: Formula): string {
   switch (f.kind) {
+    case 'true':
+      return '⊤';
+    case 'false':
+      return '⊥';
     case 'atom':
       return f.name || '?';
     case 'not': {
@@ -442,6 +450,8 @@ function computeNNF(f: Formula): Formula {
 
     if (!negated) {
       switch (k) {
+        case 'true':
+        case 'false':
         case 'atom':
         case 'predicate':
           return node;
@@ -493,6 +503,10 @@ function computeNNF(f: Formula): Formula {
       }
     } else {
       switch (k) {
+        case 'true':
+          return { kind: 'false' };
+        case 'false':
+          return { kind: 'true' };
         case 'atom':
         case 'predicate':
           return { kind: 'not', args: [node] };
@@ -669,15 +683,96 @@ function getSubFormulas(f: Formula): Formula[] {
   return result.filter((n) => n.kind !== 'atom' && formulaToString(n) !== formulaToString(f));
 }
 
+/**
+ * Igualdad estructural con alpha-equivalencia sobre variables cuantificadas.
+ * Cubre átomos, predicados, cuantificadores (∀/∃), modales y constantes.
+ */
 function formulasEqual(a: Formula, b: Formula): boolean {
+  return alphaEqualFormulas(a, b, new Map(), new Map());
+}
+
+function alphaEqualFormulas(
+  a: Formula,
+  b: Formula,
+  bindA: Map<string, number>,
+  bindB: Map<string, number>,
+  depth = 0,
+): boolean {
   if (a.kind !== b.kind) return false;
-  if (a.kind === 'atom' && b.kind === 'atom') return a.name === b.name;
-  if (a.args && b.args) {
-    if (a.args.length !== b.args.length) return false;
-    const bArgs = b.args;
-    return a.args.every((arg, i) => formulasEqual(arg, bArgs[i]));
+
+  switch (a.kind) {
+    case 'true':
+    case 'false':
+      return true;
+    case 'atom': {
+      const nameA = a.name;
+      const nameB = b.name;
+      if (nameA === undefined || nameB === undefined) return nameA === nameB;
+      const bA = bindA.get(nameA);
+      const bB = bindB.get(nameB);
+      if (bA !== undefined || bB !== undefined) return bA === bB;
+      return nameA === nameB;
+    }
+    case 'number':
+      return a.value === b.value;
+    case 'predicate': {
+      if (a.name !== b.name) return false;
+      const paramsA = a.params || a.terms || [];
+      const paramsB = b.params || b.terms || [];
+      if (paramsA.length !== paramsB.length) return false;
+      for (let i = 0; i < paramsA.length; i++) {
+        const pA = paramsA[i];
+        const pB = paramsB[i];
+        const bndA = bindA.get(pA);
+        const bndB = bindB.get(pB);
+        if (bndA !== undefined || bndB !== undefined) {
+          if (bndA !== bndB) return false;
+        } else if (pA !== pB) {
+          return false;
+        }
+      }
+      return true;
+    }
+    case 'forall':
+    case 'exists': {
+      const vA = a.variable;
+      const vB = b.variable;
+      if (!vA || !vB) return vA === vB;
+      const innerA = a.args?.[0];
+      const innerB = b.args?.[0];
+      if (!innerA || !innerB) return false;
+      const prevA = bindA.get(vA);
+      const prevB = bindB.get(vB);
+      bindA.set(vA, depth);
+      bindB.set(vB, depth);
+      const eq = alphaEqualFormulas(innerA, innerB, bindA, bindB, depth + 1);
+      if (prevA === undefined) bindA.delete(vA);
+      else bindA.set(vA, prevA);
+      if (prevB === undefined) bindB.delete(vB);
+      else bindB.set(vB, prevB);
+      return eq;
+    }
+    case 'modal_necessity':
+    case 'modal_possibility':
+    case 'temporal_next':
+    case 'temporal_until': {
+      if (a.name !== b.name) return false;
+      const argsA = a.args || [];
+      const argsB = b.args || [];
+      if (argsA.length !== argsB.length) return false;
+      return argsA.every((arg, i) => alphaEqualFormulas(arg, argsB[i], bindA, bindB, depth));
+    }
+    default: {
+      const argsA = a.args || [];
+      const argsB = b.args || [];
+      if (argsA.length !== argsB.length) return false;
+      if (argsA.length === 0) {
+        if (a.name !== b.name) return false;
+        return a.value === b.value;
+      }
+      return argsA.every((arg, i) => alphaEqualFormulas(arg, argsB[i], bindA, bindB, depth));
+    }
   }
-  return false;
 }
 
 // --- Motor de derivación ---
@@ -732,6 +827,7 @@ function addDerivedFormula(
   formula: Formula,
   justification: string,
   premises: number[],
+  source: 'premise' | 'rule' | 'semantic' | 'assumption' | 'subproof' = 'rule',
 ): boolean {
   const hash = formulaHash(formula);
   if (state.known.has(hash)) return false;
@@ -741,6 +837,7 @@ function addDerivedFormula(
     formula,
     justification,
     premises,
+    source,
   });
   state.known.set(hash, formula);
   return true;
@@ -870,6 +967,7 @@ function tryDerive(
         formula: f,
         justification: `Premisa (${name})`,
         premises: [],
+        source: 'premise',
       });
       state.known.set(formulaHash(f), f);
     }
@@ -1579,9 +1677,7 @@ function tryDerive(
     const subProof = tryDerive(subGoal, tempTheory, subPremises, depth + 1);
     if (subProof && subProof.status === 'complete') {
       // Check the sub-proof doesn't rely solely on semantic fallback
-      const isSyntactic = subProof.steps.every(
-        (s) => !s.justification.startsWith('Verificacion semantica'),
-      );
+      const isSyntactic = subProof.steps.every((s) => s.source !== 'semantic');
       if (isSyntactic) {
         // Build the main proof: premises + sub-derivation steps + conditional proof conclusion
         const mainSteps: ProofStep[] = [];
@@ -1589,7 +1685,7 @@ function tryDerive(
 
         // Copy premise steps from current state
         for (const s of state.steps) {
-          if (s.justification.startsWith('Premisa')) {
+          if (s.source === 'premise') {
             stepNum++;
             mainSteps.push({ ...s, stepNumber: stepNum, premises: [] });
           }
@@ -1603,20 +1699,20 @@ function tryDerive(
           formula: assumption,
           justification: 'Supuesto (para prueba condicional)',
           premises: [],
+          source: 'assumption',
         });
 
         // Add sub-derivation steps (renumber, adjusting premise references)
         const subStepMap = new Map<number, number>();
         for (const s of subProof.steps) {
-          if (s.justification.startsWith('Premisa') && formulasEqual(s.formula, assumption)) {
+          if (s.source === 'premise' && formulasEqual(s.formula, assumption)) {
             subStepMap.set(s.stepNumber, assumptionStepNum);
             continue;
           }
-          if (s.justification.startsWith('Premisa')) {
+          if (s.source === 'premise') {
             // Find existing premise step in main
             const existing = mainSteps.find(
-              (ms) =>
-                ms.justification.startsWith('Premisa') && formulasEqual(ms.formula, s.formula),
+              (ms) => ms.source === 'premise' && formulasEqual(ms.formula, s.formula),
             );
             if (existing) {
               subStepMap.set(s.stepNumber, existing.stepNumber);
@@ -1630,6 +1726,7 @@ function tryDerive(
             formula: s.formula,
             justification: s.justification,
             premises: s.premises.map((p) => subStepMap.get(p) || p),
+            source: s.source,
           });
         }
 
@@ -1643,6 +1740,7 @@ function tryDerive(
           justification: 'Prueba Condicional (Teorema de Deduccion)',
           premises: [assumptionStepNum, subGoalStepNum],
           subproofs: [subProof],
+          source: 'rule',
         });
 
         return buildProof(goal, mainSteps, premiseNames, theory, 'natural_deduction', [subProof]);
@@ -1674,9 +1772,7 @@ function tryDerive(
       const subPremisesL = [...premiseNames, leftName];
       const subProofL = tryDerive(goal, tempTheoryL, subPremisesL, depth + 1);
       if (!subProofL || subProofL.status !== 'complete') continue;
-      const isSyntacticL = subProofL.steps.every(
-        (s) => !s.justification.startsWith('Verificacion semantica'),
-      );
+      const isSyntacticL = subProofL.steps.every((s) => s.source !== 'semantic');
       if (!isSyntacticL) continue;
 
       // Try to derive goal assuming right
@@ -1692,9 +1788,7 @@ function tryDerive(
       const subPremisesR = [...premiseNames, rightName];
       const subProofR = tryDerive(goal, tempTheoryR, subPremisesR, depth + 1);
       if (!subProofR || subProofR.status !== 'complete') continue;
-      const isSyntacticR = subProofR.steps.every(
-        (s) => !s.justification.startsWith('Verificacion semantica'),
-      );
+      const isSyntacticR = subProofR.steps.every((s) => s.source !== 'semantic');
       if (!isSyntacticR) continue;
 
       // Both cases succeed — build proof by cases
@@ -1703,7 +1797,7 @@ function tryDerive(
 
       // Copy premise steps
       for (const s of state.steps) {
-        if (s.justification.startsWith('Premisa')) {
+        if (s.source === 'premise') {
           stepNum++;
           mainSteps.push({ ...s, stepNumber: stepNum, premises: [] });
         }
@@ -1718,16 +1812,17 @@ function tryDerive(
         formula: left,
         justification: 'Supuesto (caso izquierdo)',
         premises: [],
+        source: 'assumption',
       });
       const leftStepMap = new Map<number, number>();
       for (const s of subProofL.steps) {
-        if (s.justification.startsWith('Premisa') && formulasEqual(s.formula, left)) {
+        if (s.source === 'premise' && formulasEqual(s.formula, left)) {
           leftStepMap.set(s.stepNumber, leftAssumptionStep);
           continue;
         }
-        if (s.justification.startsWith('Premisa')) {
+        if (s.source === 'premise') {
           const existing = mainSteps.find(
-            (ms) => ms.justification.startsWith('Premisa') && formulasEqual(ms.formula, s.formula),
+            (ms) => ms.source === 'premise' && formulasEqual(ms.formula, s.formula),
           );
           if (existing) {
             leftStepMap.set(s.stepNumber, existing.stepNumber);
@@ -1741,6 +1836,7 @@ function tryDerive(
           formula: s.formula,
           justification: s.justification,
           premises: s.premises.map((p) => leftStepMap.get(p) || p),
+          source: s.source,
         });
       }
       const leftGoalStep =
@@ -1754,16 +1850,17 @@ function tryDerive(
         formula: right,
         justification: 'Supuesto (caso derecho)',
         premises: [],
+        source: 'assumption',
       });
       const rightStepMap = new Map<number, number>();
       for (const s of subProofR.steps) {
-        if (s.justification.startsWith('Premisa') && formulasEqual(s.formula, right)) {
+        if (s.source === 'premise' && formulasEqual(s.formula, right)) {
           rightStepMap.set(s.stepNumber, rightAssumptionStep);
           continue;
         }
-        if (s.justification.startsWith('Premisa')) {
+        if (s.source === 'premise') {
           const existing = mainSteps.find(
-            (ms) => ms.justification.startsWith('Premisa') && formulasEqual(ms.formula, s.formula),
+            (ms) => ms.source === 'premise' && formulasEqual(ms.formula, s.formula),
           );
           if (existing) {
             rightStepMap.set(s.stepNumber, existing.stepNumber);
@@ -1777,6 +1874,7 @@ function tryDerive(
           formula: s.formula,
           justification: s.justification,
           premises: s.premises.map((p) => rightStepMap.get(p) || p),
+          source: s.source,
         });
       }
       const rightGoalStep =
@@ -1790,6 +1888,7 @@ function tryDerive(
         justification: 'Eliminacion de disyuncion (prueba por casos)',
         premises: [disjStepNum, leftGoalStep, rightGoalStep],
         subproofs: [subProofL, subProofR],
+        source: 'rule',
       });
 
       return buildProof(goal, mainSteps, premiseNames, theory, 'natural_deduction', [
@@ -1866,6 +1965,7 @@ function tryDerive(
           justification:
             'Verificacion semantica (todas las valuaciones satisfacen la consecuencia)',
           premises: premiseStepNums,
+          source: 'semantic',
         });
         state.known.set(goalHash, goal);
       }
@@ -2102,29 +2202,63 @@ export class ClassicalPropositional implements LogicProfile {
     }
   }
 
-  prove(goal: Formula, theory: Theory): RunResult {
+  prove(goal: Formula, theory: Theory, premises?: string[]): RunResult {
     const wf = this.checkWellFormed(goal);
     if (wf.length > 0) {
       return { status: 'error', diagnostics: wf, formula: goal };
     }
 
-    const premiseNames = Array.from(theory.axioms.keys());
-    const proof = tryDerive(goal, theory, premiseNames);
+    const usingRestricted = premises !== undefined && premises.length > 0;
+    const premiseNames = usingRestricted
+      ? premises.filter((n) => theory.axioms.has(n) || theory.theorems.has(n))
+      : Array.from(theory.axioms.keys());
+    const diagnostics: Diagnostic[] = [];
+    if (usingRestricted) {
+      for (const n of premises) {
+        if (!theory.axioms.has(n) && !theory.theorems.has(n)) {
+          diagnostics.push({
+            severity: 'warning',
+            message: `Premisa '${n}' no encontrada en la teoría; será ignorada en prove`,
+          });
+        }
+      }
+    }
+    const effectiveTheory: Theory = usingRestricted
+      ? {
+          profile: theory.profile,
+          axioms: new Map(
+            premiseNames
+              .filter((n) => theory.axioms.has(n))
+              .map((n) => [n, theory.axioms.get(n) as Formula]),
+          ),
+          theorems: new Map(
+            premiseNames
+              .filter((n) => theory.theorems.has(n))
+              .map((n) => [n, theory.theorems.get(n) as Formula]),
+          ),
+          claims: theory.claims,
+          judgments: theory.judgments,
+        }
+      : theory;
+    const proof = tryDerive(goal, effectiveTheory, premiseNames);
 
     if (proof && proof.status === 'complete') {
+      const isSemantic = proof.method === 'semantic';
       return {
         status: 'provable',
-        output: `${formulaToString(goal)} es DEMOSTRABLE desde la teoria`,
+        output: isSemantic
+          ? `${formulaToString(goal)} es DEMOSTRABLE desde la teoria (verificación semántica, sin derivación sintáctica)`
+          : `${formulaToString(goal)} es DEMOSTRABLE desde la teoria`,
         proof,
         educationalNote: pickEducationalNote({ op: 'prove', ok: true }),
-        diagnostics: [],
+        diagnostics,
         formula: goal,
       };
     }
 
     // Semantic fallback: verify via SAT/truth-table whether goal follows from axioms
     const allAxiomFormulas = premiseNames
-      .map((n) => theory.axioms.get(n) || theory.theorems.get(n))
+      .map((n) => effectiveTheory.axioms.get(n) || effectiveTheory.theorems.get(n))
       .filter((f): f is Formula => f !== undefined);
 
     let semanticResult: boolean;
@@ -2177,43 +2311,53 @@ export class ClassicalPropositional implements LogicProfile {
     }
 
     if (semanticResult) {
+      const premiseSteps: ProofStep[] = [];
+      premiseNames.forEach((n, i) => {
+        const f = effectiveTheory.axioms.get(n) || effectiveTheory.theorems.get(n);
+        if (f) {
+          premiseSteps.push({
+            stepNumber: i + 1,
+            formula: f,
+            justification: `Premisa (${n})`,
+            premises: [],
+            source: 'premise',
+          });
+        }
+      });
       const semanticProofSteps: ProofStep[] = [
-        ...premiseNames
-          .map((n, i) => {
-            const f = theory.axioms.get(n) || theory.theorems.get(n);
-            return f
-              ? {
-                  stepNumber: i + 1,
-                  formula: f,
-                  justification: `Premisa (${n})`,
-                  premises: [] as number[],
-                }
-              : null;
-          })
-          .filter((s): s is ProofStep => s !== null),
+        ...premiseSteps,
         {
           stepNumber: premiseNames.length + 1,
           formula: goal,
           justification: 'Verificacion semantica (tautologia o consecuencia logica)',
           premises: premiseNames.map((_, i) => i + 1),
+          source: 'semantic',
         },
       ];
-      const semanticProof = buildProof(goal, semanticProofSteps, premiseNames, theory, 'semantic');
+      const semanticProof = buildProof(
+        goal,
+        semanticProofSteps,
+        premiseNames,
+        effectiveTheory,
+        'semantic',
+      );
       return {
         status: 'provable',
-        output: `${formulaToString(goal)} es DEMOSTRABLE desde la teoria`,
+        output: `${formulaToString(goal)} es DEMOSTRABLE desde la teoria (verificación semántica, sin derivación sintáctica)`,
         proof: semanticProof,
         educationalNote: pickEducationalNote({ op: 'prove', ok: true }),
-        diagnostics: [],
+        diagnostics,
         formula: goal,
       };
     }
 
+    // Ni derivación sintáctica ni consecuencia semántica: existe contramodelo.
+    // Esto sí es refutable en el sentido fuerte.
     return {
       status: 'refutable',
-      output: `${formulaToString(goal)} NO es demostrable desde la teoria dada`,
+      output: `${formulaToString(goal)} NO se sigue de la teoría (existe contramodelo en ${formulaToString(goal)})`,
       educationalNote: pickEducationalNote({ op: 'prove', ok: false }),
-      diagnostics: [],
+      diagnostics,
       formula: goal,
     };
   }
@@ -2230,16 +2374,19 @@ export class ClassicalPropositional implements LogicProfile {
       // Build reasoning info
       const rulesUsed = new Set<string>();
       for (const step of proof.steps) {
-        if (!step.justification.startsWith('Premisa')) {
+        if (step.source !== 'premise') {
           rulesUsed.add(step.justification);
         }
       }
       const reasoningType =
         rulesUsed.size > 0 ? Array.from(rulesUsed).join(', ') : 'Derivación directa';
 
+      const isSemantic = proof.method === 'semantic';
       return {
         status: 'provable',
-        output: `${formulaToString(goal)} derivado exitosamente`,
+        output: isSemantic
+          ? `${formulaToString(goal)} derivado (verificación semántica, sin derivación sintáctica)`
+          : `${formulaToString(goal)} derivado exitosamente`,
         proof,
         reasoningType,
         reasoningSchema: rulesUsed.has('Modus Ponens')
@@ -2261,8 +2408,8 @@ export class ClassicalPropositional implements LogicProfile {
     }
 
     return {
-      status: 'refutable',
-      output: `No se puede derivar ${formulaToString(goal)} desde las premisas dadas`,
+      status: 'unknown',
+      output: `No se pudo derivar ${formulaToString(goal)} desde las premisas dadas (sin refutación)`,
       educationalNote: pickEducationalNote({ op: 'derive', ok: false }),
       diagnostics: [],
       formula: goal,

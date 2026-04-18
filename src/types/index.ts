@@ -53,6 +53,9 @@ export type FormulaKind =
   | 'nand'
   | 'nor'
   | 'xor'
+  // Constantes lógicas (⊤/⊥, true/false)
+  | 'true'
+  | 'false'
   // Arithmetic
   | 'number'
   | 'add'
@@ -65,6 +68,40 @@ export type FormulaKind =
   | 'less_eq'
   | 'greater_eq'
   | 'fn_call';
+
+const FORMULA_KIND_SET: ReadonlySet<FormulaKind> = new Set<FormulaKind>([
+  'atom',
+  'list',
+  'not',
+  'and',
+  'or',
+  'implies',
+  'biconditional',
+  'forall',
+  'exists',
+  'predicate',
+  'equals',
+  'modal_necessity',
+  'modal_possibility',
+  'temporal_next',
+  'temporal_until',
+  'nand',
+  'nor',
+  'xor',
+  'true',
+  'false',
+  'number',
+  'add',
+  'subtract',
+  'multiply',
+  'divide',
+  'modulo',
+  'less',
+  'greater',
+  'less_eq',
+  'greater_eq',
+  'fn_call',
+]);
 
 export interface Formula {
   kind: FormulaKind;
@@ -80,7 +117,8 @@ export interface Formula {
 export function isFormula(value: unknown): value is Formula {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<Formula>;
-  return typeof candidate.kind === 'string';
+  if (typeof candidate.kind !== 'string') return false;
+  return FORMULA_KIND_SET.has(candidate.kind);
 }
 
 export interface SourceLocation {
@@ -180,12 +218,16 @@ export interface Theory {
 
 // --- Prueba ---
 
+export type ProofStepSource = 'premise' | 'assumption' | 'rule' | 'semantic' | 'subproof' | 'goal';
+
 export interface ProofStep {
   stepNumber: number;
   formula: Formula;
   justification: string;
   premises: number[];
   subproofs?: Proof[];
+  /** Fuente estructural del paso. Preferir sobre parsear justification. */
+  source?: ProofStepSource;
 }
 
 export type ProofMethod = 'natural_deduction' | 'tableau' | 'semantic' | 'sat';
@@ -294,7 +336,12 @@ export interface LogicProfile {
   checkWellFormed(formula: Formula): Diagnostic[];
   checkValid(formula: Formula): RunResult;
   checkSatisfiable(formula: Formula): RunResult;
-  prove(goal: Formula, theory: Theory): RunResult;
+  /**
+   * prove acepta una lista opcional de nombres de premisas a usar.
+   * Si premises es indefinido o vacío, se usa la teoría completa (axiomas + teoremas).
+   * Si premises trae nombres, sólo esos axiomas/teoremas se consideran.
+   */
+  prove(goal: Formula, theory: Theory, premises?: string[]): RunResult;
   derive(goal: Formula, premises: string[], theory: Theory): RunResult;
   countermodel(formula: Formula): RunResult;
   explain(formula: Formula): RunResult;
