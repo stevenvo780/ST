@@ -462,7 +462,10 @@ function cloneBranch(b: Branch): Branch {
 
 const MAX_DEPTH = 200;
 
-function ensureTemporalNextWorld(branch: Branch, sourceWorld: string): { world: string; created: boolean } {
+function ensureTemporalNextWorld(
+  branch: Branch,
+  sourceWorld: string,
+): { world: string; created: boolean } {
   const existing = branch.nextWorlds.get(sourceWorld);
   if (existing) {
     return { world: existing, created: false };
@@ -615,7 +618,8 @@ function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult 
           created = nextWorld.created;
         } else {
           newWorld = `w${branch.worldCounter++}`;
-          if (!branch.accessibility.has(node.world)) branch.accessibility.set(node.world, new Set());
+          if (!branch.accessibility.has(node.world))
+            branch.accessibility.set(node.world, new Set());
           (branch.accessibility.get(node.world) as Set<string>).add(newWorld);
           branch.worlds.add(newWorld);
         }

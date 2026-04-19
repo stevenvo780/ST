@@ -3060,13 +3060,15 @@ export class Interpreter {
     const prevExportedTheorems = new Map(this.exportedTheorems);
     const prevExportedFunctions = new Map(this.exportedFunctions);
     const prevExportedTheories = new Map(this.exportedTheories);
-    let newExports = {
-      bindings: new Map<string, Formula>(),
-      axioms: new Map<string, Formula>(),
-      theorems: new Map<string, Formula>(),
-      functions: new Map<string, FnDeclNode>(),
-      theories: new Map<string, TheoryScope>(),
-    };
+
+    // eslint-disable-next-line no-useless-assignment -- needed as fallback if try block throws
+    let newExports: {
+      bindings: Map<string, Formula>;
+      axioms: Map<string, Formula>;
+      theorems: Map<string, Formula>;
+      functions: Map<string, FnDeclNode>;
+      theories: Map<string, TheoryScope>;
+    } | null = null;
 
     try {
       this.isImporting = true;
@@ -3105,11 +3107,11 @@ export class Interpreter {
       this.activeImports.delete(resolved);
     }
 
-    for (const [k, v] of newExports.bindings) this.letBindings.set(k, v);
-    for (const [k, v] of newExports.axioms) this.theory.axioms.set(k, v);
-    for (const [k, v] of newExports.theorems) this.theory.theorems.set(k, v);
-    for (const [k, v] of newExports.functions) this.functions.set(k, v);
-    for (const [k, v] of newExports.theories) this.theories.set(k, v);
+    for (const [k, v] of newExports?.bindings ?? []) this.letBindings.set(k, v);
+    for (const [k, v] of newExports?.axioms ?? []) this.theory.axioms.set(k, v);
+    for (const [k, v] of newExports?.theorems ?? []) this.theory.theorems.set(k, v);
+    for (const [k, v] of newExports?.functions ?? []) this.functions.set(k, v);
+    for (const [k, v] of newExports?.theories ?? []) this.theories.set(k, v);
     this.invalidateResolveCache();
   }
 

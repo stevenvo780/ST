@@ -1,6 +1,6 @@
 {
   "name": "@stevenvo780/st-lang",
-  "version": "3.1.2",
+  "version": "3.1.3",
   "description": "ST — Lenguaje ejecutable con nucleo logico y capa textual. Motor multi-perfil (11 lógicas), derivaciones, tablas de verdad, contramodelos, aliases modales, Belnap 4-valores y capa textual para formalización de documentos.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
