@@ -109,6 +109,79 @@ const MAX_CALL_DEPTH = 50000;
 const DEFAULT_MAX_RUNTIME_STEPS = 500000;
 const DEFAULT_MAX_RUNTIME_CALLS = 100000;
 
+/**
+ * Reemplaza el contenido de strings y comentarios con espacios,
+ * preservando newlines y longitudes. Se usa para escaneos léxicos previos
+ * (p.ej. detección de `logic`) sin falsos positivos dentro de literales o
+ * comentarios.
+ */
+function stripStringsAndComments(source: string): string {
+  const out: string[] = [];
+  let i = 0;
+  const n = source.length;
+  while (i < n) {
+    const c = source[i];
+    const next = i + 1 < n ? source[i + 1] : '';
+    if (c === '/' && next === '/') {
+      out.push('  ');
+      i += 2;
+      while (i < n && source[i] !== '\n') {
+        out.push(' ');
+        i++;
+      }
+      continue;
+    }
+    if (c === '/' && next === '*') {
+      out.push('  ');
+      i += 2;
+      while (i < n && !(source[i] === '*' && source[i + 1] === '/')) {
+        out.push(source[i] === '\n' ? '\n' : ' ');
+        i++;
+      }
+      if (i < n) {
+        out.push('  ');
+        i += 2;
+      }
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      const quote = c;
+      out.push(' ');
+      i++;
+      while (i < n && source[i] !== quote) {
+        if (source[i] === '\\' && i + 1 < n) {
+          out.push(source[i + 1] === '\n' ? ' \n' : '  ');
+          i += 2;
+          continue;
+        }
+        out.push(source[i] === '\n' ? '\n' : ' ');
+        i++;
+      }
+      if (i < n) {
+        out.push(' ');
+        i++;
+      }
+      continue;
+    }
+    if (c === '[' && next === '[') {
+      out.push('  ');
+      i += 2;
+      while (i < n && !(source[i] === ']' && source[i + 1] === ']')) {
+        out.push(source[i] === '\n' ? '\n' : ' ');
+        i++;
+      }
+      if (i < n) {
+        out.push('  ');
+        i += 2;
+      }
+      continue;
+    }
+    out.push(c);
+    i++;
+  }
+  return out.join('');
+}
+
 interface RuntimeStatementFrame {
   kind: 'statements';
   statements: Statement[];
@@ -506,7 +579,8 @@ export class Interpreter {
     // Pre-scan for profile declarations to enable profile-aware lexing.
     // Only restrict keywords when there's exactly one profile in the source.
     // Multi-profile files use all keywords for safety.
-    const profileMatches = source.match(/(?:^|\n)\s*(?:logic|logica)\s+([\w.]+)/g);
+    const scanSource = stripStringsAndComments(source);
+    const profileMatches = scanSource.match(/(?:^|\n)\s*(?:logic|logica)\s+([\w.]+)/g);
     let detectedProfile: string | undefined;
     if (profileMatches && profileMatches.length === 1) {
       const m = profileMatches[0].match(/(?:logic|logica)\s+([\w.]+)/);
@@ -1038,6 +1112,28 @@ export class Interpreter {
   }
 
   /**
+   * Construye una teoría efímera que combina axiomas + teoremas + letBindings
+   * SIN mutar la teoría persistente. Los letBindings quedan accesibles por nombre
+   * como si fueran axiomas, pero solo para esta llamada a derive/prove.
+   * Axiomas/teoremas reales tienen prioridad sobre letBindings con el mismo nombre.
+   */
+  private buildEphemeralTheory(): Theory {
+    const axioms = new Map<string, Formula>(this.theory.axioms);
+    for (const [name, formula] of this.letBindings) {
+      if (!axioms.has(name) && !this.theory.theorems.has(name)) {
+        axioms.set(name, formula);
+      }
+    }
+    return {
+      profile: this.theory.profile,
+      axioms,
+      theorems: this.theory.theorems,
+      claims: this.theory.claims,
+      judgments: this.theory.judgments,
+    };
+  }
+
+  /**
    * Sustituye recursivamente los átomos que coincidan con variables `let`
    * por sus fórmulas definidas. Detecta ciclos para evitar recursión infinita.
    * Soporta notación con punto: Theory.member resuelve desde el scope de la teoría.
@@ -1265,7 +1361,7 @@ export class Interpreter {
       }
     }
 
-    const result = profile.derive(resolved, stmt.premises, this.theory);
+    const result = profile.derive(resolved, stmt.premises, this.buildEphemeralTheory());
     this.results.push(result);
     this.emitResult('derive', result);
 
@@ -1278,8 +1374,6 @@ export class Interpreter {
     ) {
       const theoremName = `derived_${this.theory.theorems.size + 1}`;
       this.theory.theorems.set(theoremName, resolved);
-      // Also register as axiom so it can be used as premise in subsequent derives
-      this.theory.axioms.set(theoremName, resolved);
     }
   }
 
@@ -1314,7 +1408,7 @@ export class Interpreter {
   private execProveCmd(stmt: ProveCmdNode): void {
     const profile = this.requireProfile();
     const resolved = this.resolveFormula(stmt.goal);
-    const result = profile.prove(resolved, this.theory, stmt.premises);
+    const result = profile.prove(resolved, this.buildEphemeralTheory(), stmt.premises);
     this.results.push(result);
     this.emitResult('prove', result);
   }
@@ -1452,7 +1546,8 @@ export class Interpreter {
       // Resolve bindings but preserve symbolic structure (no constant-folding)
       const resolved = this.resolveFormulaRecursive(stmt.formula, new Set());
       this.defineBinding(stmt.name, resolved, 'description' in stmt ? stmt.description : undefined);
-      if (!this.currentBindingFrame) this.theory.axioms.set(stmt.name, resolved);
+      // Note: `let` es un alias semántico, no un axioma.
+      // Se mantiene accesible como premisa por nombre vía letBindings (ver execDeriveCmd).
       if ('description' in stmt && stmt.description) {
         if (!this.currentBindingFrame) this.letDescriptions.set(stmt.name, stmt.description);
         if (this.shouldEmitLocalBindings())
@@ -1698,6 +1793,7 @@ export class Interpreter {
   private execProofBlock(stmt: ProofBlockNode): void {
     const profile = this.requireProfile();
     const savedAxioms = new Map(this.theory.axioms);
+    const savedTheorems = new Map(this.theory.theorems);
     const savedLetBindings = new Map(this.letBindings);
     const savedLetDescriptions = new Map(this.letDescriptions);
 
@@ -1722,21 +1818,33 @@ export class Interpreter {
     const result = profile.derive(resolvedGoal, premiseNames, this.theory);
     this.results.push(result);
 
-    if (result.status === 'valid' || result.status === 'provable') {
+    const succeeded = result.status === 'valid' || result.status === 'provable';
+    let theoremPayload: { name: string; formula: Formula } | undefined;
+    if (succeeded) {
       this.emit(`  ✓ QED — ${formulaToUnicode(resolvedGoal)} demostrado`);
-      const theoremName = `proof_${this.theory.theorems.size + 1}`;
+      // Build implication from resolved assumption formulas so bindings are captured
       let implication: Formula = resolvedGoal;
       for (let i = stmt.assumptions.length - 1; i >= 0; i--) {
-        implication = { kind: 'implies', args: [stmt.assumptions[i].formula, implication] };
+        const assumedResolved = this.resolveFormula(stmt.assumptions[i].formula);
+        implication = { kind: 'implies', args: [assumedResolved, implication] };
       }
-      this.theory.theorems.set(theoremName, implication);
+      const theoremName = `proof_${savedTheorems.size + 1}`;
+      theoremPayload = { name: theoremName, formula: implication };
     } else {
       this.emit(`  ✗ QED fallido — no se pudo demostrar ${formulaToUnicode(resolvedGoal)}`);
     }
 
+    // Restore full theory state — proof blocks must be hypothetical
     this.theory.axioms = savedAxioms;
+    this.theory.theorems = savedTheorems;
     this.letBindings = savedLetBindings;
     this.letDescriptions = savedLetDescriptions;
+
+    // Only the resulting implication (if any) survives the block
+    if (theoremPayload) {
+      this.theory.theorems.set(theoremPayload.name, theoremPayload.formula);
+    }
+
     this.invalidateResolveCache();
     this.emit('── End Proof Block ──');
   }

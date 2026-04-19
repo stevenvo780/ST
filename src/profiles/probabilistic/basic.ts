@@ -219,6 +219,7 @@ export class ProbabilisticBasic implements LogicProfile {
       }
     } else {
       axioms.push(...theory.axioms.values());
+      axioms.push(...theory.theorems.values());
     }
     if (axioms.length === 0) {
       const r = this.checkValid(goal);

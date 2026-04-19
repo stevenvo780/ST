@@ -1126,11 +1126,24 @@ export class Parser {
 
   private parseDisjunction(): Formula {
     let left = this.parseUntil();
+    let firstKind: 'or' | 'xor' | 'nor' | null = null;
     while (this.match(TokenType.OR) || this.match(TokenType.XOR) || this.match(TokenType.NOR)) {
       const type = this.previous().type;
+      const currentKind: 'or' | 'xor' | 'nor' =
+        type === TokenType.OR ? 'or' : type === TokenType.XOR ? 'xor' : 'nor';
+      if (firstKind !== null && firstKind !== currentKind) {
+        const tok = this.previous();
+        this.diagnostics.push({
+          severity: 'warning',
+          message: `Mezcla de conectivos ${firstKind}/${currentKind} al mismo nivel de precedencia; asociación izquierda aplicada — usar paréntesis para desambiguar`,
+          file: this.file,
+          line: tok.line,
+          column: tok.column,
+        });
+      }
+      firstKind = firstKind ?? currentKind;
       const right = this.parseUntil();
-      const kind = type === TokenType.OR ? 'or' : type === TokenType.XOR ? 'xor' : 'nor';
-      left = { kind, args: [left, right], source: this.loc() };
+      left = { kind: currentKind, args: [left, right], source: this.loc() };
     }
     return left;
   }
@@ -1146,11 +1159,23 @@ export class Parser {
 
   private parseConjunction(): Formula {
     let left = this.parseComparison();
+    let firstKind: 'and' | 'nand' | null = null;
     while (this.match(TokenType.AND) || this.match(TokenType.NAND)) {
       const type = this.previous().type;
+      const currentKind: 'and' | 'nand' = type === TokenType.AND ? 'and' : 'nand';
+      if (firstKind !== null && firstKind !== currentKind) {
+        const tok = this.previous();
+        this.diagnostics.push({
+          severity: 'warning',
+          message: `Mezcla de conectivos ${firstKind}/${currentKind} al mismo nivel de precedencia; asociación izquierda aplicada — usar paréntesis para desambiguar`,
+          file: this.file,
+          line: tok.line,
+          column: tok.column,
+        });
+      }
+      firstKind = firstKind ?? currentKind;
       const right = this.parseComparison();
-      const kind = type === TokenType.AND ? 'and' : 'nand';
-      left = { kind, args: [left, right], source: this.loc() };
+      left = { kind: currentKind, args: [left, right], source: this.loc() };
     }
     return left;
   }

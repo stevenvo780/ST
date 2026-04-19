@@ -176,6 +176,7 @@ export class ClassicalFirstOrder implements LogicProfile {
       }
     } else {
       axioms.push(...theory.axioms.values());
+      axioms.push(...theory.theorems.values());
     }
     const nodes: FONode[] = [
       ...axioms.map((a) => ({ formula: toNNF(a) })),

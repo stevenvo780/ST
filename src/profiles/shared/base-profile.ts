@@ -129,6 +129,7 @@ export abstract class BaseTableauProfile implements LogicProfile {
       }
     } else {
       axioms.push(...theory.axioms.values());
+      axioms.push(...theory.theorems.values());
     }
     if (axioms.length === 0) return this.checkValid(goal);
     const conj: Formula = axioms.reduce((a, b) => ({ kind: 'and' as const, args: [a, b] }));

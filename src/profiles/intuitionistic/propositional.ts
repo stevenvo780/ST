@@ -278,6 +278,24 @@ function computeUpwardSets(worlds: number[], access: Map<number, Set<number>>): 
 
 // ── Verificación de validez ─────────────────────────────────
 
+/**
+ * Produce un warning cuando la búsqueda de modelos Kripke está acotada
+ * a una cota que puede ser insuficiente para la fórmula dada.
+ * IPC es decidible, pero la completitud requeriría explorar más mundos
+ * cuando la fórmula contiene anidamientos de → o ¬ profundos.
+ */
+function boundedIPCWarning(formula: Formula): Diagnostic[] {
+  const atoms = Array.from(collectAtoms(formula));
+  const maxWorlds = atoms.length <= 2 ? 4 : 3;
+  if (atoms.length <= 1) return [];
+  return [
+    {
+      severity: 'warning',
+      message: `IPC: búsqueda acotada a ${maxWorlds} mundos Kripke (${atoms.length} átomos); fórmulas que requieran modelos mayores pueden reportarse erróneamente como válidas`,
+    },
+  ];
+}
+
 /** ¿Es φ válida en IPC? (forzada en la raíz de todo modelo Kripke finito) */
 function isIPCValid(formula: Formula): boolean {
   const atoms = Array.from(collectAtoms(formula));
@@ -333,7 +351,7 @@ export class IntuitionisticPropositional implements LogicProfile {
       output: valid
         ? `${fStr} es VÁLIDA intuicionistamente`
         : `${fStr} NO es válida intuicionistamente`,
-      diagnostics: [],
+      diagnostics: boundedIPCWarning(formula),
       formula,
     };
   }
@@ -346,7 +364,7 @@ export class IntuitionisticPropositional implements LogicProfile {
       output: sat
         ? `${fStr} es SATISFACIBLE intuicionistamente`
         : `${fStr} es INSATISFACIBLE intuicionistamente`,
-      diagnostics: [],
+      diagnostics: boundedIPCWarning(formula),
       formula,
     };
   }
@@ -367,6 +385,7 @@ export class IntuitionisticPropositional implements LogicProfile {
       }
     } else {
       axioms.push(...theory.axioms.values());
+      axioms.push(...theory.theorems.values());
     }
     if (axioms.length === 0) {
       const r = this.checkValid(goal);

@@ -149,12 +149,21 @@ function getSchemas() {
 }
 
 export function identifyTheorem(f: Formula, system: string): KnownTheorem | undefined {
+  const candidates: KnownTheorem[] = [];
   for (const { tag, ast } of getSchemas()) {
-    if (tag.systems.includes(system)) {
-      if (unify(f, ast, new Map())) {
-        return tag;
-      }
+    if (tag.systems.includes(system) && unify(f, ast, new Map())) {
+      candidates.push(tag);
     }
   }
-  return undefined;
+  if (candidates.length === 0) return undefined;
+  // Prefer specialized matches: fewer systems listed ≈ more specific.
+  // Break ties by preferring paradox-flagged schemas (usually the contextual reading).
+  candidates.sort((a, b) => {
+    if (a.systems.length !== b.systems.length) return a.systems.length - b.systems.length;
+    const ap = a.paradox ? 1 : 0;
+    const bp = b.paradox ? 1 : 0;
+    if (ap !== bp) return bp - ap;
+    return 0;
+  });
+  return candidates[0];
 }
