@@ -11,6 +11,7 @@ import chalk from 'chalk';
 import { Interpreter } from '../runtime/interpreter';
 import { REPL } from '../repl/repl';
 import { ProtocolHandler } from '../protocol/handler';
+import { Parser } from '../parser/parser';
 import { registry } from '../profiles/interface';
 import { ProtocolRequest } from '../types';
 
@@ -75,11 +76,11 @@ program
     }
 
     const source = fs.readFileSync(fullPath, 'utf-8');
-    const interpreter = new Interpreter();
-    const output = interpreter.execute(source, fullPath);
+    const parser = new Parser(fullPath);
+    parser.parse(source);
 
-    const errors = output.diagnostics.filter((d) => d.severity === 'error');
-    const warnings = output.diagnostics.filter((d) => d.severity === 'warning');
+    const errors = parser.diagnostics.filter((d) => d.severity === 'error');
+    const warnings = parser.diagnostics.filter((d) => d.severity === 'warning');
 
     if (errors.length === 0) {
       console.log(chalk.green(`✓ ${fullPath}: sin errores`));
@@ -89,15 +90,7 @@ program
           console.log(chalk.yellow(`  ⚠ ${w.message}${w.line ? ` (linea ${w.line})` : ''}`));
         }
       }
-      for (const r of output.results) {
-        if (r.status === 'invalid' || r.status === 'refutable' || r.status === 'unsatisfiable') {
-          console.log(chalk.red(`  ✗ Resultado negativo: ${r.output}`));
-        }
-      }
-      const hasNegativeResults = output.results.some(
-        (r) => r.status === 'invalid' || r.status === 'refutable',
-      );
-      process.exit(hasNegativeResults ? 4 : 0);
+      process.exit(0);
     } else {
       console.error(chalk.red(`✗ ${fullPath}: ${errors.length} error(es)`));
       for (const e of errors) {

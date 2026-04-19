@@ -15,12 +15,17 @@
 import { Formula } from '../../types';
 import { formulaToString } from '../classical/propositional';
 import { BaseTableauProfile } from '../shared/base-profile';
-import { FRAME_S4 } from '../shared/tableau-engine';
+import { FRAME_S4, type FrameRules } from '../shared/tableau-engine';
+
+const FRAME_LTL: FrameRules = {
+  ...FRAME_S4,
+  deterministicNext: true,
+};
 
 export class TemporalLTL extends BaseTableauProfile {
   name = 'temporal.ltl';
   description = 'Lógica temporal lineal (LTL) — G/F/X/U sobre modelos de Kripke';
-  frameRules = FRAME_S4;
+  frameRules = FRAME_LTL;
 
   formatFormula(f: Formula): string {
     return temporalToString(f);

@@ -16,12 +16,6 @@ import { Statement } from '../ast/nodes';
 import { formulaToString } from '../profiles/classical/propositional';
 
 export class ProtocolHandler {
-  private interpreter: Interpreter;
-
-  constructor() {
-    this.interpreter = new Interpreter();
-  }
-
   handle(request: ProtocolRequest): ProtocolResponse {
     try {
       switch (request.method) {
@@ -96,7 +90,7 @@ export class ProtocolHandler {
   private handleRun(request: ProtocolRequest): ProtocolResponse {
     const source = this.requireStringParam(request, 'source');
     const file = this.optionalStringParam(request, 'file', '<stdin>');
-    const output = this.interpreter.execute(source, file);
+    const output = new Interpreter().execute(source, file);
     return {
       id: request.id,
       result: output,
@@ -1503,7 +1497,7 @@ export class ProtocolHandler {
     const format = this.optionalStringParam(request, 'format', 'markdown');
     const file = this.optionalStringParam(request, 'file', '<stdin>');
 
-    const output = this.interpreter.execute(source, file);
+    const output = new Interpreter().execute(source, file);
     const rendered = this.renderOutput(output, format);
 
     return {

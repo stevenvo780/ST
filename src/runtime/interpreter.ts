@@ -268,7 +268,8 @@ export class Interpreter {
     };
   }
 
-  private importedFiles: Set<string> = new Set();
+  private importedFiles: Map<string, string> = new Map();
+  private activeImports: Set<string> = new Set();
 
   reset(): void {
     this.theory = this.createEmptyTheory();
@@ -278,6 +279,7 @@ export class Interpreter {
     this.stdoutLines = [];
     this.profile = null;
     this.importedFiles.clear();
+    this.activeImports.clear();
     this.letBindings.clear();
     this.letDescriptions.clear();
     this.theories.clear();
@@ -1043,6 +1045,7 @@ export class Interpreter {
   private invalidateResolveCache(): void {
     this.resolveCache = new WeakMap<Formula, Formula>();
     this.resolveCacheGeneration++;
+    this.fnMemoCache.clear();
   }
 
   private resolveFormula(f: Formula, visited: Set<string> = new Set()): Formula {
@@ -1208,6 +1211,7 @@ export class Interpreter {
     const diags = profile.checkWellFormed(resolved);
     this.diagnostics.push(...diags);
     this.theory.axioms.set(stmt.name, resolved);
+    this.invalidateResolveCache();
     this.emit(`Axioma ${stmt.name} = ${formulaToString(resolved)}`);
   }
 
@@ -1217,6 +1221,7 @@ export class Interpreter {
     const diags = profile.checkWellFormed(resolved);
     this.diagnostics.push(...diags);
     this.theory.theorems.set(stmt.name, resolved);
+    this.invalidateResolveCache();
     this.emit(`Teorema ${stmt.name} = ${formulaToString(resolved)}`);
   }
 
@@ -1328,6 +1333,12 @@ export class Interpreter {
 
     if (profile.name === 'classical.propositional') {
       const atoms = Array.from(collectAtoms(formula)).sort();
+      const MAX_STREAMING_TRUTH_TABLE_ATOMS = 20;
+      if (atoms.length > MAX_STREAMING_TRUTH_TABLE_ATOMS) {
+        throw new Error(
+          `truth_table soporta hasta ${MAX_STREAMING_TRUTH_TABLE_ATOMS} variables en lógica clásica proposicional`,
+        );
+      }
 
       // Streaming de tabla de verdad para evitar OOM
       this.emit(`Tabla de verdad para ${formulaToString(formula)}:`);
@@ -2901,27 +2912,33 @@ export class Interpreter {
   }
 
   private execImportDecl(stmt: ImportDeclNode): void {
-    let filePath = stmt.path;
-    if (!filePath.endsWith('.st')) filePath += '.st';
-    if (this.importedFiles.has(filePath)) return;
-    this.importedFiles.add(filePath);
+    let requestedPath = stmt.path;
+    if (!requestedPath.endsWith('.st')) requestedPath += '.st';
     let source: string;
+    let resolved: string;
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment
       const fs = require('fs');
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment
       const path = require('path');
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      const resolved: string = path.isAbsolute(filePath)
-        ? filePath
+      resolved = path.isAbsolute(requestedPath)
+        ? requestedPath
         : // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-          path.resolve(path.dirname(stmt.source.file || '.'), filePath);
+          path.resolve(path.dirname(stmt.source.file || '.'), requestedPath);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       source = fs.readFileSync(resolved, 'utf-8');
     } catch {
-      throw new Error(`No se pudo importar '${filePath}'`);
+      throw new Error(`No se pudo importar '${requestedPath}'`);
     }
-    const parser = new Parser(filePath);
+
+    if (this.activeImports.has(resolved)) return;
+    if (this.importedFiles.get(resolved) === source) return;
+
+    this.activeImports.add(resolved);
+    this.importedFiles.set(resolved, source);
+
+    const parser = new Parser(resolved);
     const program = parser.parse(source);
     this.diagnostics.push(...parser.diagnostics);
     const prevIsImporting = this.isImporting;
@@ -2930,31 +2947,62 @@ export class Interpreter {
     const prevTheorems = new Map(this.theory.theorems);
     const prevFunctions = new Map(this.functions);
     const prevTheories = new Map(this.theories);
-    this.isImporting = true;
-    this.letBindings.clear();
-    this.theory.axioms.clear();
-    this.theory.theorems.clear();
-    this.functions.clear();
-    this.theories.clear();
-    for (const importedStmt of program.statements) this.executeStatement(importedStmt);
-    const newExports = {
-      bindings: new Map(this.exportedBindings),
-      axioms: new Map(this.exportedAxioms),
-      theorems: new Map(this.exportedTheorems),
-      functions: new Map(this.exportedFunctions),
-      theories: new Map(this.exportedTheories),
+    const prevExportedBindings = new Map(this.exportedBindings);
+    const prevExportedAxioms = new Map(this.exportedAxioms);
+    const prevExportedTheorems = new Map(this.exportedTheorems);
+    const prevExportedFunctions = new Map(this.exportedFunctions);
+    const prevExportedTheories = new Map(this.exportedTheories);
+    let newExports = {
+      bindings: new Map<string, Formula>(),
+      axioms: new Map<string, Formula>(),
+      theorems: new Map<string, Formula>(),
+      functions: new Map<string, FnDeclNode>(),
+      theories: new Map<string, TheoryScope>(),
     };
-    this.isImporting = prevIsImporting;
-    this.letBindings = prevLetBindings;
-    this.theory.axioms = prevAxioms;
-    this.theory.theorems = prevTheorems;
-    this.functions = prevFunctions;
-    this.theories = prevTheories;
+
+    try {
+      this.isImporting = true;
+      this.letBindings.clear();
+      this.theory.axioms.clear();
+      this.theory.theorems.clear();
+      this.functions.clear();
+      this.theories.clear();
+      this.exportedBindings.clear();
+      this.exportedAxioms.clear();
+      this.exportedTheorems.clear();
+      this.exportedFunctions.clear();
+      this.exportedTheories.clear();
+
+      for (const importedStmt of program.statements) this.executeStatement(importedStmt);
+
+      newExports = {
+        bindings: new Map(this.exportedBindings),
+        axioms: new Map(this.exportedAxioms),
+        theorems: new Map(this.exportedTheorems),
+        functions: new Map(this.exportedFunctions),
+        theories: new Map(this.exportedTheories),
+      };
+    } finally {
+      this.isImporting = prevIsImporting;
+      this.letBindings = prevLetBindings;
+      this.theory.axioms = prevAxioms;
+      this.theory.theorems = prevTheorems;
+      this.functions = prevFunctions;
+      this.theories = prevTheories;
+      this.exportedBindings = prevExportedBindings;
+      this.exportedAxioms = prevExportedAxioms;
+      this.exportedTheorems = prevExportedTheorems;
+      this.exportedFunctions = prevExportedFunctions;
+      this.exportedTheories = prevExportedTheories;
+      this.activeImports.delete(resolved);
+    }
+
     for (const [k, v] of newExports.bindings) this.letBindings.set(k, v);
     for (const [k, v] of newExports.axioms) this.theory.axioms.set(k, v);
     for (const [k, v] of newExports.theorems) this.theory.theorems.set(k, v);
     for (const [k, v] of newExports.functions) this.functions.set(k, v);
     for (const [k, v] of newExports.theories) this.theories.set(k, v);
+    this.invalidateResolveCache();
   }
 
   private execExplainCmd(stmt: ExplainCmdNode): void {

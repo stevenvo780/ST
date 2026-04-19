@@ -218,6 +218,24 @@ check valid ([](P -> Q) -> ([](P) -> [](Q)))
     const output = interpreter.execute(source);
     expect(output.results[0].status).toBe('valid');
   });
+
+  it('usa un único sucesor para next: X(P) & X(Q) -> X(P & Q)', () => {
+    const source = `
+logic temporal.ltl
+check valid ((next P & next Q) -> next (P & Q))
+`;
+    const output = interpreter.execute(source);
+    expect(output.results[0].status).toBe('valid');
+  });
+
+  it('respeta la dualidad de next con negación', () => {
+    const source = `
+logic temporal.ltl
+check valid (next !P <-> !next P)
+`;
+    const output = interpreter.execute(source);
+    expect(output.results[0].status).toBe('valid');
+  });
 });
 
 // ── Aristotelian Syllogistic ────────────────────────────────

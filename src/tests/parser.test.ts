@@ -137,6 +137,18 @@ describe('Parser — commands', () => {
     const program = parser.parse('prove Q from {a1, a2}');
     expect(program.statements[0].kind).toBe('prove_cmd');
   });
+
+  it('rechaza if sin palabra clave de condición', () => {
+    const parser = new Parser();
+    parser.parse('if P { print "ok" }');
+    expect(parser.diagnostics.some((d) => d.severity === 'error')).toBe(true);
+  });
+
+  it('rechaza while sin palabra clave de condición', () => {
+    const parser = new Parser();
+    parser.parse('while P { print "loop" }');
+    expect(parser.diagnostics.some((d) => d.severity === 'error')).toBe(true);
+  });
 });
 
 describe('Parser — text layer', () => {

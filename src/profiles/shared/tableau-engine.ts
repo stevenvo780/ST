@@ -24,6 +24,7 @@ export interface Branch {
   literals: LabeledNode[];
   pending: LabeledNode[];
   accessibility: Map<string, Set<string>>;
+  nextWorlds: Map<string, string>;
   worlds: Set<string>;
   gammaWatchers: GammaWatcher[];
   processed: Set<string>;
@@ -56,6 +57,12 @@ export interface FrameRules {
    * Devuelve true si se agregaron nodos (continuar expansión).
    */
   enforceFrameConditions?(branch: Branch): boolean;
+
+  /**
+   * Si está activo, X(φ) reutiliza un único sucesor inmediato por mundo.
+   * Esto evita tratar `next` como un diamante modal arbitrario.
+   */
+  deterministicNext?: boolean;
 }
 
 // ── Reglas de marco preconfiguradas ─────────────────────────
@@ -407,6 +414,7 @@ function acquireBranch(): Branch {
     literals: [],
     pending: [],
     accessibility: new Map(),
+    nextWorlds: new Map(),
     worlds: new Set(),
     gammaWatchers: [],
     processed: new Set(),
@@ -422,6 +430,7 @@ function _releaseBranch(b: Branch): void {
     b.literals.length = 0;
     b.pending.length = 0;
     b.accessibility.clear();
+    b.nextWorlds.clear();
     b.worlds.clear();
     b.gammaWatchers.length = 0;
     b.processed.clear();
@@ -439,6 +448,7 @@ function cloneBranch(b: Branch): Branch {
   clone.literals.push(...b.literals);
   clone.pending.push(...b.pending);
   for (const [k, v] of b.accessibility) clone.accessibility.set(k, new Set(v));
+  for (const [k, v] of b.nextWorlds) clone.nextWorlds.set(k, v);
   for (const w of b.worlds) clone.worlds.add(w);
   clone.gammaWatchers.push(...b.gammaWatchers);
   for (const p of b.processed) clone.processed.add(p);
@@ -451,6 +461,22 @@ function cloneBranch(b: Branch): Branch {
 // ── Constantes ──────────────────────────────────────────────
 
 const MAX_DEPTH = 200;
+
+function ensureTemporalNextWorld(branch: Branch, sourceWorld: string): { world: string; created: boolean } {
+  const existing = branch.nextWorlds.get(sourceWorld);
+  if (existing) {
+    return { world: existing, created: false };
+  }
+
+  const world = `w${branch.worldCounter++}`;
+  branch.nextWorlds.set(sourceWorld, world);
+  if (!branch.accessibility.has(sourceWorld)) {
+    branch.accessibility.set(sourceWorld, new Set());
+  }
+  (branch.accessibility.get(sourceWorld) as Set<string>).add(world);
+  branch.worlds.add(world);
+  return { world, created: true };
+}
 
 // ── Expansión principal (parametrizada) ─────────────────────
 
@@ -581,11 +607,21 @@ function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult 
         const rawDeltaInner = (node.formula.args || [])[0];
         if (!rawDeltaInner) return expand(branch, depth + 1, rules);
         const inner = fullNNF(rawDeltaInner);
-
-        const newWorld = `w${branch.worldCounter++}`;
+        let newWorld: string;
+        let created = true;
+        if (node.formula.kind === 'temporal_next' && rules.deterministicNext) {
+          const nextWorld = ensureTemporalNextWorld(branch, node.world);
+          newWorld = nextWorld.world;
+          created = nextWorld.created;
+        } else {
+          newWorld = `w${branch.worldCounter++}`;
+          if (!branch.accessibility.has(node.world)) branch.accessibility.set(node.world, new Set());
+          (branch.accessibility.get(node.world) as Set<string>).add(newWorld);
+          branch.worlds.add(newWorld);
+        }
         pushTrace(
           branch,
-          `[${depth}] Regla Delta (Posibilidad/Existe) en ${node.world}: ${formulaHash(node.formula)} ─> nuevo mundo ${newWorld}`,
+          `[${depth}] Regla Delta (Posibilidad/Existe) en ${node.world}: ${formulaHash(node.formula)} ─> ${created ? 'nuevo mundo' : 'reusa mundo'} ${newWorld}`,
           {
             depth,
             rule: 'delta',
@@ -594,9 +630,6 @@ function expand(branch: Branch, depth: number, rules: FrameRules): ExpandResult 
             formula: node.formula,
           },
         );
-        if (!branch.accessibility.has(node.world)) branch.accessibility.set(node.world, new Set());
-        (branch.accessibility.get(node.world) as Set<string>).add(newWorld);
-        branch.worlds.add(newWorld);
 
         branch.pending.push({ formula: inner, world: newWorld });
 

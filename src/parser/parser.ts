@@ -814,8 +814,11 @@ export class Parser {
         return 'unsatisfiable';
       }
     }
-    // Default: valid
-    return 'valid';
+    throw new Error(
+      this.contextualize(
+        `Se esperaba una condición lógica ('valid', 'satisfiable', 'invalid' o 'unsatisfiable'), encontrado '${this.current().value}'`,
+      ),
+    );
   }
 
   // --- for x in {A, B, C} { body } ---

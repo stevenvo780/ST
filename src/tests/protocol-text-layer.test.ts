@@ -27,6 +27,27 @@ describe('ProtocolHandler validation', () => {
     expect(response.error?.code).toBe(-32602);
     expect(response.error?.message).toContain("'line'");
   });
+
+  it('run es stateless entre requests', () => {
+    const handler = new ProtocolHandler();
+
+    const first = handler.handle({
+      id: 3,
+      method: 'run',
+      params: { source: 'logic classical.propositional\naxiom a1 : P' },
+    });
+    const second = handler.handle({
+      id: 4,
+      method: 'run',
+      params: { source: 'derive P from {a1}' },
+    });
+    const firstResult = first.result as { exitCode?: number };
+    const secondResult = second.result as { exitCode?: number; stderr?: string };
+
+    expect(firstResult.exitCode).toBe(0);
+    expect(secondResult.exitCode).not.toBe(0);
+    expect(secondResult.stderr || '').toContain('No se ha declarado un perfil logico');
+  });
 });
 
 describe('Text layer anchor validation', () => {

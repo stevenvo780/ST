@@ -117,11 +117,13 @@ export function* generateValuationsLazy(atoms: string[]): Generator<Valuation> {
     yield {};
     return;
   }
-  const total = 1 << n;
+  if (n > 23) throw new Error('Demasiadas variables para tabla de verdad (>23)');
+  const total = 2 ** n;
   for (let i = 0; i < total; i++) {
     const v: Valuation = {};
     for (let j = 0; j < n; j++) {
-      v[atoms[j]] = Boolean((i >> (n - 1 - j)) & 1);
+      const divisor = 2 ** (n - 1 - j);
+      v[atoms[j]] = Math.floor(i / divisor) % 2 === 1;
     }
     yield v;
   }
