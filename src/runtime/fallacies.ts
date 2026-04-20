@@ -35,7 +35,7 @@ function isAnd(f: Formula): f is Formula & { kind: 'and' } {
 }
 
 /** Compara dos fórmulas estructuralmente (igualdad profunda). */
-function formulaEquals(a: Formula, b: Formula): boolean {
+function formulaEqual(a: Formula, b: Formula): boolean {
   if (a.kind !== b.kind) return false;
   if (a.kind === 'atom' && b.kind === 'atom') return a.name === b.name;
   if (a.kind === 'predicate' && b.kind === 'predicate') {
@@ -49,7 +49,7 @@ function formulaEquals(a: Formula, b: Formula): boolean {
   const aArgs = a.args ?? [];
   const bArgs = b.args ?? [];
   if (aArgs.length !== bArgs.length) return false;
-  return aArgs.every((arg, i) => formulaEquals(arg, bArgs[i]));
+  return aArgs.every((arg, i) => formulaEqual(arg, bArgs[i]));
 }
 
 /** Busca en las premisas una fórmula que satisfaga un predicado. */
@@ -68,8 +68,8 @@ function checkAffirmingConsequent(premises: Formula[], conclusion: Formula): Fal
     if (!isImplies(p) || !p.args?.[0] || !p.args?.[1]) continue;
     const antecedent = p.args[0];
     const consequent = p.args[1];
-    if (!formulaEquals(conclusion, antecedent)) continue;
-    const affirmed = findPremise(premises, (f) => f !== p && formulaEquals(f, consequent));
+    if (!formulaEqual(conclusion, antecedent)) continue;
+    const affirmed = findPremise(premises, (f) => f !== p && formulaEqual(f, consequent));
     if (affirmed) {
       return {
         name: 'Afirmación del consecuente',
@@ -97,10 +97,10 @@ function checkDenyingAntecedent(premises: Formula[], conclusion: Formula): Falla
     if (!isImplies(p) || !p.args?.[0] || !p.args?.[1]) continue;
     const antecedent = p.args[0];
     const consequent = p.args[1];
-    if (!formulaEquals(negatedConclusion, consequent)) continue;
+    if (!formulaEqual(negatedConclusion, consequent)) continue;
     const denied = findPremise(premises, (f) => {
       if (!isNot(f) || !f.args?.[0]) return false;
-      return formulaEquals(f.args[0], antecedent);
+      return formulaEqual(f.args[0], antecedent);
     });
     if (denied) {
       return {
@@ -135,8 +135,8 @@ function checkUndistributedMiddle(premises: Formula[], conclusion: Formula): Fal
       if (!isImplies(pj) || !pj.args?.[0] || !pj.args?.[1]) continue;
       const piCons = pi.args[1]; // M₁
       const pjCons = pj.args[1]; // M₂
-      if (!formulaEquals(piCons, pjCons)) continue;
-      if (formulaEquals(pj.args[0], cAntecedent) && formulaEquals(pi.args[0], cConsequent)) {
+      if (!formulaEqual(piCons, pjCons)) continue;
+      if (formulaEqual(pj.args[0], cAntecedent) && formulaEqual(pi.args[0], cConsequent)) {
         const m = formulaToUnicode(piCons);
         return {
           name: 'Medio no distribuido',
@@ -169,11 +169,11 @@ function checkCompositionFallacy(premises: Formula[], conclusion: Formula): Fall
 
   const hasLeft = findPremise(premises, (f) => {
     if (!isImplies(f) || !f.args?.[0] || !f.args?.[1]) return false;
-    return formulaEquals(f.args[0], left) && formulaEquals(f.args[1], cons);
+    return formulaEqual(f.args[0], left) && formulaEqual(f.args[1], cons);
   });
   const hasRight = findPremise(premises, (f) => {
     if (!isImplies(f) || !f.args?.[0] || !f.args?.[1]) return false;
-    return formulaEquals(f.args[0], right) && formulaEquals(f.args[1], cons);
+    return formulaEqual(f.args[0], right) && formulaEqual(f.args[1], cons);
   });
 
   if (hasLeft && hasRight) {
@@ -200,10 +200,10 @@ function checkFalseDisjunction(premises: Formula[], conclusion: Formula): Fallac
     if (p.kind !== 'or' || !p.args?.[0] || !p.args?.[1]) continue;
     const left = p.args[0];
     const right = p.args[1];
-    if (!formulaEquals(conclusion, right)) continue;
+    if (!formulaEqual(conclusion, right)) continue;
     const denied = findPremise(premises, (f) => {
       if (!isNot(f) || !f.args?.[0]) return false;
-      return formulaEquals(f.args[0], left);
+      return formulaEqual(f.args[0], left);
     });
     if (denied) {
       const l = formulaToUnicode(left);
@@ -225,7 +225,7 @@ function checkFalseDisjunction(premises: Formula[], conclusion: Formula): Fallac
  * Petición de principio: La conclusión ya está asumida en una de las premisas.
  */
 function checkBeggingQuestion(premises: Formula[], conclusion: Formula): FallacyInfo | null {
-  if (premises.some((p) => formulaEquals(p, conclusion))) {
+  if (premises.some((p) => formulaEqual(p, conclusion))) {
     return {
       name: 'Petición de principio (Petitio Principii)',
       description:
@@ -250,7 +250,7 @@ function checkIllicitConversion(premises: Formula[], conclusion: Formula): Falla
         if (p.kind === 'forall' && p.args?.length === 1 && p.variable === conclusion.variable) {
           const pImp = p.args[0];
           if (isImplies(pImp) && pImp.args?.[0] && pImp.args?.[1]) {
-            if (formulaEquals(pImp.args[0], cp) && formulaEquals(pImp.args[1], cs)) {
+            if (formulaEqual(pImp.args[0], cp) && formulaEqual(pImp.args[1], cs)) {
               return {
                 name: 'Conversión ilícita',
                 description:
@@ -278,8 +278,8 @@ function checkHastyGeneralization(premises: Formula[], conclusion: Formula): Fal
           const pAnd = p.args[0];
           if (isAnd(pAnd) && pAnd.args?.[0] && pAnd.args?.[1]) {
             if (
-              formulaEquals(pAnd.args[0], cImp.args[0]) &&
-              formulaEquals(pAnd.args[1], cImp.args[1])
+              formulaEqual(pAnd.args[0], cImp.args[0]) &&
+              formulaEqual(pAnd.args[1], cImp.args[1])
             ) {
               return {
                 name: 'Generalización apresurada',
@@ -340,10 +340,10 @@ function checkDivisionFallacy(premises: Formula[], conclusion: Formula): Fallacy
     const cons = conclusion.args[1];
     const wholeFound = premises.find((p) => {
       if (!isImplies(p) || !p.args?.[0] || !p.args?.[1]) return false;
-      if (!formulaEquals(p.args[1], cons)) return false;
+      if (!formulaEqual(p.args[1], cons)) return false;
       const ant = p.args[0];
       // si el antecedente de la premisa es un 'and' que contiene a 'part'
-      return isAnd(ant) && ant.args?.some((a) => formulaEquals(a, part));
+      return isAnd(ant) && ant.args?.some((a) => formulaEqual(a, part));
     });
 
     if (wholeFound) {

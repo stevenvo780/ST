@@ -773,7 +773,7 @@ function detectPigeonhole(clauses: Int32Array[], numVars: number): PatternDetect
   const rowCount = aloClauses.length;
   if (rowCount > colCount) {
     const expectedAMO = (colCount * rowCount * (rowCount - 1)) / 2;
-    if (amoCount >= expectedAMO * 0.8) {
+    if (amoCount === expectedAMO) {
       return {
         pattern: 'pigeonhole',
         description: `Pigeonhole Principle: ${rowCount} pigeons, ${colCount} holes — UNSAT (Haken 1985)`,

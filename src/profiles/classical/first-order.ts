@@ -296,158 +296,219 @@ export class ClassicalFirstOrder implements LogicProfile {
   private solve(initialNodes: FONode[]): SolveResult {
     varCounter = 0;
     skolemCounter = 0;
-    const constants = new Set<string>(['c0']);
+    const initialConstants = new Set<string>(['c0']);
     for (const node of initialNodes) {
       for (const c of this.collectConstants(node.formula, new Set())) {
-        constants.add(c);
+        initialConstants.add(c);
       }
     }
     const trace: string[] = [];
-    const closed = this.solveRecursive(initialNodes, constants, new Set(), 0, trace);
-    return { closed, trace };
-  }
 
-  private solveRecursive(
-    nodes: FONode[],
-    constants: Set<string>,
-    processed: Set<string>,
-    depth: number,
-    trace: string[],
-  ): boolean {
-    if (depth > 200) {
-      trace.push(`[${depth}] ⚠ Se alcanzó profundidad máxima de seguridad (200).`);
-      return false;
+    interface Branch {
+      nodes: FONode[];
+      constants: Set<string>;
+      processed: Set<string>;
+      gammaCounters: Map<string, number>;
+      univScope: string[];
     }
-    if (nodes.length === 0) return false;
 
-    // Contradicción
-    for (const n1 of nodes) {
-      if (n1.formula.kind === 'not' && n1.formula.args) {
-        const atom = n1.formula.args[0];
-        if (nodes.some((n2) => this.isEqual(n2.formula, atom))) {
-          trace.push(`[${depth}] ✕ Rama cerrada por contradicción`);
-          return true;
-        }
+    const stack: Branch[] = [{
+      nodes: initialNodes,
+      constants: initialConstants,
+      processed: new Set(),
+      gammaCounters: new Map(),
+      univScope: []
+    }];
+
+    let steps = 0;
+    while (stack.length > 0) {
+      if (steps++ > 20000) {
+        trace.push(`[Iter] ⚠ Se alcanzó el límite de pasos (20000).`);
+        return { closed: false, trace };
       }
-    }
+      const b = stack.pop()!;
+      const { nodes, constants, processed, gammaCounters, univScope } = b;
 
-    const type = (f: Formula) => {
-      if (f.kind === 'and') return 'alfa';
-      if (f.kind === 'exists') return 'delta';
-      if (f.kind === 'forall') return 'gamma';
-      if (f.kind === 'or' || f.kind === 'implies') return 'beta';
-      return 'atom';
-    };
+      if (nodes.length === 0) return { closed: false, trace };
 
-    const priorities = ['alfa', 'delta', 'gamma', 'beta'];
-    for (const p of priorities) {
-      const idx = nodes.findIndex((n) => type(n.formula) === p);
-      if (idx === -1) continue;
-
-      const node = nodes[idx];
-      const rest = nodes.filter((_, i) => i !== idx);
-      const { formula: f } = node;
-      const key = formulaToString(f);
-
-      if (p !== 'gamma' && p !== 'atom' && processed.has(key))
-        return this.solveRecursive(rest, constants, processed, depth, trace);
-
-      const nextProcessed = new Set(processed);
-      if (p !== 'gamma' && p !== 'atom') nextProcessed.add(key);
-
-      switch (f.kind) {
-        case 'and': {
-          const [left, right] = f.args ?? [];
-          return this.solveRecursive(
-            [{ formula: left }, { formula: right }, ...rest],
-            constants,
-            nextProcessed,
-            depth + 1,
-            trace,
-          );
-        }
-        case 'exists': {
-          const [body] = f.args ?? [];
-          const variable = f.variable ?? '';
-          const newC = `c${constants.size}`;
-          const nextConstants = new Set(constants).add(newC);
-          return this.solveRecursive(
-            [{ formula: this.substitute(body, variable, newC) }, ...rest],
-            nextConstants,
-            nextProcessed,
-            depth + 1,
-            trace,
-          );
-        }
-        case 'forall': {
-          const gammaKey = `gamma_count:${key}`;
-          const proc = processed as ProcessedSetWithGamma;
-          const gammaCount = proc.__gammaCounters?.get(gammaKey) ?? 0;
-          if (gammaCount >= 20) {
-            trace.push(`[${depth}] ⚠ Límite Gamma alcanzado.`);
-            return this.solveRecursive(rest, constants, nextProcessed, depth, trace);
+      // Contradicción
+      let closed = false;
+      for (const n1 of nodes) {
+        if (n1.formula.kind === 'not' && n1.formula.args) {
+          const atom = n1.formula.args[0];
+          if (nodes.some((n2) => this.isEqual(n2.formula, atom))) {
+            closed = true;
+            break;
           }
-          if (!proc.__gammaCounters) proc.__gammaCounters = new Map();
-          proc.__gammaCounters.set(gammaKey, gammaCount + 1);
-          const [forallBody] = f.args ?? [];
-          const forallVar = f.variable ?? '';
-          const newInsts = Array.from(constants).map((c) => ({
-            formula: this.substitute(forallBody, forallVar, c),
-          }));
-          return this.solveRecursive(
-            [...newInsts, ...nodes],
-            constants,
-            processed,
-            depth + 1,
-            trace,
-          );
         }
-        case 'or': {
-          const [orLeft, orRight] = f.args ?? [];
-          return (
-            this.solveRecursive(
-              [{ formula: orLeft }, ...rest],
-              constants,
-              nextProcessed,
-              depth + 1,
-              trace,
-            ) &&
-            this.solveRecursive(
-              [{ formula: orRight }, ...rest],
-              constants,
-              nextProcessed,
-              depth + 1,
-              trace,
-            )
-          );
-        }
-        case 'implies': {
-          // A -> B branches into: ¬A or B
-          const [impLeft, impRight] = f.args ?? [];
-          return (
-            this.solveRecursive(
-              [{ formula: { kind: 'not', args: [impLeft] } }, ...rest],
-              constants,
-              nextProcessed,
-              depth + 1,
-              trace,
-            ) &&
-            this.solveRecursive(
-              [{ formula: impRight }, ...rest],
-              constants,
-              nextProcessed,
-              depth + 1,
-              trace,
-            )
-          );
+        // Contradicción por igualdad: a != a
+        if (n1.formula.kind === 'not' && n1.formula.args && n1.formula.args[0].kind === 'equals') {
+            const eq = n1.formula.args[0];
+            if (this.isEqual((eq.args||[])[0], (eq.args||[])[1])) {
+                closed = true;
+                break;
+            }
         }
       }
+      if (closed) {
+        trace.push(`[Iter] ✕ Rama cerrada por contradicción`);
+        continue;
+      }
+
+      const type = (f: Formula) => {
+        if (f.kind === 'and') return 'alfa';
+        if (f.kind === 'exists') return 'delta';
+        if (f.kind === 'forall') return 'gamma';
+        if (f.kind === 'or' || f.kind === 'implies') return 'beta';
+        if (f.kind === 'equals') return 'equals';
+        return 'atom';
+      };
+
+      const priorities = ['alfa', 'equals', 'delta', 'beta', 'gamma'];
+      let applied = false;
+
+      for (const p of priorities) {
+        const idx = nodes.findIndex((n) => type(n.formula) === p);
+        if (idx === -1) continue;
+
+        const node = nodes[idx];
+        const rest = nodes.filter((_, i) => i !== idx);
+        const { formula: f } = node;
+        const key = formulaToString(f);
+
+        if (p !== 'gamma' && p !== 'atom' && p !== 'equals' && processed.has(key)) {
+            continue;
+        }
+
+        applied = true;
+        const nextProcessed = new Set(processed);
+        if (p !== 'gamma' && p !== 'atom' && p !== 'equals') nextProcessed.add(key);
+
+        switch (f.kind) {
+          case 'equals': {
+            const [eqLeft, eqRight] = f.args ?? [];
+            if (eqLeft && eqRight && eqLeft.kind === 'atom' && eqRight.kind === 'atom' && eqLeft.name !== eqRight.name) {
+                // Ley de Leibniz: si a=b, reemplazar a por b en el resto de nodos
+                // Hacemos el reemplazo y NO volvemos a evaluar ESTA igualdad.
+                nextProcessed.add(key);
+                const nextNodes = rest.map(n => ({
+                    formula: this.substitute(n.formula, eqLeft.name!, eqRight.name!)
+                }));
+                // Y simétricamente (a veces a=b y necesitamos reemplazar b por a si b estaba)
+                // Pero es suficiente reemplazar a por b en todo. La igualdad 'b=b' se evalúa a verdadero.
+                stack.push({
+                    nodes: nextNodes,
+                    constants, processed: nextProcessed, gammaCounters, univScope
+                });
+            } else {
+                nextProcessed.add(key);
+                stack.push({
+                    nodes: rest,
+                    constants, processed: nextProcessed, gammaCounters, univScope
+                });
+            }
+            break;
+          }
+          case 'and': {
+            const [left, right] = f.args ?? [];
+            stack.push({
+                nodes: [{ formula: left }, { formula: right }, ...rest],
+                constants, processed: nextProcessed, gammaCounters, univScope
+            });
+            break;
+          }
+          case 'exists': {
+            const [body] = f.args ?? [];
+            const variable = f.variable ?? '';
+            const skArgs = univScope.length > 0 ? `(${univScope.join(',')})` : '';
+            const newC = `f${skolemCounter++}${skArgs}`;
+            const nextConstants = new Set(constants).add(newC);
+            stack.push({
+                nodes: [{ formula: this.substitute(body, variable, newC) }, ...rest],
+                constants: nextConstants, processed: nextProcessed, gammaCounters, univScope
+            });
+            break;
+          }
+          case 'or': {
+            const [orLeft, orRight] = f.args ?? [];
+            stack.push({
+                nodes: [{ formula: orRight }, ...rest],
+                constants, processed: new Set(nextProcessed), gammaCounters: new Map(gammaCounters), univScope
+            });
+            stack.push({
+                nodes: [{ formula: orLeft }, ...rest],
+                constants, processed: nextProcessed, gammaCounters, univScope
+            });
+            break;
+          }
+          case 'implies': {
+            const [impLeft, impRight] = f.args ?? [];
+            stack.push({
+                nodes: [{ formula: impRight }, ...rest],
+                constants, processed: new Set(nextProcessed), gammaCounters: new Map(gammaCounters), univScope
+            });
+            stack.push({
+                nodes: [{ formula: { kind: 'not', args: [impLeft] } }, ...rest],
+                constants, processed: nextProcessed, gammaCounters, univScope
+            });
+            break;
+          }
+          case 'forall': {
+            const gammaKey = `gamma_count:${key}`;
+            const gammaCount = gammaCounters.get(gammaKey) ?? 0;
+            if (gammaCount >= 20) {
+              stack.push({
+                  nodes: rest,
+                  constants, processed: nextProcessed, gammaCounters, univScope
+              });
+              break;
+            }
+            const nextGammaCounters = new Map(gammaCounters);
+            nextGammaCounters.set(gammaKey, gammaCount + 1);
+            const [forallBody] = f.args ?? [];
+            const forallVar = f.variable ?? '';
+            
+            const newInsts = Array.from(constants).map((c) => ({
+              formula: this.substitute(forallBody, forallVar, c),
+            }));
+            
+            const nextUnivScope = [...univScope, forallVar];
+            stack.push({
+                nodes: [...newInsts, ...rest, node],
+                constants, processed: nextProcessed, gammaCounters: nextGammaCounters, univScope: nextUnivScope
+            });
+            break;
+          }
+        }
+        break; // Solo aplicar una regla por paso
+      }
+
+      if (!applied) {
+          const hasUnprocessed = nodes.some(n => {
+              const t = type(n.formula);
+              return t !== 'atom' && t !== 'equals' && !processed.has(formulaToString(n.formula));
+          });
+          if (hasUnprocessed) {
+              const cleanNodes = nodes.filter(n => type(n.formula) === 'atom' || type(n.formula) === 'equals');
+              stack.push({
+                  nodes: cleanNodes,
+                  constants, processed, gammaCounters, univScope
+              });
+          } else {
+              return { closed: false, trace };
+          }
+      }
     }
-    return false;
+
+    return { closed: true, trace };
   }
 
   private substitute(f: Formula, v: string, c: string): Formula {
     const sub = (n: Formula): Formula => {
+      // Evitar shadowing (capture-avoiding)
+      if ((n.kind === 'forall' || n.kind === 'exists') && n.variable === v) {
+        return n;
+      }
       if (n.kind === 'predicate' && n.params)
         return { ...n, params: n.params.map((p) => (p === v ? c : p)) };
       if (n.kind === 'atom' && n.name === v) return { ...n, name: c };
@@ -461,3 +522,4 @@ export class ClassicalFirstOrder implements LogicProfile {
     return formulaToString(a) === formulaToString(b);
   }
 }
+
