@@ -347,16 +347,22 @@ function looksLikeFormulaCandidate(value: string): boolean {
     return false;
   }
 
-  if (/^(?:forall|exists)\b/i.test(trimmed)) {
+  if (/^(?:forall|exists)\s+[A-Za-z_][A-Za-z0-9_]*(?:\s+|\.\s*).+$/i.test(trimmed)) {
     return true;
   }
-  if (/^(?:\[\]|<>)/.test(trimmed)) {
+  if (/^(?:\[\]|<>)\s*.+$/.test(trimmed)) {
+    return true;
+  }
+  if (/^(?:!|~|¬|∼)\s*(?:\(.+\)|[A-Za-z_][A-Za-z0-9_.]*(?:\([^)]*\))?|⊤|⊥)$/.test(trimmed)) {
     return true;
   }
   if (/<->|->|<=>|=>/.test(trimmed)) {
     return true;
   }
-  if (/[()!~¬∼&|∨∧→↔⇒⇔⊃≡]/.test(trimmed)) {
+  if (/[&|∨∧→↔⇒⇔⊃≡]/.test(trimmed)) {
+    return true;
+  }
+  if (/^[⊤⊥]$/.test(trimmed)) {
     return true;
   }
   if (/^[A-Za-z_][A-Za-z0-9_.]*(?:\([^)]*\))?$/.test(trimmed)) {
@@ -372,7 +378,7 @@ function looksLikeFormulaCandidate(value: string): boolean {
 function extractJustifiedStep(rest: string): { formula: string; refs: string[] } | null {
   // Extract refs (comma-separated digits, optionally parenthesized) anchored at the end.
   // Use a right-anchored pattern that greedily captures the full digit list.
-  const refsMatch = rest.match(/\(?\b(\d+(?:\s*,\s*\d+)*)\)?\s*$/);
+  const refsMatch = rest.match(/(?:\(|\[)?\s*(\d+(?:\s*,\s*\d+)*)\s*(?:\)|\])?\s*$/);
   if (!refsMatch) {
     return null;
   }
@@ -403,7 +409,9 @@ function extractJustifiedStep(rest: string): { formula: string; refs: string[] }
 }
 
 function extractPrefixJustifiedStep(rest: string): { formula: string; refs: string[] } | null {
-  const refsMatch = rest.match(/^(.+?)\s+\(?(\d+(?:\s*,\s*\d+)*)\)?\s+(.+)$/);
+  const refsMatch = rest.match(
+    /^(.+?)\s+(?:\(|\[)?\s*(\d+(?:\s*,\s*\d+)*)\s*(?:\)|\])?\s+(.+)$/,
+  );
   if (!refsMatch) {
     return null;
   }

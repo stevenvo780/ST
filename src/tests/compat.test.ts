@@ -274,6 +274,26 @@ describe('ST engine compatibility', () => {
     expect(result.results[0]?.status).toBe('provable');
   });
 
+  it('accepts numbered proofs with square-bracket reference tuples directly in the engine', () => {
+    const result = evaluate(
+      'logic classical.propositional\n1. P premise\n2. P -> Q premise\n3. Q Modus Ponens [1,2]',
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.results[0]?.status).toBe('provable');
+  });
+
+  it('accepts bracketed classroom references for dilemma simple followed by modus tollens', () => {
+    const result = evaluate(
+      'logic classical.propositional\n1. !T | !R premise\n2. !R -> S premise\n3. !T -> S premise\n4. W -> !S premise\n5. S Dilema Simple [1,3,2]\n6. !W Modus Tollens [5,4]',
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.results.at(-1)?.status).toBe('provable');
+  });
+
   it('accepts numbered proofs with colon counters directly in the engine', () => {
     const result = evaluate(
       'logic classical.propositional\n1: P premise\n2: P -> Q premise\n3: Q MP 1,2',
