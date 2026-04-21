@@ -320,7 +320,29 @@ describe('ClassicalPropositional.derive', () => {
     const result = cp.derive(not(atom('W')), ['p1', 'p2', 'p3', 'p4'], theory);
     expect(result.status).toBe('provable');
     expect(result.proof?.method).toBe('natural_deduction');
-    expect(result.proof?.steps.some((step) => step.source !== 'premise')).toBe(true);
+    expect(result.reasoningType).toBe('Dilema Simple, Modus Tollens');
+    expect(result.proof?.metadata?.semanticFallback).toBe(false);
+    expect(result.proof?.steps.every((step) => step.source !== 'semantic')).toBe(true);
+    expect(
+      result.proof?.steps
+        .filter((step) => step.source === 'rule')
+        .map((step) => ({
+          formula: formulaToString(step.formula),
+          justification: step.justification,
+          premises: step.premises,
+        })),
+    ).toEqual([
+      {
+        formula: 'S',
+        justification: 'Dilema Simple',
+        premises: [1, 3, 2],
+      },
+      {
+        formula: '!W',
+        justification: 'Modus Tollens',
+        premises: [5, 4],
+      },
+    ]);
   });
 
   it('No se puede derivar Q solo de P', () => {

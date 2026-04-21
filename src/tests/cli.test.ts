@@ -4,6 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { Interpreter } from '../runtime/interpreter';
+import { formulaToString } from '../profiles/classical/propositional';
 
 describe('Interpreter — script completo (criterio de exito 02)', () => {
   it('ejecuta el script de criterio de exito del Logic Core', () => {
@@ -57,6 +58,62 @@ derive Q from {a1}
     // Aquí el solver encuentra contramodelo (P=1, Q=0), así que el resultado debe ser
     // 'refutable'. Si el solver fuese incompleto, el status sería 'unknown'.
     expect(['refutable', 'unknown']).toContain(deriveResult.status);
+  });
+
+  it('mantiene la ND correcta aunque el script incluya derivaciones manuscritas despues', () => {
+    const source = `
+logic classical.propositional
+
+let p1 = !T | !R
+let p2 = !R -> S
+let p3 = !T -> S
+let p4 = W -> !S
+
+let c = !W
+
+derivar c desde {p1,p2,p3,p4}
+
+// Derivacion
+let p4 = !T // Eliminacion de disyuncion P1
+let p5 = S // MT entre p4 y p3
+
+let cp = !W // MP entre p4 y p5
+`;
+
+    const interpreter = new Interpreter();
+    const output = interpreter.execute(source);
+
+    expect(output.exitCode).toBe(0);
+    expect(output.stdout).toContain('✓ [derive] !W derivado exitosamente');
+    expect(output.stdout).not.toContain('Eliminacion de disyuncion');
+    expect(output.stdout).not.toContain('MT entre');
+    expect(output.stdout).not.toContain('MP entre');
+
+    const deriveResult = output.results[0];
+    expect(deriveResult.status).toBe('provable');
+    expect(deriveResult.reasoningType).toBe('Dilema Simple, Modus Tollens');
+    expect(deriveResult.proof?.method).toBe('natural_deduction');
+    expect(deriveResult.proof?.metadata?.semanticFallback).toBe(false);
+    expect(
+      deriveResult.proof?.steps
+        .filter((step) => step.source === 'rule')
+        .map((step) => ({
+          formula: formulaToString(step.formula),
+          justification: step.justification,
+          premises: step.premises,
+        })),
+    ).toEqual([
+      {
+        formula: 'S',
+        justification: 'Dilema Simple',
+        premises: [1, 3, 2],
+      },
+      {
+        formula: '!W',
+        justification: 'Modus Tollens',
+        premises: [5, 4],
+      },
+    ]);
   });
 });
 
