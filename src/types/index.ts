@@ -240,6 +240,24 @@ export interface PremiseRef {
 export interface ProofMetadata {
   createdAt?: string;
   profile?: string;
+  exploredStepCount?: number;
+  retainedStepCount?: number;
+  uniqueFormulaCount?: number;
+  alternativeDerivationCount?: number;
+  alternativeDerivationSamples?: AlternativeDerivationSample[];
+  semanticFallback?: boolean;
+}
+
+export interface AlternativeDerivationVariant {
+  justification: string;
+  premises: number[];
+  source?: ProofStepSource;
+}
+
+export interface AlternativeDerivationSample {
+  formula: string;
+  primaryStep: number;
+  variants: AlternativeDerivationVariant[];
 }
 
 export interface Proof {

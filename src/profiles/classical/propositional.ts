@@ -13,6 +13,7 @@ import {
   Valuation,
   Proof,
   ProofStep,
+  ProofMetadata,
 } from '../../types';
 import { classifyFormula } from '../../runtime/formula-classifier';
 import { formulaToUnicode } from '../../runtime/format';
@@ -802,8 +803,18 @@ function maxNegationDepth(f: Formula): number {
 
 interface DerivationState {
   known: Map<string, Formula>; // fórmulas conocidas por nombre o hash
+  formulas: Formula[];
   steps: ProofStep[];
   stepCount: number;
+  stepByHash: Map<string, number>;
+  alternativeDerivations: Map<
+    string,
+    Array<{
+      justification: string;
+      premises: number[];
+      source?: ProofStep['source'];
+    }>
+  >;
 }
 
 function formulaHash(f: Formula): string {
@@ -832,7 +843,21 @@ function addDerivedFormula(
   source: 'premise' | 'rule' | 'semantic' | 'assumption' | 'subproof' = 'rule',
 ): boolean {
   const hash = formulaHash(formula);
-  if (state.known.has(hash)) return false;
+  if (state.known.has(hash)) {
+    const variants = state.alternativeDerivations.get(hash) ?? [];
+    const isDuplicate = variants.some(
+      (variant) =>
+        variant.justification === justification &&
+        variant.source === source &&
+        variant.premises.length === premises.length &&
+        variant.premises.every((premise, index) => premise === premises[index]),
+    );
+    if (!isDuplicate) {
+      variants.push({ justification, premises: [...premises], source });
+      state.alternativeDerivations.set(hash, variants);
+    }
+    return false;
+  }
   state.stepCount++;
   state.steps.push({
     stepNumber: state.stepCount,
@@ -842,6 +867,8 @@ function addDerivedFormula(
     source,
   });
   state.known.set(hash, formula);
+  state.formulas.push(formula);
+  state.stepByHash.set(hash, state.stepCount);
   return true;
 }
 
@@ -859,7 +886,14 @@ function buildProof(
   theory: Theory,
   method: Proof['method'] = 'natural_deduction',
   subproofs?: Proof[],
+  metadataExtras: Partial<ProofMetadata> = {},
 ): Proof {
+  const metadata: ProofMetadata = {
+    createdAt: new Date().toISOString(),
+    profile: theory.profile,
+    ...metadataExtras,
+  };
+
   return {
     goal,
     steps,
@@ -867,11 +901,76 @@ function buildProof(
     derivedFrom: premiseNames,
     premiseRefs: buildPremiseRefs(theory, premiseNames),
     method,
-    subproofs,
-    metadata: {
-      createdAt: new Date().toISOString(),
-      profile: theory.profile,
-    },
+    subproofs: subproofs ? [...subproofs] : undefined,
+    metadata,
+  };
+}
+
+function buildDerivationMetadata(
+  state: DerivationState,
+  retainedSteps: ProofStep[],
+  semanticFallback: boolean = false,
+): Partial<ProofMetadata> {
+  const sampledAlternatives = Array.from(state.alternativeDerivations.entries())
+    .filter(([, variants]) => variants.length > 0)
+    .sort((left, right) => right[1].length - left[1].length)
+    .slice(0, 12)
+    .map(([hash, variants]) => ({
+      formula: hash,
+      primaryStep: state.stepByHash.get(hash) ?? 0,
+      variants: variants.slice(0, 6).map((variant) => ({
+        justification: variant.justification,
+        premises: [...variant.premises],
+        source: variant.source,
+      })),
+    }));
+
+  const alternativeDerivationCount = Array.from(state.alternativeDerivations.values()).reduce(
+    (count, variants) => count + variants.length,
+    0,
+  );
+
+  return {
+    exploredStepCount: state.steps.length,
+    retainedStepCount: retainedSteps.length,
+    uniqueFormulaCount: state.formulas.length,
+    alternativeDerivationCount,
+    alternativeDerivationSamples: sampledAlternatives,
+    semanticFallback,
+  };
+}
+
+function buildCompositeDerivationMetadata(
+  state: DerivationState,
+  retainedSteps: ProofStep[],
+  subProofs: Proof[] = [],
+  semanticFallback: boolean = false,
+): Partial<ProofMetadata> {
+  const baseMetadata = buildDerivationMetadata(state, retainedSteps, semanticFallback);
+  const baseExploredStepCount = Number(baseMetadata.exploredStepCount ?? 0);
+  const baseAlternativeDerivationCount = Number(baseMetadata.alternativeDerivationCount ?? 0);
+
+  const subExploredStepCount = subProofs.reduce((count, subProof) => {
+    const subMetadata = subProof.metadata ?? {};
+    const explored = Number(subMetadata.exploredStepCount ?? subProof.steps.length);
+    return count + explored;
+  }, 0);
+
+  const subAlternativeDerivationCount = subProofs.reduce((count, subProof) => {
+    const subMetadata = subProof.metadata ?? {};
+    const alternatives = Number(subMetadata.alternativeDerivationCount ?? 0);
+    return count + alternatives;
+  }, 0);
+
+  const exploredStepCount = baseExploredStepCount + subExploredStepCount;
+  const alternativeDerivationCount = baseAlternativeDerivationCount + subAlternativeDerivationCount;
+
+  return {
+    ...baseMetadata,
+    exploredStepCount,
+    retainedStepCount: retainedSteps.length,
+    alternativeDerivationCount,
+    alternativeDerivationSamples: [],
   };
 }
 
@@ -883,6 +982,156 @@ function isExcludedMiddleFormula(formula: Formula): boolean {
   if (formula.kind !== 'or' || !formula.args?.[0] || !formula.args?.[1]) return false;
   return (
     isNegationOf(formula.args[0], formula.args[1]) || isNegationOf(formula.args[1], formula.args[0])
+  );
+}
+
+function buildSingleAssumptionProof(
+  premiseSteps: ProofStep[],
+  assumption: Formula,
+  assumptionJustification: string,
+  subProof: Proof,
+  goal: Formula,
+  finalJustification: string,
+): ProofStep[] {
+  const mainSteps: ProofStep[] = [];
+  let stepNum = 0;
+
+  for (const s of premiseSteps) {
+    if (s.source === 'premise') {
+      stepNum++;
+      mainSteps.push({ ...s, stepNumber: stepNum, premises: [] });
+    }
+  }
+
+  stepNum++;
+  const assumptionStepNum = stepNum;
+  mainSteps.push({
+    stepNumber: stepNum,
+    formula: assumption,
+    justification: assumptionJustification,
+    premises: [],
+    source: 'assumption',
+  });
+
+  const subStepMap = new Map<number, number>();
+  for (const s of subProof.steps) {
+    if (s.source === 'premise' && formulasEqual(s.formula, assumption)) {
+      subStepMap.set(s.stepNumber, assumptionStepNum);
+      continue;
+    }
+    if (s.source === 'premise') {
+      const existing = mainSteps.find(
+        (ms) => ms.source === 'premise' && formulasEqual(ms.formula, s.formula),
+      );
+      if (existing) {
+        subStepMap.set(s.stepNumber, existing.stepNumber);
+        continue;
+      }
+    }
+    stepNum++;
+    subStepMap.set(s.stepNumber, stepNum);
+    mainSteps.push({
+      stepNumber: stepNum,
+      formula: s.formula,
+      justification: s.justification,
+      premises: s.premises.map((p) => subStepMap.get(p) || p),
+      source: s.source,
+    });
+  }
+
+  stepNum++;
+  const subGoalStepNum =
+    subStepMap.get(subProof.steps[subProof.steps.length - 1]?.stepNumber ?? 0) ?? stepNum - 1;
+  mainSteps.push({
+    stepNumber: stepNum,
+    formula: goal,
+    justification: finalJustification,
+    premises: [assumptionStepNum, subGoalStepNum],
+    subproofs: [subProof],
+    source: 'rule',
+  });
+
+  return mainSteps;
+}
+
+function buildMergedGoalProof(
+  premiseSteps: ProofStep[],
+  subProofs: Proof[],
+  goal: Formula,
+  finalJustification: string,
+): ProofStep[] {
+  const mainSteps: ProofStep[] = [];
+  let stepNum = 0;
+  const baseStepByHash = new Map<string, number>();
+
+  for (const s of premiseSteps) {
+    if (s.source === 'premise') {
+      stepNum++;
+      mainSteps.push({ ...s, stepNumber: stepNum, premises: [] });
+      baseStepByHash.set(formulaHash(s.formula), stepNum);
+    }
+  }
+
+  const finalPremises: number[] = [];
+  for (const subProof of subProofs) {
+    const stepMap = new Map<number, number>();
+    for (const s of subProof.steps) {
+      const hash = formulaHash(s.formula);
+      if (s.source === 'premise' && baseStepByHash.has(hash)) {
+        stepMap.set(s.stepNumber, baseStepByHash.get(hash) ?? 0);
+        continue;
+      }
+      if (s.source !== 'assumption' && baseStepByHash.has(hash)) {
+        stepMap.set(s.stepNumber, baseStepByHash.get(hash) ?? 0);
+        continue;
+      }
+      stepNum++;
+      stepMap.set(s.stepNumber, stepNum);
+      mainSteps.push({
+        stepNumber: stepNum,
+        formula: s.formula,
+        justification: s.justification,
+        premises: s.premises.map((p) => stepMap.get(p) || p),
+        subproofs: s.subproofs ? [...s.subproofs] : undefined,
+        source: s.source,
+      });
+      if (s.source !== 'assumption') {
+        baseStepByHash.set(hash, stepNum);
+      }
+    }
+
+    const mappedFinal = stepMap.get(subProof.steps[subProof.steps.length - 1]?.stepNumber ?? 0);
+    if (mappedFinal) finalPremises.push(mappedFinal);
+  }
+
+  stepNum++;
+  mainSteps.push({
+    stepNumber: stepNum,
+    formula: goal,
+    justification: finalJustification,
+    premises: finalPremises,
+    subproofs: subProofs,
+    source: 'rule',
+  });
+
+  return mainSteps;
+}
+
+function buildKnownDerivationProof(
+  state: DerivationState,
+  formula: Formula,
+  premiseNames: string[],
+  theory: Theory,
+): Proof {
+  const relevantSteps = traceBack(state.steps, formula);
+  return buildProof(
+    formula,
+    relevantSteps,
+    premiseNames,
+    theory,
+    'natural_deduction',
+    undefined,
+    buildDerivationMetadata(state, relevantSteps),
   );
 }
 
@@ -935,8 +1184,11 @@ function tryDerive(
 ): Proof | null {
   const state: DerivationState = {
     known: new Map(),
+    formulas: [],
     steps: [],
     stepCount: 0,
+    stepByHash: new Map(),
+    alternativeDerivations: new Map(),
   };
 
   // Cargar premisas
@@ -972,6 +1224,8 @@ function tryDerive(
         source: 'premise',
       });
       state.known.set(formulaHash(f), f);
+      state.formulas.push(f);
+      state.stepByHash.set(formulaHash(f), state.stepCount);
     }
   }
 
@@ -988,7 +1242,7 @@ function tryDerive(
   while (changed && iterations < maxIterations && state.known.size < MAX_KNOWN) {
     changed = false;
     iterations++;
-    const currentFormulas = Array.from(state.known.values());
+    const currentFormulas = state.formulas;
     const prevProcessedIndex = lastProcessedIndex;
     lastProcessedIndex = currentFormulas.length;
 
@@ -1002,6 +1256,18 @@ function tryDerive(
 
         const f2 = currentFormulas[j];
         if (state.known.has(formulaHash(goal))) break;
+
+        // Contradicción explícita: de A y !A, derivar false (⊥)
+        if (
+          (f1.kind === 'not' && f1.args?.[0] && formulasEqual(f1.args[0], f2)) ||
+          (f2.kind === 'not' && f2.args?.[0] && formulasEqual(f2.args[0], f1))
+        ) {
+          changed =
+            addDerivedFormula(state, { kind: 'false' }, 'Contradiccion', [
+              findStep(state.steps, f1),
+              findStep(state.steps, f2),
+            ]) || changed;
+        }
 
         // Modus Ponens: de A y (A -> B), derivar B
         if (
@@ -1037,6 +1303,22 @@ function tryDerive(
           f2.args?.[1] &&
           f2.args?.[0] &&
           formulasEqual(f1.args[0], f2.args[1])
+        ) {
+          const conclusion: Formula = { kind: 'not', args: [f2.args[0]] };
+          changed =
+            addDerivedFormula(state, conclusion, 'Modus Tollens', [
+              findStep(state.steps, f1),
+              findStep(state.steps, f2),
+            ]) || changed;
+        }
+
+        // Modus Tollens con consecuente negado: de B y (A -> !B), derivar !A
+        if (
+          f2.kind === 'implies' &&
+          f2.args?.[0] &&
+          f2.args?.[1]?.kind === 'not' &&
+          f2.args[1].args?.[0] &&
+          formulasEqual(f1, f2.args[1].args[0])
         ) {
           const conclusion: Formula = { kind: 'not', args: [f2.args[0]] };
           changed =
@@ -1261,6 +1543,12 @@ function tryDerive(
               findStep(state.steps, f2),
             ]) || changed;
         }
+      }
+
+      // Eliminación de contradicción: de false (⊥), derivar cualquier meta
+      if (f1.kind === 'false' && !formulasEqual(f1, goal)) {
+        changed =
+          addDerivedFormula(state, goal, 'Explosion', [findStep(state.steps, f1)]) || changed;
       }
 
       // Conjunction Elimination: de A & B, derivar A y B
@@ -1654,11 +1942,19 @@ function tryDerive(
   if (state.known.has(formulaHash(goal))) {
     // Filtrar solo pasos relevantes para la derivación
     const relevantSteps = traceBack(state.steps, goal);
-    return buildProof(goal, relevantSteps, premiseNames, theory);
+    return buildProof(
+      goal,
+      relevantSteps,
+      premiseNames,
+      theory,
+      'natural_deduction',
+      undefined,
+      buildDerivationMetadata(state, relevantSteps),
+    );
   }
 
   // --- Sub-derivaciones recursivas (antes del fallback semántico) ---
-  const MAX_SUB_DEPTH = 2;
+  const MAX_SUB_DEPTH = 3;
 
   // Prueba Condicional real (→-Introducción / Deduction Theorem):
   // Para derivar A→B, asumimos A como premisa temporal y derivamos B.
@@ -1745,7 +2041,15 @@ function tryDerive(
           source: 'rule',
         });
 
-        return buildProof(goal, mainSteps, premiseNames, theory, 'natural_deduction', [subProof]);
+        return buildProof(
+          goal,
+          mainSteps,
+          premiseNames,
+          theory,
+          'natural_deduction',
+          [subProof],
+          buildCompositeDerivationMetadata(state, mainSteps, [subProof]),
+        );
       }
     }
   }
@@ -1753,7 +2057,7 @@ function tryDerive(
   // Prueba por Casos (∨-Eliminación / Disjunction Elimination):
   // Si tenemos A|B y queremos derivar C, asumimos A→C y B→C por separado.
   if (depth < MAX_SUB_DEPTH) {
-    const disjunctions = Array.from(state.known.values()).filter(
+    const disjunctions = state.formulas.filter(
       (f) => f.kind === 'or' && f.args?.[0] && f.args?.[1],
     );
     for (const disj of disjunctions) {
@@ -1893,10 +2197,205 @@ function tryDerive(
         source: 'rule',
       });
 
-      return buildProof(goal, mainSteps, premiseNames, theory, 'natural_deduction', [
-        subProofL,
-        subProofR,
-      ]);
+      return buildProof(
+        goal,
+        mainSteps,
+        premiseNames,
+        theory,
+        'natural_deduction',
+        [subProofL, subProofR],
+        buildCompositeDerivationMetadata(state, mainSteps, [subProofL, subProofR]),
+      );
+    }
+  }
+
+  // Backchaining dirigido por meta: si tenemos A → objetivo,
+  // intentamos derivar A para cerrar con Modus Ponens sin esperar a que aparezca espontáneamente.
+  if (depth < MAX_SUB_DEPTH) {
+    const candidateImplications = state.formulas.filter(
+      (formula) =>
+        formula.kind === 'implies' &&
+        !!formula.args?.[0] &&
+        !!formula.args?.[1] &&
+        formulasEqual(formula.args[1], goal),
+    );
+
+    for (const implication of candidateImplications) {
+      const antecedent = implication.args?.[0];
+      if (!antecedent || formulasEqual(antecedent, goal)) continue;
+
+      const antecedentProof = tryDerive(antecedent, theory, premiseNames, depth + 1);
+      if (!antecedentProof || antecedentProof.status !== 'complete') continue;
+      const antecedentIsSyntactic = antecedentProof.steps.every(
+        (step) => step.source !== 'semantic',
+      );
+      if (!antecedentIsSyntactic) continue;
+
+      const implicationProof = buildKnownDerivationProof(state, implication, premiseNames, theory);
+      const mainSteps = buildMergedGoalProof(
+        state.steps,
+        [implicationProof, antecedentProof],
+        goal,
+        'Modus Ponens',
+      );
+
+      return buildProof(
+        goal,
+        mainSteps,
+        premiseNames,
+        theory,
+        'natural_deduction',
+        [implicationProof, antecedentProof],
+        buildCompositeDerivationMetadata(state, mainSteps, [implicationProof, antecedentProof]),
+      );
+    }
+  }
+
+  // Meta conjuntiva (∧-Introducción dirigida por meta): derivar ambos componentes por separado.
+  if (depth < MAX_SUB_DEPTH && goal.kind === 'and' && goal.args?.[0] && goal.args?.[1]) {
+    const leftGoal = goal.args[0];
+    const rightGoal = goal.args[1];
+    const leftProof = tryDerive(leftGoal, theory, premiseNames, depth + 1);
+    const rightProof = tryDerive(rightGoal, theory, premiseNames, depth + 1);
+    if (
+      leftProof &&
+      rightProof &&
+      leftProof.status === 'complete' &&
+      rightProof.status === 'complete'
+    ) {
+      const leftSyntactic = leftProof.steps.every((s) => s.source !== 'semantic');
+      const rightSyntactic = rightProof.steps.every((s) => s.source !== 'semantic');
+      if (leftSyntactic && rightSyntactic) {
+        const mainSteps = buildMergedGoalProof(
+          state.steps,
+          [leftProof, rightProof],
+          goal,
+          'Introduccion de conjuncion',
+        );
+        return buildProof(
+          goal,
+          mainSteps,
+          premiseNames,
+          theory,
+          'natural_deduction',
+          [leftProof, rightProof],
+          buildCompositeDerivationMetadata(state, mainSteps, [leftProof, rightProof]),
+        );
+      }
+    }
+  }
+
+  // Meta bicondicional (↔-Introducción dirigida por meta): demostrar ambos sentidos.
+  if (depth < MAX_SUB_DEPTH && goal.kind === 'biconditional' && goal.args?.[0] && goal.args?.[1]) {
+    const leftToRight: Formula = { kind: 'implies', args: [goal.args[0], goal.args[1]] };
+    const rightToLeft: Formula = { kind: 'implies', args: [goal.args[1], goal.args[0]] };
+    const leftProof = tryDerive(leftToRight, theory, premiseNames, depth + 1);
+    const rightProof = tryDerive(rightToLeft, theory, premiseNames, depth + 1);
+    if (
+      leftProof &&
+      rightProof &&
+      leftProof.status === 'complete' &&
+      rightProof.status === 'complete'
+    ) {
+      const leftSyntactic = leftProof.steps.every((s) => s.source !== 'semantic');
+      const rightSyntactic = rightProof.steps.every((s) => s.source !== 'semantic');
+      if (leftSyntactic && rightSyntactic) {
+        const mainSteps = buildMergedGoalProof(
+          state.steps,
+          [leftProof, rightProof],
+          goal,
+          'Introduccion de bicondicional',
+        );
+        return buildProof(
+          goal,
+          mainSteps,
+          premiseNames,
+          theory,
+          'natural_deduction',
+          [leftProof, rightProof],
+          buildCompositeDerivationMetadata(state, mainSteps, [leftProof, rightProof]),
+        );
+      }
+    }
+  }
+
+  // Introducción de negación (¬-Introducción): para derivar ¬A,
+  // asumimos A y derivamos contradicción explícita (false / ⊥).
+  if (depth < MAX_SUB_DEPTH && goal.kind === 'not' && goal.args?.[0]) {
+    const assumption = goal.args[0];
+    const contradiction: Formula = { kind: 'false' };
+    const tempTheory: Theory = {
+      profile: theory.profile,
+      axioms: new Map(theory.axioms),
+      theorems: new Map(theory.theorems),
+      claims: theory.claims,
+      judgments: theory.judgments,
+    };
+    const assumptionName = `__neg_assumption_${depth}_${formulaHash(assumption)}`;
+    tempTheory.axioms.set(assumptionName, assumption);
+    const subPremises = [...premiseNames, assumptionName];
+    const subProof = tryDerive(contradiction, tempTheory, subPremises, depth + 1);
+    if (subProof && subProof.status === 'complete') {
+      const isSyntactic = subProof.steps.every((s) => s.source !== 'semantic');
+      if (isSyntactic) {
+        const mainSteps = buildSingleAssumptionProof(
+          state.steps,
+          assumption,
+          'Supuesto (para negacion)',
+          subProof,
+          goal,
+          'Introduccion de negacion',
+        );
+        return buildProof(
+          goal,
+          mainSteps,
+          premiseNames,
+          theory,
+          'natural_deduction',
+          [subProof],
+          buildCompositeDerivationMetadata(state, mainSteps, [subProof]),
+        );
+      }
+    }
+  }
+
+  // RAA genérica: para derivar A en lógica clásica,
+  // asumimos ¬A y buscamos contradicción explícita.
+  if (depth < MAX_SUB_DEPTH && goal.kind !== 'not' && goal.kind !== 'false') {
+    const assumption: Formula = { kind: 'not', args: [goal] };
+    const contradiction: Formula = { kind: 'false' };
+    const tempTheory: Theory = {
+      profile: theory.profile,
+      axioms: new Map(theory.axioms),
+      theorems: new Map(theory.theorems),
+      claims: theory.claims,
+      judgments: theory.judgments,
+    };
+    const assumptionName = `__raa_assumption_${depth}_${formulaHash(assumption)}`;
+    tempTheory.axioms.set(assumptionName, assumption);
+    const subPremises = [...premiseNames, assumptionName];
+    const subProof = tryDerive(contradiction, tempTheory, subPremises, depth + 1);
+    if (subProof && subProof.status === 'complete') {
+      const isSyntactic = subProof.steps.every((s) => s.source !== 'semantic');
+      if (isSyntactic) {
+        const mainSteps = buildSingleAssumptionProof(
+          state.steps,
+          assumption,
+          'Supuesto (para RAA)',
+          subProof,
+          goal,
+          'RAA (Reduccion al Absurdo)',
+        );
+        return buildProof(
+          goal,
+          mainSteps,
+          premiseNames,
+          theory,
+          'natural_deduction',
+          [subProof],
+          buildCompositeDerivationMetadata(state, mainSteps, [subProof]),
+        );
+      }
     }
   }
 
@@ -1972,15 +2471,28 @@ function tryDerive(
         state.known.set(goalHash, goal);
       }
       const relevantSteps = traceBack(state.steps, goal);
-      return buildProof(goal, relevantSteps, premiseNames, theory, 'semantic');
+      return buildProof(
+        goal,
+        relevantSteps,
+        premiseNames,
+        theory,
+        'semantic',
+        undefined,
+        buildDerivationMetadata(state, relevantSteps, true),
+      );
     }
   }
 
   return null;
 }
 
-function findStep(steps: ProofStep[], formula: Formula): number {
+function findStep(stateOrSteps: DerivationState | ProofStep[], formula: Formula): number {
   const hash = formulaHash(formula);
+  if (!Array.isArray(stateOrSteps)) {
+    const cached = stateOrSteps.stepByHash.get(hash);
+    if (cached !== undefined) return cached;
+  }
+  const steps = Array.isArray(stateOrSteps) ? stateOrSteps : stateOrSteps.steps;
   for (const s of steps) {
     if (formulaHash(s.formula) === hash) return s.stepNumber;
   }
@@ -2391,13 +2903,23 @@ export class ClassicalPropositional implements LogicProfile {
           : `${formulaToString(goal)} derivado exitosamente`,
         proof,
         reasoningType,
-        reasoningSchema: rulesUsed.has('Modus Ponens')
-          ? 'φ → ψ, φ ⊢ ψ'
-          : rulesUsed.has('Modus Tollens')
-            ? 'φ → ψ, ¬ψ ⊢ ¬φ'
-            : rulesUsed.has('Silogismo Hipotetico')
-              ? 'φ → ψ, ψ → χ ⊢ φ → χ'
-              : undefined,
+        reasoningSchema: rulesUsed.has('Introduccion de negacion')
+          ? '[φ] ⊢ ⊥, por lo tanto ¬φ'
+          : rulesUsed.has('RAA (Reduccion al Absurdo)')
+            ? '[¬φ] ⊢ ⊥, por lo tanto φ'
+            : rulesUsed.has('Contradiccion')
+              ? 'φ, ¬φ ⊢ ⊥'
+              : rulesUsed.has('Explosion')
+                ? '⊥ ⊢ ψ'
+                : rulesUsed.has('Prueba Condicional (Teorema de Deduccion)')
+                  ? '[φ] ⊢ ψ, por lo tanto φ → ψ'
+                  : rulesUsed.has('Modus Ponens')
+                    ? 'φ → ψ, φ ⊢ ψ'
+                    : rulesUsed.has('Modus Tollens')
+                      ? 'φ → ψ, ¬ψ ⊢ ¬φ'
+                      : rulesUsed.has('Silogismo Hipotetico')
+                        ? 'φ → ψ, ψ → χ ⊢ φ → χ'
+                        : undefined,
         educationalNote: pickEducationalNote({
           op: 'derive',
           ok: true,

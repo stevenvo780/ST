@@ -21,6 +21,9 @@ function makeTheory(axioms: Record<string, Formula>): Theory {
 function atom(name: string): Formula {
   return { kind: 'atom', name };
 }
+function falsum(): Formula {
+  return { kind: 'false' };
+}
 function not(f: Formula): Formula {
   return { kind: 'not', args: [f] };
 }
@@ -32,6 +35,9 @@ function or(a: Formula, b: Formula): Formula {
 }
 function implies(a: Formula, b: Formula): Formula {
   return { kind: 'implies', args: [a, b] };
+}
+function biconditional(a: Formula, b: Formula): Formula {
+  return { kind: 'biconditional', args: [a, b] };
 }
 
 describe('ClassicalPropositional.checkWellFormed', () => {
@@ -136,6 +142,65 @@ describe('ClassicalPropositional.derive', () => {
     expect(result.status).toBe('provable');
   });
 
+  it('Contradiccion explícita: P, !P |- false', () => {
+    const theory = makeTheory({
+      a1: atom('P'),
+      a2: not(atom('P')),
+    });
+    const result = cp.derive(falsum(), ['a1', 'a2'], theory);
+    expect(result.status).toBe('provable');
+    expect(result.proof?.method).toBe('natural_deduction');
+    expect(result.proof?.steps.some((step) => step.justification === 'Contradiccion')).toBe(true);
+  });
+
+  it('Explosion desde false: false |- Q', () => {
+    const theory = makeTheory({
+      a1: falsum(),
+    });
+    const result = cp.derive(atom('Q'), ['a1'], theory);
+    expect(result.status).toBe('provable');
+    expect(result.proof?.method).toBe('natural_deduction');
+    expect(result.proof?.steps.some((step) => step.justification === 'Explosion')).toBe(true);
+    expect(result.reasoningSchema).toBe('⊥ ⊢ ψ');
+  });
+
+  it('Modus Tollens con consecuente negado: Q, P->!Q |- !P', () => {
+    const theory = makeTheory({
+      a1: implies(atom('P'), not(atom('Q'))),
+      a2: atom('Q'),
+    });
+    const result = cp.derive(not(atom('P')), ['a1', 'a2'], theory);
+    expect(result.status).toBe('provable');
+    expect(result.proof?.method).not.toBe('semantic');
+    expect(result.proof?.steps.some((step) => step.justification === 'Modus Tollens')).toBe(true);
+  });
+
+  it('Introduccion de negacion: P->(Q & !Q) |- !P', () => {
+    const theory = makeTheory({
+      a1: implies(atom('P'), and(atom('Q'), not(atom('Q')))),
+    });
+    const result = cp.derive(not(atom('P')), ['a1'], theory);
+    expect(result.status).toBe('provable');
+    expect(result.proof?.method).toBe('natural_deduction');
+    expect(
+      result.proof?.steps.some((step) => step.justification === 'Introduccion de negacion'),
+    ).toBe(true);
+    expect(result.reasoningSchema).toBe('[φ] ⊢ ⊥, por lo tanto ¬φ');
+  });
+
+  it('RAA generica: !P->false |- P', () => {
+    const theory = makeTheory({
+      a1: implies(not(atom('P')), falsum()),
+    });
+    const result = cp.derive(atom('P'), ['a1'], theory);
+    expect(result.status).toBe('provable');
+    expect(result.proof?.method).toBe('natural_deduction');
+    expect(
+      result.proof?.steps.some((step) => step.justification === 'RAA (Reduccion al Absurdo)'),
+    ).toBe(true);
+    expect(result.reasoningSchema).toBe('[¬φ] ⊢ ⊥, por lo tanto φ');
+  });
+
   it('Derivacion encadenada: P, P->Q, Q->R |- R', () => {
     const theory = makeTheory({
       a1: atom('P'),
@@ -169,12 +234,93 @@ describe('ClassicalPropositional.derive', () => {
       a1: implies(atom('P'), atom('Q')),
       a2: implies(atom('Q'), atom('P')),
     });
-    const result = cp.derive(
-      { kind: 'biconditional', args: [atom('P'), atom('Q')] },
-      ['a1', 'a2'],
-      theory,
-    );
+    const result = cp.derive(biconditional(atom('P'), atom('Q')), ['a1', 'a2'], theory);
     expect(result.status).toBe('provable');
+  });
+
+  it('meta conjuntiva compleja: P, Q |- ((P -> Q) & P) sin fallback semantico', () => {
+    const theory = makeTheory({
+      a1: atom('P'),
+      a2: atom('Q'),
+    });
+    const result = cp.derive(and(implies(atom('P'), atom('Q')), atom('P')), ['a1', 'a2'], theory);
+    expect(result.status).toBe('provable');
+    expect(result.proof?.method).toBe('natural_deduction');
+    expect(result.proof?.steps.some((step) => step.justification === 'Introduccion de conjuncion')).toBe(true);
+  });
+
+  it('meta bicondicional desde hechos: P, Q |- P<->Q sin fallback semantico', () => {
+    const theory = makeTheory({
+      a1: atom('P'),
+      a2: atom('Q'),
+    });
+    const result = cp.derive(biconditional(atom('P'), atom('Q')), ['a1', 'a2'], theory);
+    expect(result.status).toBe('provable');
+    expect(result.proof?.method).toBe('natural_deduction');
+    expect(result.proof?.steps.some((step) => step.justification === 'Introduccion de bicondicional')).toBe(true);
+  });
+
+  it('meta bicondicional mixta: P, !Q |- P<->!Q sin fallback semantico', () => {
+    const theory = makeTheory({
+      a1: atom('P'),
+      a2: not(atom('Q')),
+    });
+    const result = cp.derive(biconditional(atom('P'), not(atom('Q'))), ['a1', 'a2'], theory);
+    expect(result.status).toBe('provable');
+    expect(result.proof?.method).toBe('natural_deduction');
+    expect(result.proof?.steps.some((step) => step.justification === 'Introduccion de bicondicional')).toBe(true);
+  });
+
+  it('backchaining con antecedente conjuntivo: P, Q, (P&Q)->R |- R', () => {
+    const theory = makeTheory({
+      a1: atom('P'),
+      a2: atom('Q'),
+      a3: implies(and(atom('P'), atom('Q')), atom('R')),
+    });
+    const result = cp.derive(atom('R'), ['a1', 'a2', 'a3'], theory);
+    expect(result.status).toBe('provable');
+    expect(result.proof?.method).toBe('natural_deduction');
+    expect(result.proof?.steps.some((step) => step.justification === 'Modus Ponens')).toBe(true);
+  });
+
+  it('backchaining + meta conjuntiva: P, Q, (P&Q)->R |- P&R', () => {
+    const theory = makeTheory({
+      a1: atom('P'),
+      a2: atom('Q'),
+      a3: implies(and(atom('P'), atom('Q')), atom('R')),
+    });
+    const result = cp.derive(and(atom('P'), atom('R')), ['a1', 'a2', 'a3'], theory);
+    expect(result.status).toBe('provable');
+    expect(result.proof?.method).toBe('natural_deduction');
+    expect(result.proof?.steps.some((step) => step.justification === 'Introduccion de conjuncion')).toBe(true);
+  });
+
+  it('adjunta metadatos de exploracion y alternativas derivacionales', () => {
+    const theory = makeTheory({
+      a1: atom('P'),
+      a2: atom('Q'),
+    });
+    const result = cp.derive(biconditional(atom('P'), atom('Q')), ['a1', 'a2'], theory);
+    expect(result.status).toBe('provable');
+    expect(result.proof?.metadata?.exploredStepCount).toBeGreaterThanOrEqual(
+      result.proof?.steps.length ?? 0,
+    );
+    expect(result.proof?.metadata?.retainedStepCount).toBe(result.proof?.steps.length);
+    expect(result.proof?.metadata?.uniqueFormulaCount).toBeGreaterThan(0);
+    expect(result.proof?.metadata?.alternativeDerivationCount).toBeGreaterThanOrEqual(0);
+  });
+
+  it('prueba por casos + modus tollens deriva !W sin fallback semantico', () => {
+    const theory = makeTheory({
+      p1: or(not(atom('T')), not(atom('R'))),
+      p2: implies(not(atom('R')), atom('S')),
+      p3: implies(not(atom('T')), atom('S')),
+      p4: implies(atom('W'), not(atom('S'))),
+    });
+    const result = cp.derive(not(atom('W')), ['p1', 'p2', 'p3', 'p4'], theory);
+    expect(result.status).toBe('provable');
+    expect(result.proof?.method).toBe('natural_deduction');
+    expect(result.proof?.steps.some((step) => step.source !== 'premise')).toBe(true);
   });
 
   it('No se puede derivar Q solo de P', () => {
