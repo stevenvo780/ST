@@ -2847,9 +2847,13 @@ export class Interpreter {
       case 'derive': {
         const goal = this.requireActionFormula(action, 'goal');
         const premises = this.requireActionPremises(action);
-        const result = profile.derive(goal, premises, this.theory);
+        const ephemeralTheory = this.buildEphemeralTheory();
+        const result = profile.derive(goal, premises, ephemeralTheory);
         const premiseFormulas = premises
-          .map((premise) => this.theory.axioms.get(premise) || this.theory.theorems.get(premise))
+          .map(
+            (premise) =>
+              ephemeralTheory.axioms.get(premise) || ephemeralTheory.theorems.get(premise),
+          )
           .filter((value): value is Formula => !!value)
           .map((formula) => this.resolveFormula(formula));
         return {
@@ -2867,9 +2871,13 @@ export class Interpreter {
       case 'prove': {
         const goal = this.requireActionFormula(action, 'goal');
         const premises = this.requireActionPremises(action);
-        const result = profile.prove(goal, this.theory, premises);
+        const ephemeralTheory = this.buildEphemeralTheory();
+        const result = profile.prove(goal, ephemeralTheory, premises);
         const premiseFormulas = premises
-          .map((premise) => this.theory.axioms.get(premise) || this.theory.theorems.get(premise))
+          .map(
+            (premise) =>
+              ephemeralTheory.axioms.get(premise) || ephemeralTheory.theorems.get(premise),
+          )
           .filter((value): value is Formula => !!value)
           .map((formula) => this.resolveFormula(formula));
         return {

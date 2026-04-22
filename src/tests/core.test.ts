@@ -402,6 +402,25 @@ describe('ClassicalPropositional.derive', () => {
     expect(out.results[0]?.proof?.steps.every((step) => step.source !== 'semantic')).toBe(true);
   });
 
+  it('deriva !S cuando el silogismo disyuntivo usa el complemento positivo de !Q', () => {
+    const theory = makeTheory({
+      p1: not(or(not(atom('P')), not(atom('Q')))),
+      p2: implies(atom('R'), not(atom('S'))),
+      p3: or(atom('R'), not(atom('Q'))),
+    });
+
+    const result = cp.derive(not(atom('S')), ['p1', 'p2', 'p3'], theory);
+
+    expect(result.status).toBe('provable');
+    expect(result.proof?.method).toBe('natural_deduction');
+    expect(result.proof?.metadata?.semanticFallback).toBe(false);
+    expect(result.proof?.steps.every((step) => step.source !== 'semantic')).toBe(true);
+    expect(result.proof?.steps.some((step) => step.justification === 'Silogismo disyuntivo')).toBe(
+      true,
+    );
+    expect(result.proof?.steps.some((step) => step.justification === 'Modus Ponens')).toBe(true);
+  });
+
   it('No se puede derivar Q solo de P', () => {
     const theory = makeTheory({
       a1: atom('P'),

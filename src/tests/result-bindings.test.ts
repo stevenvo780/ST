@@ -63,6 +63,36 @@ describe('Captured action results', () => {
     expect(bindings.get('firstRef')?.value).toBe(1);
   });
 
+  it('captures derive results that reference let-bound premises', () => {
+    const interp = new Interpreter();
+    const out = interp.execute(
+      `
+        logic classical.propositional
+        let p1 = !(!P | !Q)
+        let p2 = R -> !S
+        let p3 = R | !Q
+        let deriv = derive !S from {p1, p2, p3}
+      `,
+      '<test>',
+    );
+
+    expect(out.exitCode).toBe(0);
+
+    const bindings = interp.getLetBindings();
+    expect(bindings.get('deriv.status')?.name).toBe('"provable"');
+    expect(bindings.get('deriv.proof_method')?.name).toBe('"natural_deduction"');
+    expect(bindings.get('deriv.semantic_fallback')?.value).toBe(0);
+    expect(bindings.get('deriv.steps_count')?.kind).toBe('number');
+    expect(bindings.get('deriv.steps_count')?.value ?? 0).toBeGreaterThan(0);
+
+    const justifications = bindings.get('deriv.step_justifications')?.args ?? [];
+    expect(
+      justifications.some(
+        (entry) => entry.kind === 'atom' && entry.name === '"Silogismo disyuntivo"',
+      ),
+    ).toBe(true);
+  });
+
   it('allows numeric comparison helpers inside logical if branches', () => {
     const interp = new Interpreter();
     const out = interp.execute(

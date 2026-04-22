@@ -324,7 +324,8 @@ export class ClassicalFirstOrder implements LogicProfile {
         trace.push(`[Iter] ⚠ Se alcanzó el límite de pasos (20000).`);
         return { closed: false, trace };
       }
-      const b = stack.pop()!;
+      const b = stack.pop();
+      if (!b) break;
       const { nodes, constants, processed, gammaCounters, univScope } = b;
 
       if (nodes.length === 0) return { closed: false, trace };
@@ -390,13 +391,17 @@ export class ClassicalFirstOrder implements LogicProfile {
               eqRight &&
               eqLeft.kind === 'atom' &&
               eqRight.kind === 'atom' &&
+              eqLeft.name &&
+              eqRight.name &&
               eqLeft.name !== eqRight.name
             ) {
+              const leftName = eqLeft.name;
+              const rightName = eqRight.name;
               // Ley de Leibniz: si a=b, reemplazar a por b en el resto de nodos
               // Hacemos el reemplazo y NO volvemos a evaluar ESTA igualdad.
               nextProcessed.add(key);
               const nextNodes = rest.map((n) => ({
-                formula: this.substitute(n.formula, eqLeft.name!, eqRight.name!),
+                formula: this.substitute(n.formula, leftName, rightName),
               }));
               // Y simétricamente (a veces a=b y necesitamos reemplazar b por a si b estaba)
               // Pero es suficiente reemplazar a por b en todo. La igualdad 'b=b' se evalúa a verdadero.

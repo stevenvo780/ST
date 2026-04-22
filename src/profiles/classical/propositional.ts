@@ -978,6 +978,10 @@ function isNegationOf(a: Formula, b: Formula): boolean {
   return a.kind === 'not' && !!a.args?.[0] && formulasEqual(a.args[0], b);
 }
 
+function areComplementary(a: Formula, b: Formula): boolean {
+  return isNegationOf(a, b) || isNegationOf(b, a);
+}
+
 function isExcludedMiddleFormula(formula: Formula): boolean {
   if (formula.kind !== 'or' || !formula.args?.[0] || !formula.args?.[1]) return false;
   return (
@@ -1359,16 +1363,19 @@ function tryDerive(
             ]) || changed;
         }
 
-        // Silogismo disyuntivo: de (A | B) y !A, derivar B / de !B, derivar A
-        if (f1.kind === 'or' && f1.args?.[0] && f1.args?.[1] && f2.kind === 'not' && f2.args?.[0]) {
-          if (formulasEqual(f1.args[0], f2.args[0])) {
+        // Silogismo disyuntivo: de (A | B) y un complemento de A, derivar B /
+        // de un complemento de B, derivar A.
+        // Esto cubre tanto !A como fórmulas positivas que complementan un disyunto negado
+        // (p. ej. Q complementa a !Q).
+        if (f1.kind === 'or' && f1.args?.[0] && f1.args?.[1]) {
+          if (areComplementary(f1.args[0], f2)) {
             changed =
               addDerivedFormula(state, f1.args[1], 'Silogismo disyuntivo', [
                 findStep(state.steps, f1),
                 findStep(state.steps, f2),
               ]) || changed;
           }
-          if (formulasEqual(f1.args[1], f2.args[0])) {
+          if (areComplementary(f1.args[1], f2)) {
             changed =
               addDerivedFormula(state, f1.args[0], 'Silogismo disyuntivo', [
                 findStep(state.steps, f1),
