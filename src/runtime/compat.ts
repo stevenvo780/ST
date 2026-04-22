@@ -409,9 +409,7 @@ function extractJustifiedStep(rest: string): { formula: string; refs: string[] }
 }
 
 function extractPrefixJustifiedStep(rest: string): { formula: string; refs: string[] } | null {
-  const refsMatch = rest.match(
-    /^(.+?)\s+(?:\(|\[)?\s*(\d+(?:\s*,\s*\d+)*)\s*(?:\)|\])?\s+(.+)$/,
-  );
+  const refsMatch = rest.match(/^(.+?)\s+(?:\(|\[)?\s*(\d+(?:\s*,\s*\d+)*)\s*(?:\)|\])?\s+(.+)$/);
   if (!refsMatch) {
     return null;
   }

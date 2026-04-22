@@ -959,6 +959,12 @@ export class Interpreter {
     condition: 'valid' | 'satisfiable' | 'unsatisfiable' | 'invalid',
     formula: Formula,
   ): boolean {
+    const runtimeTruthiness = this.getRuntimeTruthiness(formula);
+    if (runtimeTruthiness !== null) {
+      if (condition === 'valid' || condition === 'satisfiable') return runtimeTruthiness;
+      return !runtimeTruthiness;
+    }
+
     if (profile.name === 'arithmetic') {
       const numeric = evalNumeric(formula);
       const truthy = !Number.isNaN(numeric) && numeric !== 0;
@@ -975,6 +981,21 @@ export class Interpreter {
     return condition === 'satisfiable'
       ? result.status === 'satisfiable' || result.status === 'valid'
       : result.status === 'unsatisfiable';
+  }
+
+  private getRuntimeTruthiness(formula: Formula): boolean | null {
+    switch (formula.kind) {
+      case 'number':
+        return !Number.isNaN(formula.value ?? 0) && (formula.value ?? 0) !== 0;
+      case 'list':
+        return (formula.args?.length ?? 0) > 0;
+      case 'true':
+        return true;
+      case 'false':
+        return false;
+      default:
+        return null;
+    }
   }
 
   private evaluateFormulaValue(formula: Formula): Formula {
@@ -2839,6 +2860,7 @@ export class Interpreter {
             ['goal', goal],
             ['premises', this.createListFormula(premiseFormulas, action.source)],
             ['premise_names', this.createStringListFormula(premises, action.source)],
+            ...this.createProofBindings(result, action.source),
           ],
         };
       }
@@ -2858,6 +2880,7 @@ export class Interpreter {
             ['goal', goal],
             ['premises', this.createListFormula(premiseFormulas, action.source)],
             ['premise_names', this.createStringListFormula(premises, action.source)],
+            ...this.createProofBindings(result, action.source),
           ],
         };
       }
@@ -2993,11 +3016,92 @@ export class Interpreter {
     );
   }
 
+  private createNumberFormula(value: number, source?: Formula['source']): Formula {
+    return {
+      kind: 'number',
+      value,
+      source,
+    };
+  }
+
+  private createNumberListFormula(items: number[], source?: Formula['source']): Formula {
+    return this.createListFormula(
+      items.map((item) => this.createNumberFormula(item, source)),
+      source,
+    );
+  }
+
+  private createNestedNumberListFormula(items: number[][], source?: Formula['source']): Formula {
+    return this.createListFormula(
+      items.map((entry) => this.createNumberListFormula(entry, source)),
+      source,
+    );
+  }
+
   private createStringListFormula(items: string[], source?: Formula['source']): Formula {
     return this.createListFormula(
       items.map((item) => this.createStringFormula(item, source)),
       source,
     );
+  }
+
+  private createProofBindings(
+    result: RunResult,
+    source?: Formula['source'],
+  ): Array<[string, Formula]> {
+    const steps = result.proof?.steps ?? [];
+
+    return [
+      [
+        'steps',
+        this.createListFormula(
+          steps.map((step) => step.formula),
+          source,
+        ),
+      ],
+      [
+        'steps_formulas',
+        this.createListFormula(
+          steps.map((step) => step.formula),
+          source,
+        ),
+      ],
+      ['steps_count', this.createNumberFormula(steps.length, source)],
+      [
+        'step_numbers',
+        this.createNumberListFormula(
+          steps.map((step) => step.stepNumber),
+          source,
+        ),
+      ],
+      [
+        'step_justifications',
+        this.createStringListFormula(
+          steps.map((step) => step.justification),
+          source,
+        ),
+      ],
+      [
+        'step_premises',
+        this.createNestedNumberListFormula(
+          steps.map((step) => step.premises),
+          source,
+        ),
+      ],
+      [
+        'step_sources',
+        this.createStringListFormula(
+          steps.map((step) => step.source ?? ''),
+          source,
+        ),
+      ],
+      ['proof_method', this.createStringFormula(result.proof?.method ?? '', source)],
+      ['proof_status', this.createStringFormula(result.proof?.status ?? '', source)],
+      [
+        'semantic_fallback',
+        this.createNumberFormula(result.proof?.metadata?.semanticFallback ? 1 : 0, source),
+      ],
+    ];
   }
 
   private isSuccessfulStatus(status: RunResult['status']): boolean {

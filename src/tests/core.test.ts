@@ -4,6 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { ClassicalPropositional, formulaToString } from '../profiles/classical/propositional';
+import { Interpreter } from '../runtime/interpreter';
 import { Formula, Theory } from '../types';
 
 function makeTheory(axioms: Record<string, Formula>): Theory {
@@ -246,7 +247,9 @@ describe('ClassicalPropositional.derive', () => {
     const result = cp.derive(and(implies(atom('P'), atom('Q')), atom('P')), ['a1', 'a2'], theory);
     expect(result.status).toBe('provable');
     expect(result.proof?.method).toBe('natural_deduction');
-    expect(result.proof?.steps.some((step) => step.justification === 'Introduccion de conjuncion')).toBe(true);
+    expect(
+      result.proof?.steps.some((step) => step.justification === 'Introduccion de conjuncion'),
+    ).toBe(true);
   });
 
   it('meta bicondicional desde hechos: P, Q |- P<->Q sin fallback semantico', () => {
@@ -257,7 +260,9 @@ describe('ClassicalPropositional.derive', () => {
     const result = cp.derive(biconditional(atom('P'), atom('Q')), ['a1', 'a2'], theory);
     expect(result.status).toBe('provable');
     expect(result.proof?.method).toBe('natural_deduction');
-    expect(result.proof?.steps.some((step) => step.justification === 'Introduccion de bicondicional')).toBe(true);
+    expect(
+      result.proof?.steps.some((step) => step.justification === 'Introduccion de bicondicional'),
+    ).toBe(true);
   });
 
   it('meta bicondicional mixta: P, !Q |- P<->!Q sin fallback semantico', () => {
@@ -268,7 +273,9 @@ describe('ClassicalPropositional.derive', () => {
     const result = cp.derive(biconditional(atom('P'), not(atom('Q'))), ['a1', 'a2'], theory);
     expect(result.status).toBe('provable');
     expect(result.proof?.method).toBe('natural_deduction');
-    expect(result.proof?.steps.some((step) => step.justification === 'Introduccion de bicondicional')).toBe(true);
+    expect(
+      result.proof?.steps.some((step) => step.justification === 'Introduccion de bicondicional'),
+    ).toBe(true);
   });
 
   it('backchaining con antecedente conjuntivo: P, Q, (P&Q)->R |- R', () => {
@@ -292,7 +299,9 @@ describe('ClassicalPropositional.derive', () => {
     const result = cp.derive(and(atom('P'), atom('R')), ['a1', 'a2', 'a3'], theory);
     expect(result.status).toBe('provable');
     expect(result.proof?.method).toBe('natural_deduction');
-    expect(result.proof?.steps.some((step) => step.justification === 'Introduccion de conjuncion')).toBe(true);
+    expect(
+      result.proof?.steps.some((step) => step.justification === 'Introduccion de conjuncion'),
+    ).toBe(true);
   });
 
   it('adjunta metadatos de exploracion y alternativas derivacionales', () => {
@@ -343,6 +352,54 @@ describe('ClassicalPropositional.derive', () => {
         premises: [5, 4],
       },
     ]);
+  });
+
+  it('evita fallback semantico en cadena exportacion + prueba condicional + modus tollens', () => {
+    const theory = makeTheory({
+      p1: implies(atom('P'), not(implies(atom('Q'), atom('R')))),
+      p2: implies(and(atom('S'), atom('Q')), atom('R')),
+      p3: atom('S'),
+    });
+    const result = cp.derive(not(atom('P')), ['p1', 'p2', 'p3'], theory);
+
+    expect(result.status).toBe('provable');
+    expect(result.proof?.method).toBe('natural_deduction');
+    expect(result.proof?.metadata?.semanticFallback).toBe(false);
+    expect(result.proof?.steps.every((step) => step.source !== 'semantic')).toBe(true);
+    expect(result.proof?.steps.some((step) => step.justification === 'Modus Tollens')).toBe(true);
+    expect(
+      result.proof?.steps.some(
+        (step) =>
+          step.justification === 'Prueba Condicional (Teorema de Deduccion)' &&
+          formulaToString(step.formula) === '(Q -> R)',
+      ),
+    ).toBe(true);
+  });
+
+  it('reproduce el script del usuario sin caer a verificacion semantica', () => {
+    const interp = new Interpreter();
+    const out = interp.execute(
+      `
+        logic classical.propositional
+
+        let p1 = P -> !(Q -> R)
+        let p2 = (S & Q) -> R
+        let p3 = S
+
+        let c = !P
+
+        derive c from {p1,p2,p3}
+      `,
+      '<test>',
+    );
+
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).not.toContain('verificación semántica');
+    expect(out.stdout).not.toContain('Verificacion semantica');
+    expect(out.results[0]?.status).toBe('provable');
+    expect(out.results[0]?.proof?.method).toBe('natural_deduction');
+    expect(out.results[0]?.proof?.metadata?.semanticFallback).toBe(false);
+    expect(out.results[0]?.proof?.steps.every((step) => step.source !== 'semantic')).toBe(true);
   });
 
   it('No se puede derivar Q solo de P', () => {

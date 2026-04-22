@@ -2251,6 +2251,58 @@ function tryDerive(
     }
   }
 
+  // Backchaining dirigido por meta para Modus Tollens:
+  // Si la meta es ¬A y conocemos A → B, intentamos derivar ¬B.
+  // Si la meta es ¬A y conocemos A → ¬B, intentamos derivar B.
+  if (depth < MAX_SUB_DEPTH && goal.kind === 'not' && goal.args?.[0]) {
+    const negatedAntecedent = goal.args[0];
+    const candidateImplications = state.formulas.filter(
+      (formula) =>
+        formula.kind === 'implies' &&
+        !!formula.args?.[0] &&
+        !!formula.args?.[1] &&
+        formulasEqual(formula.args[0], negatedAntecedent),
+    );
+
+    for (const implication of candidateImplications) {
+      const consequent = implication.args?.[1];
+      if (!consequent) continue;
+
+      const counterGoal =
+        consequent.kind === 'not' && consequent.args?.[0]
+          ? consequent.args[0]
+          : ({ kind: 'not', args: [consequent] } as Formula);
+
+      if (formulasEqual(counterGoal, goal) || formulasEqual(counterGoal, negatedAntecedent)) {
+        continue;
+      }
+
+      const counterProof = tryDerive(counterGoal, theory, premiseNames, depth + 1);
+      if (!counterProof || counterProof.status !== 'complete') continue;
+
+      const counterIsSyntactic = counterProof.steps.every((step) => step.source !== 'semantic');
+      if (!counterIsSyntactic) continue;
+
+      const implicationProof = buildKnownDerivationProof(state, implication, premiseNames, theory);
+      const mainSteps = buildMergedGoalProof(
+        state.steps,
+        [implicationProof, counterProof],
+        goal,
+        'Modus Tollens',
+      );
+
+      return buildProof(
+        goal,
+        mainSteps,
+        premiseNames,
+        theory,
+        'natural_deduction',
+        [implicationProof, counterProof],
+        buildCompositeDerivationMetadata(state, mainSteps, [implicationProof, counterProof]),
+      );
+    }
+  }
+
   // Meta conjuntiva (∧-Introducción dirigida por meta): derivar ambos componentes por separado.
   if (depth < MAX_SUB_DEPTH && goal.kind === 'and' && goal.args?.[0] && goal.args?.[1]) {
     const leftGoal = goal.args[0];

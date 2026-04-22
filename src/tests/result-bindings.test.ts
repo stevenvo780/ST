@@ -27,6 +27,99 @@ describe('Captured action results', () => {
     expect(bindings.get('same')?.value).toBe(1);
   });
 
+  it('captures proof steps as list bindings and allows indexing them', () => {
+    const interp = new Interpreter();
+    const out = interp.execute(
+      `
+        logic classical.propositional
+        axiom a1 = P -> Q
+        axiom a2 = P
+        let deriv = derive Q from {a1, a2}
+        let total = len(deriv.steps)
+        let third = at(deriv.steps, 2)
+        let thirdOk = formula_eq(third, Q)
+        let just = at(deriv.step_justifications, 2)
+        let refs = at(deriv.step_premises, 2)
+        let firstRef = at(refs, 0)
+      `,
+      '<test>',
+    );
+
+    expect(out.exitCode).toBe(0);
+
+    const bindings = interp.getLetBindings();
+    expect(bindings.get('deriv.steps')?.kind).toBe('list');
+    expect(bindings.get('deriv.steps_formulas')?.kind).toBe('list');
+    expect(bindings.get('deriv.steps_count')?.value).toBe(3);
+    expect(bindings.get('deriv.proof_method')?.name).toBe('"natural_deduction"');
+    expect(bindings.get('deriv.semantic_fallback')?.value).toBe(0);
+    expect(bindings.get('total')?.value).toBe(3);
+    expect(bindings.get('third')?.kind).toBe('atom');
+    expect(bindings.get('third')?.name).toBe('Q');
+    expect(bindings.get('thirdOk')?.value).toBe(1);
+    expect(bindings.get('just')?.name).toBe('"Modus Ponens"');
+    expect(bindings.get('refs')?.kind).toBe('list');
+    expect(bindings.get('firstRef')?.kind).toBe('number');
+    expect(bindings.get('firstRef')?.value).toBe(1);
+  });
+
+  it('allows numeric comparison helpers inside logical if branches', () => {
+    const interp = new Interpreter();
+    const out = interp.execute(
+      `
+        logic classical.propositional
+        axiom a1 = P -> Q
+        axiom a2 = P
+        let deriv = derive Q from {a1, a2}
+        let third = at(deriv.steps, 2)
+
+        if valid formula_eq(third, Q) {
+          print "step_match"
+        }
+
+        if invalid formula_eq(third, P) {
+          print "step_diff"
+        }
+      `,
+      '<test>',
+    );
+
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout).toContain('step_match');
+    expect(out.stdout).toContain('step_diff');
+  });
+
+  it('supports bracket indexing syntax as sugar for at()', () => {
+    const interp = new Interpreter();
+    const out = interp.execute(
+      `
+        logic classical.propositional
+        axiom a1 = P -> Q
+        axiom a2 = P
+        let deriv = derive Q from {a1, a2}
+        let third = deriv.steps[2]
+        let firstRef = deriv.step_premises[2][0]
+        let ok = formula_eq(deriv.steps[2], Q)
+
+        if valid formula_eq(deriv.steps[2], Q) {
+          print "indexed_match"
+        }
+      `,
+      '<test>',
+    );
+
+    expect(out.exitCode).toBe(0);
+
+    const bindings = interp.getLetBindings();
+    expect(bindings.get('third')?.kind).toBe('atom');
+    expect(bindings.get('third')?.name).toBe('Q');
+    expect(bindings.get('firstRef')?.kind).toBe('number');
+    expect(bindings.get('firstRef')?.value).toBe(1);
+    expect(bindings.get('ok')?.kind).toBe('number');
+    expect(bindings.get('ok')?.value).toBe(1);
+    expect(out.stdout).toContain('indexed_match');
+  });
+
   it('decomposes formulas into list values and supports indexing helpers', () => {
     const interp = new Interpreter();
     const out = interp.execute(

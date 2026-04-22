@@ -17,10 +17,6 @@ interface FONode {
 }
 
 /** Extended Set that carries per-formula Gamma counters for loop control */
-interface ProcessedSetWithGamma extends Set<string> {
-  __gammaCounters?: Map<string, number>;
-}
-
 // ── Transforms ─────────────────────────────────────────────────────────────
 
 let varCounter = 0;
@@ -312,13 +308,15 @@ export class ClassicalFirstOrder implements LogicProfile {
       univScope: string[];
     }
 
-    const stack: Branch[] = [{
-      nodes: initialNodes,
-      constants: initialConstants,
-      processed: new Set(),
-      gammaCounters: new Map(),
-      univScope: []
-    }];
+    const stack: Branch[] = [
+      {
+        nodes: initialNodes,
+        constants: initialConstants,
+        processed: new Set(),
+        gammaCounters: new Map(),
+        univScope: [],
+      },
+    ];
 
     let steps = 0;
     while (stack.length > 0) {
@@ -343,11 +341,11 @@ export class ClassicalFirstOrder implements LogicProfile {
         }
         // Contradicción por igualdad: a != a
         if (n1.formula.kind === 'not' && n1.formula.args && n1.formula.args[0].kind === 'equals') {
-            const eq = n1.formula.args[0];
-            if (this.isEqual((eq.args||[])[0], (eq.args||[])[1])) {
-                closed = true;
-                break;
-            }
+          const eq = n1.formula.args[0];
+          if (this.isEqual((eq.args || [])[0], (eq.args || [])[1])) {
+            closed = true;
+            break;
+          }
         }
       }
       if (closed) {
@@ -377,7 +375,7 @@ export class ClassicalFirstOrder implements LogicProfile {
         const key = formulaToString(f);
 
         if (p !== 'gamma' && p !== 'atom' && p !== 'equals' && processed.has(key)) {
-            continue;
+          continue;
         }
 
         applied = true;
@@ -387,33 +385,48 @@ export class ClassicalFirstOrder implements LogicProfile {
         switch (f.kind) {
           case 'equals': {
             const [eqLeft, eqRight] = f.args ?? [];
-            if (eqLeft && eqRight && eqLeft.kind === 'atom' && eqRight.kind === 'atom' && eqLeft.name !== eqRight.name) {
-                // Ley de Leibniz: si a=b, reemplazar a por b en el resto de nodos
-                // Hacemos el reemplazo y NO volvemos a evaluar ESTA igualdad.
-                nextProcessed.add(key);
-                const nextNodes = rest.map(n => ({
-                    formula: this.substitute(n.formula, eqLeft.name!, eqRight.name!)
-                }));
-                // Y simétricamente (a veces a=b y necesitamos reemplazar b por a si b estaba)
-                // Pero es suficiente reemplazar a por b en todo. La igualdad 'b=b' se evalúa a verdadero.
-                stack.push({
-                    nodes: nextNodes,
-                    constants, processed: nextProcessed, gammaCounters, univScope
-                });
+            if (
+              eqLeft &&
+              eqRight &&
+              eqLeft.kind === 'atom' &&
+              eqRight.kind === 'atom' &&
+              eqLeft.name !== eqRight.name
+            ) {
+              // Ley de Leibniz: si a=b, reemplazar a por b en el resto de nodos
+              // Hacemos el reemplazo y NO volvemos a evaluar ESTA igualdad.
+              nextProcessed.add(key);
+              const nextNodes = rest.map((n) => ({
+                formula: this.substitute(n.formula, eqLeft.name!, eqRight.name!),
+              }));
+              // Y simétricamente (a veces a=b y necesitamos reemplazar b por a si b estaba)
+              // Pero es suficiente reemplazar a por b en todo. La igualdad 'b=b' se evalúa a verdadero.
+              stack.push({
+                nodes: nextNodes,
+                constants,
+                processed: nextProcessed,
+                gammaCounters,
+                univScope,
+              });
             } else {
-                nextProcessed.add(key);
-                stack.push({
-                    nodes: rest,
-                    constants, processed: nextProcessed, gammaCounters, univScope
-                });
+              nextProcessed.add(key);
+              stack.push({
+                nodes: rest,
+                constants,
+                processed: nextProcessed,
+                gammaCounters,
+                univScope,
+              });
             }
             break;
           }
           case 'and': {
             const [left, right] = f.args ?? [];
             stack.push({
-                nodes: [{ formula: left }, { formula: right }, ...rest],
-                constants, processed: nextProcessed, gammaCounters, univScope
+              nodes: [{ formula: left }, { formula: right }, ...rest],
+              constants,
+              processed: nextProcessed,
+              gammaCounters,
+              univScope,
             });
             break;
           }
@@ -424,32 +437,47 @@ export class ClassicalFirstOrder implements LogicProfile {
             const newC = `f${skolemCounter++}${skArgs}`;
             const nextConstants = new Set(constants).add(newC);
             stack.push({
-                nodes: [{ formula: this.substitute(body, variable, newC) }, ...rest],
-                constants: nextConstants, processed: nextProcessed, gammaCounters, univScope
+              nodes: [{ formula: this.substitute(body, variable, newC) }, ...rest],
+              constants: nextConstants,
+              processed: nextProcessed,
+              gammaCounters,
+              univScope,
             });
             break;
           }
           case 'or': {
             const [orLeft, orRight] = f.args ?? [];
             stack.push({
-                nodes: [{ formula: orRight }, ...rest],
-                constants, processed: new Set(nextProcessed), gammaCounters: new Map(gammaCounters), univScope
+              nodes: [{ formula: orRight }, ...rest],
+              constants,
+              processed: new Set(nextProcessed),
+              gammaCounters: new Map(gammaCounters),
+              univScope,
             });
             stack.push({
-                nodes: [{ formula: orLeft }, ...rest],
-                constants, processed: nextProcessed, gammaCounters, univScope
+              nodes: [{ formula: orLeft }, ...rest],
+              constants,
+              processed: nextProcessed,
+              gammaCounters,
+              univScope,
             });
             break;
           }
           case 'implies': {
             const [impLeft, impRight] = f.args ?? [];
             stack.push({
-                nodes: [{ formula: impRight }, ...rest],
-                constants, processed: new Set(nextProcessed), gammaCounters: new Map(gammaCounters), univScope
+              nodes: [{ formula: impRight }, ...rest],
+              constants,
+              processed: new Set(nextProcessed),
+              gammaCounters: new Map(gammaCounters),
+              univScope,
             });
             stack.push({
-                nodes: [{ formula: { kind: 'not', args: [impLeft] } }, ...rest],
-                constants, processed: nextProcessed, gammaCounters, univScope
+              nodes: [{ formula: { kind: 'not', args: [impLeft] } }, ...rest],
+              constants,
+              processed: nextProcessed,
+              gammaCounters,
+              univScope,
             });
             break;
           }
@@ -458,8 +486,11 @@ export class ClassicalFirstOrder implements LogicProfile {
             const gammaCount = gammaCounters.get(gammaKey) ?? 0;
             if (gammaCount >= 20) {
               stack.push({
-                  nodes: rest,
-                  constants, processed: nextProcessed, gammaCounters, univScope
+                nodes: rest,
+                constants,
+                processed: nextProcessed,
+                gammaCounters,
+                univScope,
               });
               break;
             }
@@ -467,15 +498,18 @@ export class ClassicalFirstOrder implements LogicProfile {
             nextGammaCounters.set(gammaKey, gammaCount + 1);
             const [forallBody] = f.args ?? [];
             const forallVar = f.variable ?? '';
-            
+
             const newInsts = Array.from(constants).map((c) => ({
               formula: this.substitute(forallBody, forallVar, c),
             }));
-            
+
             const nextUnivScope = [...univScope, forallVar];
             stack.push({
-                nodes: [...newInsts, ...rest, node],
-                constants, processed: nextProcessed, gammaCounters: nextGammaCounters, univScope: nextUnivScope
+              nodes: [...newInsts, ...rest, node],
+              constants,
+              processed: nextProcessed,
+              gammaCounters: nextGammaCounters,
+              univScope: nextUnivScope,
             });
             break;
           }
@@ -484,19 +518,24 @@ export class ClassicalFirstOrder implements LogicProfile {
       }
 
       if (!applied) {
-          const hasUnprocessed = nodes.some(n => {
-              const t = type(n.formula);
-              return t !== 'atom' && t !== 'equals' && !processed.has(formulaToString(n.formula));
+        const hasUnprocessed = nodes.some((n) => {
+          const t = type(n.formula);
+          return t !== 'atom' && t !== 'equals' && !processed.has(formulaToString(n.formula));
+        });
+        if (hasUnprocessed) {
+          const cleanNodes = nodes.filter(
+            (n) => type(n.formula) === 'atom' || type(n.formula) === 'equals',
+          );
+          stack.push({
+            nodes: cleanNodes,
+            constants,
+            processed,
+            gammaCounters,
+            univScope,
           });
-          if (hasUnprocessed) {
-              const cleanNodes = nodes.filter(n => type(n.formula) === 'atom' || type(n.formula) === 'equals');
-              stack.push({
-                  nodes: cleanNodes,
-                  constants, processed, gammaCounters, univScope
-              });
-          } else {
-              return { closed: false, trace };
-          }
+        } else {
+          return { closed: false, trace };
+        }
       }
     }
 
@@ -522,4 +561,3 @@ export class ClassicalFirstOrder implements LogicProfile {
     return formulaToString(a) === formulaToString(b);
   }
 }
-

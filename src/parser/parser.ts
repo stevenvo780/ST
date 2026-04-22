@@ -1278,10 +1278,27 @@ export class Parser {
       const operand = this.parseUnary();
       return { kind: 'temporal_next', args: [operand], source: this.loc() };
     }
-    return this.parseAtom();
+    return this.parsePostfix();
   }
 
-  private parseAtom(): Formula {
+  private parsePostfix(): Formula {
+    let expr = this.parsePrimary();
+
+    while (this.match(TokenType.LBRACKET)) {
+      const index = this.parseFormula();
+      this.expect(TokenType.RBRACKET);
+      expr = {
+        kind: 'fn_call',
+        name: 'at',
+        args: [expr, index],
+        source: expr.source ?? index.source ?? this.loc(),
+      };
+    }
+
+    return expr;
+  }
+
+  private parsePrimary(): Formula {
     // Constantes lógicas ⊤/⊥ (true/false/verdadero/falso)
     if (this.checkType(TokenType.TRUE_CONST)) {
       const tok = this.current();
@@ -1451,7 +1468,7 @@ export class Parser {
         // FOL igualdad: P(x) = Q(y) (raro pero posible)
         if (this.checkType(TokenType.EQUALS)) {
           this.advance();
-          const right = this.parseAtom();
+          const right = this.parsePrimary();
           return {
             kind: 'equals',
             args: [predFormula, right],
@@ -1527,6 +1544,10 @@ export class Parser {
     switch (f.kind) {
       case 'atom':
         return f.name || '?';
+      case 'list':
+        return `[${(f.args ?? []).map((a) => this.formulaToString(a)).join(', ')}]`;
+      case 'number':
+        return f.value !== undefined ? String(f.value) : '?';
       case 'not':
         return arg0 ? `!${this.formulaToString(arg0)}` : '!?';
       case 'modal_necessity':
@@ -1589,6 +1610,8 @@ export class Parser {
         return arg0 && arg1
           ? `(${this.formulaToString(arg0)} U ${this.formulaToString(arg1)})`
           : '(? U ?)';
+      case 'fn_call':
+        return `${f.name || '?'}(${(f.args ?? []).map((a) => this.formulaToString(a)).join(', ')})`;
       default:
         return '?';
     }
