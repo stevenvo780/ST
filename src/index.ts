@@ -74,6 +74,10 @@ export {
   registerInterpretation,
 } from './text-layer/compiler';
 
+// Text Layer 2.0 — grafo de claims con dependencias e invalidación propagada
+export { ClaimGraph, CycleError } from './text-layer/v2';
+export type { Claim, ClaimValidation, ClaimSource, ClaimEvaluator } from './text-layer/v2';
+
 // Runtime
 export { Interpreter } from './runtime/interpreter';
 
@@ -136,3 +140,13 @@ export type { Exercise, ExerciseLevel, ExerciseKind } from './educational';
 // SMT bridge
 export { toSMTLIB, MockSMTBackend, SubprocessSMTBackend, detectAvailableSMT } from './runtime/smt';
 export type { SMTBackend } from './runtime/smt';
+
+// Citation Reasoning (δ3)
+export { deriveWithCitations, explainProof } from './citation-reasoning';
+export type {
+  CitedClaim,
+  CitationDerivation,
+  CitationDerivationResult,
+  DerivationStep,
+  Evaluator,
+} from './citation-reasoning';
