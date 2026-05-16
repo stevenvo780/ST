@@ -417,3 +417,8 @@ export type {
 } from './types';
 
 export type { Program, Statement } from './ast/nodes';
+
+// ── TypeChecker ───────────────────────────────────────────────
+
+export { typeCheck, TypeChecker } from './runtime/typecheck';
+export type { TypeError } from './runtime/typecheck';

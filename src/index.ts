@@ -82,3 +82,7 @@ export { ProtocolHandler } from './protocol/handler';
 
 // REPL
 export { REPL } from './repl/repl';
+
+// TypeChecker (validación estática con sugerencias humanas)
+export { typeCheck, TypeChecker } from './runtime/typecheck';
+export type { TypeError } from './runtime/typecheck';
