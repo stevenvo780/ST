@@ -500,9 +500,9 @@ function createNodeWorker(code: string): WorkerLike {
 function createBrowserWorker(code: string): WorkerLike {
   const blob = new Blob([code], { type: 'application/javascript' });
   const url = URL.createObjectURL(blob);
-  // Browser Worker — globalThis access requiere any cast porque no tenemos lib:dom
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-  const W = (globalThis as any).Worker as { new (url: string): any };
+  // Browser Worker — globalThis.Worker no existe en lib:node; cast inevitable sin lib:dom
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const W = (globalThis as any).Worker as { new (url: string): any }; // allow-any
   const w = new W(url) as {
     postMessage: (msg: unknown) => void;
     terminate: () => void;
