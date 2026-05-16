@@ -503,7 +503,7 @@ describe('formulaToLaTeX', () => {
 
 describe('proofToLaTeX', () => {
   it('empty proof returns empty string', () => {
-    expect(proofToLaTeX({ steps: [] })).toBe('');
+    expect(proofToLaTeX({ steps: [] } as any)).toBe('');
   });
 
   it('proof without steps returns empty string', () => {

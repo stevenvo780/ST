@@ -307,7 +307,7 @@ describe('ProbabilisticBasic.truthTable', () => {
     const f = and(inner, atom('R'));
     const tt = profile.truthTable(f);
     // subFormulas should include the or subformula
-    expect(tt.subFormulas.length).toBeGreaterThan(0);
+    expect((tt.subFormulas ?? []).length).toBeGreaterThan(0);
   });
 });
 
