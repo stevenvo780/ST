@@ -3,6 +3,7 @@
  * Targets: formulaToUnicode, formulaToLaTeX, proofToLaTeX
  * Current coverage: ~52% stmts, ~43% branch
  */
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- test stubs use partial any casts for brevity */
 
 import { describe, it, expect } from 'vitest';
 import { formulaToUnicode, formulaToLaTeX, proofToLaTeX } from '../runtime/format';
@@ -21,8 +22,16 @@ const nor = (a: Formula, b: Formula): Formula => ({ kind: 'nor', args: [a, b] })
 const xor = (a: Formula, b: Formula): Formula => ({ kind: 'xor', args: [a, b] });
 const box = (a: Formula): Formula => ({ kind: 'modal_necessity', args: [a] });
 const dia = (a: Formula): Formula => ({ kind: 'modal_possibility', args: [a] });
-const forall = (v: string, body: Formula): Formula => ({ kind: 'forall', variable: v, args: [body] });
-const exists = (v: string, body: Formula): Formula => ({ kind: 'exists', variable: v, args: [body] });
+const forall = (v: string, body: Formula): Formula => ({
+  kind: 'forall',
+  variable: v,
+  args: [body],
+});
+const exists = (v: string, body: Formula): Formula => ({
+  kind: 'exists',
+  variable: v,
+  args: [body],
+});
 const pred = (name: string, ...params: string[]): Formula => ({ kind: 'predicate', name, params });
 const equals = (a: Formula, b: Formula): Formula => ({ kind: 'equals', args: [a, b] });
 const next = (a: Formula): Formula => ({ kind: 'temporal_next', args: [a] });
@@ -512,9 +521,7 @@ describe('proofToLaTeX', () => {
 
   it('axiom step (0 premises) generates AxiomC', () => {
     const proof = {
-      steps: [
-        { formula: atom('P'), justification: 'Axiom', premises: [] },
-      ],
+      steps: [{ formula: atom('P'), justification: 'Axiom', premises: [] }],
     };
     const latex = proofToLaTeX(proof as any);
     expect(latex).toContain('\\AxiomC{$P$}');
@@ -524,9 +531,7 @@ describe('proofToLaTeX', () => {
 
   it('unary step (1 premise) generates UnaryInfC', () => {
     const proof = {
-      steps: [
-        { formula: atom('Q'), justification: 'MP', premises: [0] },
-      ],
+      steps: [{ formula: atom('Q'), justification: 'MP', premises: [0] }],
     };
     const latex = proofToLaTeX(proof as any);
     expect(latex).toContain('\\UnaryInfC{$Q$}');
@@ -535,9 +540,7 @@ describe('proofToLaTeX', () => {
 
   it('binary step (2 premises) generates BinaryInfC', () => {
     const proof = {
-      steps: [
-        { formula: atom('R'), justification: 'Conj', premises: [0, 1] },
-      ],
+      steps: [{ formula: atom('R'), justification: 'Conj', premises: [0, 1] }],
     };
     const latex = proofToLaTeX(proof as any);
     expect(latex).toContain('\\BinaryInfC{$R$}');
@@ -546,9 +549,7 @@ describe('proofToLaTeX', () => {
 
   it('ternary step (3 premises) generates TrinaryInfC', () => {
     const proof = {
-      steps: [
-        { formula: atom('S'), justification: 'Tri', premises: [0, 1, 2] },
-      ],
+      steps: [{ formula: atom('S'), justification: 'Tri', premises: [0, 1, 2] }],
     };
     const latex = proofToLaTeX(proof as any);
     expect(latex).toContain('\\TrinaryInfC{$S$}');
@@ -556,9 +557,7 @@ describe('proofToLaTeX', () => {
 
   it('step with 4+ premises falls back to UnaryInfC with comment', () => {
     const proof = {
-      steps: [
-        { formula: atom('T'), justification: 'Multi', premises: [0, 1, 2, 3] },
-      ],
+      steps: [{ formula: atom('T'), justification: 'Multi', premises: [0, 1, 2, 3] }],
     };
     const latex = proofToLaTeX(proof as any);
     expect(latex).toContain('\\UnaryInfC{$T$}');

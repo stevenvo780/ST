@@ -12,7 +12,7 @@
 
 import { Token, TokenType } from '../lexer/tokens';
 import { Lexer } from '../lexer/lexer';
-import { Formula, Diagnostic, SourceLocation } from '../types';
+import { Formula, Diagnostic } from '../types';
 import { normalizeSTSource } from '../runtime/compat';
 import {
   Program,

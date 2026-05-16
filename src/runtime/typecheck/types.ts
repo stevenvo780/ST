@@ -5,9 +5,9 @@
 import type { SourceLocation } from '../../types';
 
 export interface TypeError {
-  code: string;       // ej 'TC001'
+  code: string; // ej 'TC001'
   severity: 'error' | 'warning';
-  message: string;    // mensaje humano
+  message: string; // mensaje humano
   suggestion?: string; // "did you mean..."
   location: SourceLocation;
 }
@@ -23,9 +23,7 @@ export const MODAL_PROFILES = new Set<string>([
 ]);
 
 // Perfil considerado "temporal" (permite temporal_next, temporal_until)
-export const TEMPORAL_PROFILES = new Set<string>([
-  'temporal.ltl',
-]);
+export const TEMPORAL_PROFILES = new Set<string>(['temporal.ltl']);
 
 // Perfil considerado "first-order" (permite forall, exists, predicate)
 export const FIRST_ORDER_PROFILES = new Set<string>([
@@ -35,9 +33,7 @@ export const FIRST_ORDER_PROFILES = new Set<string>([
 ]);
 
 // Perfil con soporte aritmético
-export const ARITHMETIC_PROFILES = new Set<string>([
-  'arithmetic',
-]);
+export const ARITHMETIC_PROFILES = new Set<string>(['arithmetic']);
 
 // Nombres de perfil normalizados
 export type ProfileName = string;

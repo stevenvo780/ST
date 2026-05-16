@@ -3,6 +3,7 @@
  * Current coverage: ~30% stmts, ~38% branch
  * Uses: AristotelianSyllogistic directly + evaluate() API
  */
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- test stubs use partial any casts for brevity */
 
 import { describe, it, expect } from 'vitest';
 import { evaluate } from '../api';
@@ -17,31 +18,35 @@ const atom = (name: string): Formula => ({ kind: 'atom', name });
 const not = (a: Formula): Formula => ({ kind: 'not', args: [a] });
 const and = (a: Formula, b: Formula): Formula => ({ kind: 'and', args: [a, b] });
 const implies = (a: Formula, b: Formula): Formula => ({ kind: 'implies', args: [a, b] });
-const forall = (v: string, body: Formula): Formula => ({ kind: 'forall', variable: v, args: [body] });
-const exists = (v: string, body: Formula): Formula => ({ kind: 'exists', variable: v, args: [body] });
+const forall = (v: string, body: Formula): Formula => ({
+  kind: 'forall',
+  variable: v,
+  args: [body],
+});
+const exists = (v: string, body: Formula): Formula => ({
+  kind: 'exists',
+  variable: v,
+  args: [body],
+});
 const pred = (name: string): Formula => ({ kind: 'predicate', name, params: ['x'] });
 
 // ── Categorical propositions as quantified formulas ───────────────────────────
 
 // A: Todo S es P — ∀x(S(x) → P(x))
-const universal_aff = (S: string, P: string): Formula =>
-  forall('x', implies(pred(S), pred(P)));
+const universal_aff = (S: string, P: string): Formula => forall('x', implies(pred(S), pred(P)));
 
 // E: Ningún S es P — ∀x(S(x) → ¬P(x))
 const universal_neg = (S: string, P: string): Formula =>
   forall('x', implies(pred(S), not(pred(P))));
 
 // I: Algún S es P — ∃x(S(x) ∧ P(x))
-const particular_aff = (S: string, P: string): Formula =>
-  exists('x', and(pred(S), pred(P)));
+const particular_aff = (S: string, P: string): Formula => exists('x', and(pred(S), pred(P)));
 
 // O: Algún S no es P — ∃x(S(x) ∧ ¬P(x))
-const particular_neg = (S: string, P: string): Formula =>
-  exists('x', and(pred(S), not(pred(P))));
+const particular_neg = (S: string, P: string): Formula => exists('x', and(pred(S), not(pred(P))));
 
 // Syllogism formula: (P1 ∧ P2) → C
-const syllogism = (p1: Formula, p2: Formula, c: Formula): Formula =>
-  implies(and(p1, p2), c);
+const syllogism = (p1: Formula, p2: Formula, c: Formula): Formula => implies(and(p1, p2), c);
 
 const emptyTheory = () => ({
   axioms: new Map<string, Formula>(),
@@ -61,7 +66,7 @@ describe('AristotelianSyllogistic.checkWellFormed', () => {
 
   it('plain atom gives warning (not categorical)', () => {
     const diags = profile.checkWellFormed(atom('P'));
-    expect(diags.some(d => d.severity === 'warning')).toBe(true);
+    expect(diags.some((d) => d.severity === 'warning')).toBe(true);
   });
 
   it('particular affirmative is well-formed', () => {
@@ -241,7 +246,7 @@ describe('AristotelianSyllogistic.prove', () => {
     theory.axioms.set('a1', universal_aff('M', 'P'));
     const goal = universal_aff('S', 'P');
     const result = profile.prove(goal, theory as any, ['a1', 'nonexistent']);
-    expect(result.diagnostics?.some(d => d.severity === 'warning')).toBe(true);
+    expect(result.diagnostics?.some((d) => d.severity === 'warning')).toBe(true);
   });
 
   it('non-categorical goal returns unknown', () => {

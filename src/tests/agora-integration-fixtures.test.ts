@@ -12,7 +12,10 @@ interface STIntegrationFixture {
 }
 
 const fixtures = JSON.parse(
-  readFileSync(path.resolve(process.cwd(), '../packages/agora-contracts/fixtures/st-integration.json'), 'utf8')
+  readFileSync(
+    path.resolve(process.cwd(), '../packages/agora-contracts/fixtures/st-integration.json'),
+    'utf8',
+  ),
 ) as STIntegrationFixture[];
 
 describe('Agora integration fixtures', () => {
@@ -26,14 +29,18 @@ describe('Agora integration fixtures', () => {
         expect(result.results[0]?.proof?.method).toBe(fixture.expectedProofMethod);
       }
       for (const justification of fixture.expectedJustifications ?? []) {
-        expect(result.results[0]?.proof?.steps.some((step) => step.justification === justification)).toBe(true);
+        expect(
+          result.results[0]?.proof?.steps.some((step) => step.justification === justification),
+        ).toBe(true);
       }
     });
   }
 
   it('createInterpreter mantiene compatibilidad con el flujo que consume AgoraFront', () => {
     const st = createInterpreter();
-    const result = st.exec(fixtures[0]?.source ?? 'logic classical.propositional\ncheck valid (P -> P)');
+    const result = st.exec(
+      fixtures[0]?.source ?? 'logic classical.propositional\ncheck valid (P -> P)',
+    );
     expect(result.ok).toBe(true);
     expect(result.results[0]?.status).toBe(fixtures[0]?.expectedStatus ?? 'valid');
   });

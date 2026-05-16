@@ -3,6 +3,7 @@
  * Current coverage: ~35% stmts, ~33% branch
  * Uses: evaluate() API with logic probabilistic.basic
  */
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- test stubs use partial any casts for brevity */
 
 import { describe, it, expect } from 'vitest';
 import { evaluate } from '../api';
@@ -36,7 +37,7 @@ const emptyTheory = () => ({
 describe('ProbabilisticBasic.checkWellFormed', () => {
   it('atom without name gives error', () => {
     const diags = profile.checkWellFormed({ kind: 'atom' });
-    expect(diags.some(d => d.severity === 'error')).toBe(true);
+    expect(diags.some((d) => d.severity === 'error')).toBe(true);
   });
 
   it('named atom is well-formed', () => {
@@ -46,18 +47,18 @@ describe('ProbabilisticBasic.checkWellFormed', () => {
 
   it('modal operator gives warning', () => {
     const diags = profile.checkWellFormed({ kind: 'modal_necessity', args: [atom('P')] });
-    expect(diags.some(d => d.severity === 'warning')).toBe(true);
+    expect(diags.some((d) => d.severity === 'warning')).toBe(true);
   });
 
   it('modal_possibility gives warning', () => {
     const diags = profile.checkWellFormed({ kind: 'modal_possibility', args: [atom('P')] });
-    expect(diags.some(d => d.severity === 'warning')).toBe(true);
+    expect(diags.some((d) => d.severity === 'warning')).toBe(true);
   });
 
   it('complex formula walks recursively', () => {
     const f = and(atom('P'), { kind: 'atom' }); // nested unnamed atom
     const diags = profile.checkWellFormed(f);
-    expect(diags.some(d => d.severity === 'error')).toBe(true);
+    expect(diags.some((d) => d.severity === 'error')).toBe(true);
   });
 });
 
@@ -173,7 +174,7 @@ describe('ProbabilisticBasic.prove', () => {
     const theory = emptyTheory();
     const goal = atom('P');
     const result = profile.prove(goal, theory as any, ['nonexistent']);
-    expect(result.diagnostics?.some(d => d.severity === 'warning')).toBe(true);
+    expect(result.diagnostics?.some((d) => d.severity === 'warning')).toBe(true);
   });
 
   it('with theorems in theory', () => {

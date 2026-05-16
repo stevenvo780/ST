@@ -169,7 +169,9 @@ export function visit<T>(node: Statement, visitor: ASTVisitor<T>): T {
       return visitor.visitGlossaryCmd(node);
     default: {
       const _exhaustive: never = node;
-      throw new Error(`visit: kind no manejado en switch exhaustivo: ${JSON.stringify(_exhaustive)}`);
+      throw new Error(
+        `visit: kind no manejado en switch exhaustivo: ${JSON.stringify(_exhaustive)}`,
+      );
     }
   }
 }

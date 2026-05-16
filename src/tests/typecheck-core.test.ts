@@ -19,6 +19,7 @@ function tc(source: string, profile = ''): TypeError[] {
   return typeCheck(result.program, profile, 'test.st');
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- utilidad para debug, puede usarse en pruebas futuras
 function codes(errors: TypeError[]): string[] {
   return errors.map((e) => e.code);
 }
@@ -246,10 +247,13 @@ describe('TC006 — duplicate declaration', () => {
 
 describe('TC007 — importación circular', () => {
   it('import del propio archivo emite TC007', () => {
-    const result = parse(`
+    const result = parse(
+      `
       import "test.st"
       logic classical.propositional
-    `, 'test.st');
+    `,
+      'test.st',
+    );
     if (!result.ok || !result.program) return;
     const errors = typeCheck(result.program, '', 'test.st');
     expect(hasCode(errors, 'TC007')).toBe(true);

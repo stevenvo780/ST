@@ -2,6 +2,7 @@
  * Coverage fill — src/profiles/paraconsistent/belnap.ts
  * Current coverage: ~55% stmts, ~46% branch
  */
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- test stubs use partial any casts for brevity */
 
 import { describe, it, expect } from 'vitest';
 import { evaluate } from '../api';
@@ -35,13 +36,13 @@ describe('ParaconsistentBelnap.checkWellFormed', () => {
 
   it('unnamed atom gives error', () => {
     const diags = profile.checkWellFormed({ kind: 'atom' });
-    expect(diags.some(d => d.severity === 'error')).toBe(true);
+    expect(diags.some((d) => d.severity === 'error')).toBe(true);
   });
 
   it('checks nested args recursively', () => {
     const f = and(atom('P'), { kind: 'atom' });
     const diags = profile.checkWellFormed(f);
-    expect(diags.some(d => d.severity === 'error')).toBe(true);
+    expect(diags.some((d) => d.severity === 'error')).toBe(true);
   });
 
   it('complex well-formed formula', () => {
@@ -279,10 +280,7 @@ describe('ParaconsistentBelnap.checkEquivalent', () => {
   });
 
   it('P∧Q and Q∧P are equivalent', () => {
-    const result = profile.checkEquivalent(
-      and(atom('P'), atom('Q')),
-      and(atom('Q'), atom('P'))
-    );
+    const result = profile.checkEquivalent(and(atom('P'), atom('Q')), and(atom('Q'), atom('P')));
     expect(result.status).toBe('valid');
   });
 });

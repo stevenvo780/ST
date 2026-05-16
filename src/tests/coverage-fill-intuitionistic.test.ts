@@ -2,6 +2,7 @@
  * Coverage fill — src/profiles/intuitionistic/propositional.ts
  * Current coverage: ~48% stmts, ~34% branch
  */
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- test stubs use partial any casts for brevity */
 
 import { describe, it, expect } from 'vitest';
 import { evaluate } from '../api';
@@ -40,23 +41,23 @@ describe('IntuitionisticPropositional.checkWellFormed', () => {
 
   it('unnamed atom gives error', () => {
     const diags = profile.checkWellFormed({ kind: 'atom' });
-    expect(diags.some(d => d.severity === 'error')).toBe(true);
+    expect(diags.some((d) => d.severity === 'error')).toBe(true);
   });
 
   it('modal_necessity gives warning', () => {
     const diags = profile.checkWellFormed(box(atom('P')));
-    expect(diags.some(d => d.severity === 'warning')).toBe(true);
+    expect(diags.some((d) => d.severity === 'warning')).toBe(true);
   });
 
   it('modal_possibility gives warning', () => {
     const diags = profile.checkWellFormed(dia(atom('P')));
-    expect(diags.some(d => d.severity === 'warning')).toBe(true);
+    expect(diags.some((d) => d.severity === 'warning')).toBe(true);
   });
 
   it('nested formula checks recursively', () => {
     const f = and(atom('P'), { kind: 'atom' });
     const diags = profile.checkWellFormed(f);
-    expect(diags.some(d => d.severity === 'error')).toBe(true);
+    expect(diags.some((d) => d.severity === 'error')).toBe(true);
   });
 });
 
@@ -90,7 +91,7 @@ describe('IntuitionisticPropositional.checkValid — IPC laws', () => {
 
   it('P→(Q→(P∧Q)) is valid in IPC', () => {
     const result = profile.checkValid(
-      implies(atom('P'), implies(atom('Q'), and(atom('P'), atom('Q'))))
+      implies(atom('P'), implies(atom('Q'), and(atom('P'), atom('Q')))),
     );
     expect(result.status).toBe('valid');
   });
@@ -118,7 +119,7 @@ describe('IntuitionisticPropositional.checkValid — IPC laws', () => {
 
   it('Peirce law ((P→Q)→P)→P is NOT valid in IPC', () => {
     const result = profile.checkValid(
-      implies(implies(implies(atom('P'), atom('Q')), atom('P')), atom('P'))
+      implies(implies(implies(atom('P'), atom('Q')), atom('P')), atom('P')),
     );
     expect(result.status).toBe('invalid');
   });
@@ -219,7 +220,7 @@ describe('IntuitionisticPropositional.prove', () => {
   it('warning for missing premise in restricted prove', () => {
     const theory = emptyTheory();
     const result = profile.prove(atom('P'), theory as any, ['nonexistent']);
-    expect(result.diagnostics?.some(d => d.severity === 'warning')).toBe(true);
+    expect(result.diagnostics?.some((d) => d.severity === 'warning')).toBe(true);
   });
 
   it('uses theorems as well', () => {
@@ -310,10 +311,7 @@ describe('IntuitionisticPropositional.checkEquivalent', () => {
   });
 
   it('P∧Q ≡ Q∧P', () => {
-    const result = profile.checkEquivalent(
-      and(atom('P'), atom('Q')),
-      and(atom('Q'), atom('P'))
-    );
+    const result = profile.checkEquivalent(and(atom('P'), atom('Q')), and(atom('Q'), atom('P')));
     expect(result.status).toBe('valid');
   });
 });

@@ -367,9 +367,7 @@ function parsePrimary(s: ParserState): Formula {
           // box_not: e.g. deontic F(φ) = □(¬φ)
           return {
             kind: 'modal_necessity',
-            args: [
-              { kind: 'not', args: [inner], source: { line: tok.line, column: tok.column } },
-            ],
+            args: [{ kind: 'not', args: [inner], source: { line: tok.line, column: tok.column } }],
             source: { line: tok.line, column: tok.column },
           };
         }

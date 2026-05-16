@@ -230,7 +230,7 @@ describe('listProfiles()', () => {
 
   it('contains modal profiles', () => {
     const profiles = listProfiles();
-    expect(profiles.some(p => p.startsWith('modal.'))).toBe(true);
+    expect(profiles.some((p) => p.startsWith('modal.'))).toBe(true);
   });
 
   it('contains intuitionistic profile', () => {
@@ -253,7 +253,7 @@ check valid P -> P`;
   });
 
   it('returns hover info on keyword position', () => {
-    const result = hover(source, 1, 1);
+    hover(source, 1, 1);
     // Should return something or null without crashing
     expect(true).toBe(true);
   });
@@ -279,7 +279,7 @@ axiom a2 : P`;
   it('finds axiom symbols', () => {
     const result = symbols(source);
     // Should list a1, a2 as symbols
-    expect(result.some(s => s.name === 'a1' || s.name === 'a2')).toBe(true);
+    expect(result.some((s) => s.name === 'a1' || s.name === 'a2')).toBe(true);
   });
 
   it('with file argument', () => {
@@ -378,11 +378,14 @@ describe('formulaToLaTeX (re-exported)', () => {
 
 describe('detectFallacies (re-exported)', () => {
   it('works from api export', () => {
+    /* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment -- test requires incomplete LogicProfile stub */
+    const stubProfile = {} as any;
     const result = detectFallacies(
       [{ kind: 'atom', name: 'P' }],
       { kind: 'atom', name: 'P' },
-      {} as any
+      stubProfile,
     );
+    /* eslint-enable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment */
     expect(Array.isArray(result)).toBe(true);
   });
 });

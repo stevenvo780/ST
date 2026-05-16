@@ -9,7 +9,7 @@ import { Interpreter } from '../runtime/interpreter';
 import type { Formula } from '../types';
 
 // Ensure registry is populated by creating an interpreter
-const _interp = new Interpreter();
+new Interpreter();
 // The registry is exported from profiles/interface
 import { registry } from '../profiles/interface';
 

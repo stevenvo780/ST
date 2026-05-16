@@ -2,6 +2,7 @@
  * Coverage fill — src/runtime/fallacies.ts
  * Current coverage: ~65% stmts, ~48% branch
  */
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- test stubs use partial any casts for brevity */
 
 import { describe, it, expect } from 'vitest';
 import { detectFallacies } from '../runtime/fallacies';
@@ -14,8 +15,16 @@ const not = (a: Formula): Formula => ({ kind: 'not', args: [a] });
 const and = (a: Formula, b: Formula): Formula => ({ kind: 'and', args: [a, b] });
 const or = (a: Formula, b: Formula): Formula => ({ kind: 'or', args: [a, b] });
 const implies = (a: Formula, b: Formula): Formula => ({ kind: 'implies', args: [a, b] });
-const forall = (v: string, body: Formula): Formula => ({ kind: 'forall', variable: v, args: [body] });
-const exists = (v: string, body: Formula): Formula => ({ kind: 'exists', variable: v, args: [body] });
+const forall = (v: string, body: Formula): Formula => ({
+  kind: 'forall',
+  variable: v,
+  args: [body],
+});
+const exists = (v: string, body: Formula): Formula => ({
+  kind: 'exists',
+  variable: v,
+  args: [body],
+});
 const pred = (name: string, ...params: string[]): Formula => ({ kind: 'predicate', name, params });
 
 // Stub profile (not used in most checkers)
@@ -29,7 +38,9 @@ describe('detectFallacies — valid argument', () => {
     const conclusion = atom('Q');
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
     // modus ponens is valid — no fallacy expected
-    expect(fallacies.filter(f => f.name !== 'Petición de principio (Petitio Principii)')).toHaveLength(0);
+    expect(
+      fallacies.filter((f) => f.name !== 'Petición de principio (Petitio Principii)'),
+    ).toHaveLength(0);
   });
 });
 
@@ -40,14 +51,14 @@ describe('Afirmación del consecuente', () => {
     const premises = [implies(atom('P'), atom('Q')), atom('Q')];
     const conclusion = atom('P');
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Afirmación del consecuente')).toBe(true);
+    expect(fallacies.some((f) => f.name === 'Afirmación del consecuente')).toBe(true);
   });
 
   it('no detection when conclusion is the consequent', () => {
     const premises = [implies(atom('P'), atom('Q')), atom('P')];
     const conclusion = atom('Q');
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Afirmación del consecuente')).toBe(false);
+    expect(fallacies.some((f) => f.name === 'Afirmación del consecuente')).toBe(false);
   });
 });
 
@@ -58,21 +69,21 @@ describe('Negación del antecedente', () => {
     const premises = [implies(atom('P'), atom('Q')), not(atom('P'))];
     const conclusion = not(atom('Q'));
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Negación del antecedente')).toBe(true);
+    expect(fallacies.some((f) => f.name === 'Negación del antecedente')).toBe(true);
   });
 
   it('no detection when conclusion is not negated', () => {
     const premises = [implies(atom('P'), atom('Q')), not(atom('P'))];
     const conclusion = atom('Q');
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Negación del antecedente')).toBe(false);
+    expect(fallacies.some((f) => f.name === 'Negación del antecedente')).toBe(false);
   });
 
   it('no detection when antecedent is not denied', () => {
     const premises = [implies(atom('P'), atom('Q')), atom('R')];
     const conclusion = not(atom('Q'));
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Negación del antecedente')).toBe(false);
+    expect(fallacies.some((f) => f.name === 'Negación del antecedente')).toBe(false);
   });
 });
 
@@ -86,14 +97,14 @@ describe('Medio no distribuido', () => {
     const premises = [implies(P, M), implies(S, M)];
     const conclusion = implies(S, P);
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Medio no distribuido')).toBe(true);
+    expect(fallacies.some((f) => f.name === 'Medio no distribuido')).toBe(true);
   });
 
   it('no detection when conclusion is not implication', () => {
     const premises = [implies(atom('A'), atom('M')), implies(atom('B'), atom('M'))];
     const conclusion = atom('C');
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Medio no distribuido')).toBe(false);
+    expect(fallacies.some((f) => f.name === 'Medio no distribuido')).toBe(false);
   });
 });
 
@@ -107,7 +118,7 @@ describe('Falacia de composición', () => {
     const premises = [implies(A, C), implies(B, C)];
     const conclusion = implies(and(A, B), C);
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Falacia de composición')).toBe(true);
+    expect(fallacies.some((f) => f.name === 'Falacia de composición')).toBe(true);
   });
 
   it('no detection when conclusion antecedent is not AND', () => {
@@ -116,7 +127,7 @@ describe('Falacia de composición', () => {
     const premises = [implies(A, C)];
     const conclusion = implies(A, C);
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Falacia de composición')).toBe(false);
+    expect(fallacies.some((f) => f.name === 'Falacia de composición')).toBe(false);
   });
 });
 
@@ -129,14 +140,14 @@ describe('Posible falso dilema', () => {
     const premises = [or(P, Q), not(P)];
     const conclusion = Q;
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Posible falso dilema')).toBe(true);
+    expect(fallacies.some((f) => f.name === 'Posible falso dilema')).toBe(true);
   });
 
   it('no detection when disjunction not in premises', () => {
     const premises = [atom('P'), not(atom('Q'))];
     const conclusion = atom('R');
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Posible falso dilema')).toBe(false);
+    expect(fallacies.some((f) => f.name === 'Posible falso dilema')).toBe(false);
   });
 
   it('no detection when conclusion matches left of disjunction', () => {
@@ -145,7 +156,7 @@ describe('Posible falso dilema', () => {
     const premises = [or(P, Q), not(Q)];
     const conclusion = atom('X'); // doesn't match right side
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Posible falso dilema')).toBe(false);
+    expect(fallacies.some((f) => f.name === 'Posible falso dilema')).toBe(false);
   });
 });
 
@@ -157,21 +168,27 @@ describe('Petición de principio', () => {
     const premises = [P, implies(atom('Q'), atom('R'))];
     const conclusion = P;
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Petición de principio (Petitio Principii)')).toBe(true);
+    expect(fallacies.some((f) => f.name === 'Petición de principio (Petitio Principii)')).toBe(
+      true,
+    );
   });
 
   it('no detection when conclusion not in premises', () => {
     const premises = [atom('P'), atom('Q')];
     const conclusion = atom('R');
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Petición de principio (Petitio Principii)')).toBe(false);
+    expect(fallacies.some((f) => f.name === 'Petición de principio (Petitio Principii)')).toBe(
+      false,
+    );
   });
 
   it('detects complex formula in premises', () => {
     const conclusion = implies(atom('P'), atom('Q'));
     const premises = [conclusion, atom('R')];
     const fallacies = detectFallacies(premises, conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Petición de principio (Petitio Principii)')).toBe(true);
+    expect(fallacies.some((f) => f.name === 'Petición de principio (Petitio Principii)')).toBe(
+      true,
+    );
   });
 });
 
@@ -184,7 +201,7 @@ describe('Conversión ilícita', () => {
     const premise = forall('x', implies(pA, pB));
     const conclusion = forall('x', implies(pB, pA));
     const fallacies = detectFallacies([premise], conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Conversión ilícita')).toBe(true);
+    expect(fallacies.some((f) => f.name === 'Conversión ilícita')).toBe(true);
   });
 
   it('no detection for valid conclusion', () => {
@@ -194,14 +211,14 @@ describe('Conversión ilícita', () => {
     const conclusion = forall('x', implies(pA, pB)); // same, not converted
     // Will detect petitio principii but not illicit conversion
     const fallacies = detectFallacies([premise], conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Conversión ilícita')).toBe(false);
+    expect(fallacies.some((f) => f.name === 'Conversión ilícita')).toBe(false);
   });
 
   it('no detection when conclusion is not forall', () => {
     const premise = forall('x', implies(pred('A', 'x'), pred('B', 'x')));
     const conclusion = atom('C');
     const fallacies = detectFallacies([premise], conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Conversión ilícita')).toBe(false);
+    expect(fallacies.some((f) => f.name === 'Conversión ilícita')).toBe(false);
   });
 });
 
@@ -214,7 +231,7 @@ describe('Generalización apresurada', () => {
     const premise = exists('x', and(S, P));
     const conclusion = forall('x', implies(S, P));
     const fallacies = detectFallacies([premise], conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Generalización apresurada')).toBe(true);
+    expect(fallacies.some((f) => f.name === 'Generalización apresurada')).toBe(true);
   });
 
   it('no detection when conclusion is existential', () => {
@@ -223,7 +240,7 @@ describe('Generalización apresurada', () => {
     const premise = exists('x', and(S, P));
     const conclusion = exists('x', and(S, P));
     const fallacies = detectFallacies([premise], conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Generalización apresurada')).toBe(false);
+    expect(fallacies.some((f) => f.name === 'Generalización apresurada')).toBe(false);
   });
 });
 
@@ -240,7 +257,9 @@ describe('Cuatro términos', () => {
     const p2 = forall('x', implies(C, D));
     const conclusion = forall('x', implies(A, D));
     const fallacies = detectFallacies([p1, p2], conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Falacia de cuatro términos (Quaternio terminorum)')).toBe(true);
+    expect(
+      fallacies.some((f) => f.name === 'Falacia de cuatro términos (Quaternio terminorum)'),
+    ).toBe(true);
   });
 
   it('no detection for exactly 3 terms', () => {
@@ -251,7 +270,9 @@ describe('Cuatro términos', () => {
     const p2 = forall('x', implies(B, C));
     const conclusion = forall('x', implies(A, C));
     const fallacies = detectFallacies([p1, p2], conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Falacia de cuatro términos (Quaternio terminorum)')).toBe(false);
+    expect(
+      fallacies.some((f) => f.name === 'Falacia de cuatro términos (Quaternio terminorum)'),
+    ).toBe(false);
   });
 
   it('no detection with only 1 premise', () => {
@@ -262,7 +283,9 @@ describe('Cuatro términos', () => {
     const p1 = forall('x', implies(A, B));
     const conclusion = forall('x', implies(C, D));
     const fallacies = detectFallacies([p1], conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Falacia de cuatro términos (Quaternio terminorum)')).toBe(false);
+    expect(
+      fallacies.some((f) => f.name === 'Falacia de cuatro términos (Quaternio terminorum)'),
+    ).toBe(false);
   });
 });
 
@@ -276,7 +299,7 @@ describe('Falacia de división', () => {
     const premise = implies(and(A, B), C);
     const conclusion = implies(A, C);
     const fallacies = detectFallacies([premise], conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Falacia de división')).toBe(true);
+    expect(fallacies.some((f) => f.name === 'Falacia de división')).toBe(true);
   });
 
   it('no detection when conclusion is not implication', () => {
@@ -286,7 +309,7 @@ describe('Falacia de división', () => {
     const premise = implies(and(A, B), C);
     const conclusion = atom('D');
     const fallacies = detectFallacies([premise], conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Falacia de división')).toBe(false);
+    expect(fallacies.some((f) => f.name === 'Falacia de división')).toBe(false);
   });
 
   it('no detection when premise antecedent is not AND', () => {
@@ -295,7 +318,7 @@ describe('Falacia de división', () => {
     const premise = implies(A, C);
     const conclusion = implies(atom('B'), C);
     const fallacies = detectFallacies([premise], conclusion, dummyProfile);
-    expect(fallacies.some(f => f.name === 'Falacia de división')).toBe(false);
+    expect(fallacies.some((f) => f.name === 'Falacia de división')).toBe(false);
   });
 });
 
@@ -316,6 +339,6 @@ describe('Multiple fallacies', () => {
   it('empty premises returns only possible petitio', () => {
     const fallacies = detectFallacies([], atom('P'), dummyProfile);
     // No premises means no premises-based fallacies
-    expect(fallacies.some(f => f.name === 'Afirmación del consecuente')).toBe(false);
+    expect(fallacies.some((f) => f.name === 'Afirmación del consecuente')).toBe(false);
   });
 });

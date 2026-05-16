@@ -492,7 +492,6 @@ export class TypeChecker extends BaseASTVisitor<TypeError[]> {
 
   override visitTheoryDecl(node: TheoryDeclNode): TypeError[] {
     const errors: TypeError[] = [];
-    const location = loc(node);
     const theoryScope = mkScope(this.scope);
 
     // Registrar la teoría en el scope externo
@@ -700,11 +699,7 @@ export class TypeChecker extends BaseASTVisitor<TypeError[]> {
  * @param file    Nombre del archivo (para TC007)
  * @returns Lista de TypeError[]  — vacía si no hay errores
  */
-export function typeCheck(
-  program: Program,
-  profile: ProfileName = '',
-  file?: string,
-): TypeError[] {
+export function typeCheck(program: Program, profile: ProfileName = '', file?: string): TypeError[] {
   const checker = new TypeChecker(profile, file ?? program.file ?? '<unknown>');
   const errors: TypeError[] = [];
 

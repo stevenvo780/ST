@@ -86,3 +86,53 @@ export { REPL } from './repl/repl';
 // TypeChecker (validación estática con sugerencias humanas)
 export { typeCheck, TypeChecker } from './runtime/typecheck';
 export type { TypeError } from './runtime/typecheck';
+
+// AST visitor (nuevo en v4)
+export { visit, visitProgram, BaseASTVisitor } from './ast/visitor';
+export type { ASTVisitor } from './ast/visitor';
+
+// CDCL v2
+export { solveCDCLv2 } from './solver/cdcl-v2';
+
+// Parallel pool
+export { evalParallel, shutdownPool } from './runtime/parallel';
+export type { ParallelEvalOptions, ParallelEvalResult } from './runtime/parallel';
+
+// Memoization
+export { DerivationCache, hashFormula } from './runtime/memo';
+
+// Streaming
+export { streamEval } from './runtime/streaming';
+export type { StreamEvent } from './runtime/streaming';
+
+// Coq exporter
+export { exportToCoq, exportProofToCoq } from './exporters/coq';
+
+// Argumentation (Dung framework)
+export {
+  computeExtensions,
+  isAdmissible,
+  isConflictFree,
+  defends,
+  dotExport,
+} from './argumentation';
+export type { ArgumentationFramework, Semantics } from './argumentation';
+
+// FOL prover
+export { proveFOL, unify, skolemize, toCNF } from './fol-prover';
+
+// Proof exchange
+export { canonicalize, hashProof, signProof, verifyProof, generateKeyPair } from './proof-exchange';
+export type { ProofPackage } from './proof-exchange';
+
+// Time-travel
+export { captureSnapshot, SnapshotStore } from './time-travel';
+export type { STSnapshot, SnapshotDiff } from './time-travel';
+
+// Educational
+export { generateExercise, checkAnswer, generateLessonPath } from './educational';
+export type { Exercise, ExerciseLevel, ExerciseKind } from './educational';
+
+// SMT bridge
+export { toSMTLIB, MockSMTBackend, SubprocessSMTBackend, detectAvailableSMT } from './runtime/smt';
+export type { SMTBackend } from './runtime/smt';
