@@ -7,7 +7,7 @@
 **ST** es un lenguaje ejecutable para lógica, argumentación y formalización documental.
 Combina verificación formal, scripting declarativo, control de flujo, funciones, perfiles lógicos múltiples y una **Text Layer** para conectar fórmulas con texto humano real.
 
-[![Version](https://img.shields.io/badge/version-3.1.1-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-3.3.0-blue.svg)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
 
@@ -30,8 +30,8 @@ Combina verificación formal, scripting declarativo, control de flujo, funciones
 
 | Distribución | Paquete | Comando |
 |--------------|---------|---------|
-| **Debian / Ubuntu** | [⬇️ `.deb`](https://github.com/stevenvo780/ST/releases/latest/download/st-lang_3.1.1_amd64.deb) | `sudo dpkg -i st-lang_*.deb` |
-| **Fedora / RHEL** | [⬇️ `.rpm`](https://github.com/stevenvo780/ST/releases/latest/download/st-lang-3.1.1-1.x86_64.rpm) | `sudo rpm -i st-lang-*.rpm` |
+| **Debian / Ubuntu** | [⬇️ `.deb`](https://github.com/stevenvo780/ST/releases/latest/download/st-lang_3.3.0_amd64.deb) | `sudo dpkg -i st-lang_*.deb` |
+| **Fedora / RHEL** | [⬇️ `.rpm`](https://github.com/stevenvo780/ST/releases/latest/download/st-lang-3.3.0-1.x86_64.rpm) | `sudo rpm -i st-lang-*.rpm` |
 | **Linux genérico** | [⬇️ binario](https://github.com/stevenvo780/ST/releases/latest/download/st) | `chmod +x st && sudo mv st /usr/local/bin/` |
 
 ### Con npm
@@ -49,6 +49,44 @@ npm install
 npm run build
 npm link
 ```
+
+---
+
+## Novedades en 3.3
+
+### AST visitors tipados
+
+Refactor del parser monolítico a un sistema de visitors con tipos exhaustivos.
+
+```typescript
+import { visit, BaseASTVisitor } from '@stevenvo780/st-lang/ast';
+
+class MyVisitor extends BaseASTVisitor<string> {
+  visitDerive(node) { return `derive: ${node.conclusion}`; }
+  // TypeScript exige manejar cada variante del AST
+}
+
+const result = visit(programAST, new MyVisitor());
+```
+
+### Type checker en runtime
+
+Valida programas antes de ejecutarlos. Detecta 7 categorías de error
+(TC001–TC008) con sugerencias automáticas vía distancia Levenshtein.
+
+```typescript
+import { typeCheck, evaluate } from '@stevenvo780/st-lang';
+
+const errors = typeCheck(programAST, 'classical', 'file.st');
+if (errors.length === 0) {
+  const result = evaluate(programAST, 'classical');
+}
+```
+
+### Cobertura y benchmarks
+
+- Tests: 1621 (cobertura 78.81%, subió desde 71%).
+- Suite de benchmarks formal con baselines y detección de regresión de rendimiento.
 
 ---
 
@@ -402,10 +440,12 @@ La extensión oficial en `editors/vscode-st` aporta:
 
 ## Arquitectura
 
-1. **Lexer/Parser**: transforma el script `.st` en AST.
-2. **Interpreter**: ejecuta statements, mantiene teoría, bindings, funciones y Text Layer.
-3. **Profiles**: cada perfil implementa derivación, validez, satisfacibilidad, explicación y más.
-4. **ProtocolHandler**: expone capacidades para integraciones de editor.
+1. **Lexer/Parser**: transforma el script `.st` en AST tipado.
+2. **AST Visitors** (`ASTVisitor<T>`, `BaseASTVisitor<T>`): traversal exhaustivo y tipado sobre el AST; reemplaza el parser monolítico de versiones anteriores.
+3. **Type Checker** (`typeCheck`): validación estática en runtime antes de la ejecución; 7 reglas (TC001–TC008) con sugerencias Levenshtein.
+4. **Interpreter**: ejecuta statements, mantiene teoría, bindings, funciones y Text Layer.
+5. **Profiles**: cada perfil implementa derivación, validez, satisfacibilidad, explicación y más.
+6. **ProtocolHandler**: expone capacidades para integraciones de editor.
 
 ---
 

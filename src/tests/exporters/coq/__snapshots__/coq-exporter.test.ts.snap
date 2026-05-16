@@ -1,0 +1,37 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`exportToCoq — snapshot stability > (P ∧ Q) → P snapshot is stable 1`] = `
+"Require Import Classical.
+
+Module STExport.
+  Definition stmt : Prop := ((P /\\ Q) -> P).
+  Theorem stmt_proof : stmt.
+  Proof.
+    intros H. destruct H as [HL _]. exact HL.
+  Qed.
+End STExport."
+`;
+
+exports[`exportToCoq — snapshot stability > P → P snapshot is stable 1`] = `
+"Require Import Classical.
+
+Module STExport.
+  Definition stmt : Prop := (P -> P).
+  Theorem stmt_proof : stmt.
+  Proof.
+    intros P H. exact H.
+  Qed.
+End STExport."
+`;
+
+exports[`exportToCoq — snapshot stability > ∀x. P(x) → ∃y. P(y) snapshot is stable 1`] = `
+"Require Import Classical.
+
+Module STExport.
+  Definition stmt : Prop := (forall x : Prop, ((P x) -> (exists y : Prop, (P y)))).
+  Theorem stmt_proof : stmt.
+  Proof.
+    intro x. intro H. exists y. exact H.
+  Qed.
+End STExport."
+`;
