@@ -49,6 +49,9 @@
     "test": "vitest run",
     "test:stress": "vitest run src/tests/stress-hardware.test.ts",
     "test:all": "bash ./scripts/run-exhaustive-validation.sh",
+    "bench": "vitest bench --run --config vitest.bench.config.ts",
+    "bench:save": "vitest bench --run --config vitest.bench.config.ts && cp benchmarks/results.json benchmarks/baselines.json",
+    "bench:compare": "node scripts/bench/compare.mjs",
     "examples:run": "bash ./scripts/run-all-examples.sh",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -93,6 +96,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "prettier": "^3.8.1",
+    "semver": "^7.8.0",
     "typescript": "^5.4.0",
     "typescript-eslint": "^8.57.1",
     "vitest": "^4.1.0"
