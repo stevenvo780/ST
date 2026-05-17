@@ -733,3 +733,55 @@ export const __internals = {
   isqrt,
   pow2,
 };
+
+// ── Helpers de conveniencia ─────────────────────────────────
+// Compatibilidad con código que usa la API de un solo argumento
+// (fromRational(q) donde q es un número racional como float) y
+// utilidades numéricas de alto nivel.
+
+/** Crea un CReal desde un número racional (float). Usa fromInt para enteros. */
+export function fromFloat(q: number): CReal {
+  if (!Number.isFinite(q)) throw new RangeError(`fromFloat: ${q} no es finito`);
+  if (Number.isInteger(q)) return fromInt(q);
+  // Representa q como fracción p/10^9 para mantener precisión.
+  const scale = 1_000_000_000;
+  return fromRational(Math.round(q * scale), scale);
+}
+
+/**
+ * Extrae el valor numérico de un CReal.
+ * `precision` es el número de bits fraccionarios solicitados (como pasa `x.approx(p)`).
+ * Para evitar desbordamiento al convertir bigint → number, se acota internamente a 63 bits.
+ * Valores por encima de 63 sólo añaden cómputo sin mejorar la representación en float64.
+ */
+export function toNumber(x: CReal, precision = 53): number {
+  const bits = Math.min(Math.max(precision, 1), 63);
+  const { numerator, denominator } = x.approx(bits);
+  return Number(numerator) / Number(denominator);
+}
+
+/**
+ * Retorna true si podemos demostrar constructivamente que x < y
+ * a la precisión dada (bits fraccionarios).
+ */
+export function approxLT(x: CReal, y: CReal, precision: number): boolean {
+  const xv = approxBigOf(x)(precision);
+  const yv = approxBigOf(y)(precision);
+  // x < y con margen 2 unidades (para absorber el error de redondeo de cada lado).
+  return xv + 2n < yv;
+}
+
+/**
+ * Retorna true si |x - y| < 2^{-precision+1} (aproximadamente iguales
+ * a la precisión dada).
+ */
+export function approxEq(x: CReal, y: CReal, precision: number): boolean {
+  const diff = approxBigOf(sub(x, y))(precision);
+  return diff >= -2n && diff <= 2n;
+}
+
+/** El real constructivo cero. */
+export const zero: CReal = fromInt(0);
+
+/** El real constructivo uno. */
+export const one: CReal = fromInt(1);
