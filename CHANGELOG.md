@@ -7,6 +7,22 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.10.0] - 2026-05-17
+
+### Added — V5 wave 4
+- Number theory en `reasoning/number-theory/` (`62e041b`). 26 tests. Miller-Rabin det. hasta 3.3·10²⁴, Pollard ρ, CRT, Jacobi.
+- Natural deduction NK en `logic/profiles/natural-deduction-nk/` (`81df2ed`). 32 tests. DNE/LEM/Peirce vía rAA.
+- Lean 4 exporter en `tooling/exporters/lean4/` (`0f27dea`). 102 tests. Unicode + Classical.em + ⟨x,hx⟩.
+- Real analysis en `reasoning/real-analysis/` (`74cd6dd`). 32 tests. ε-δ + Simpson/Romberg/Gauss-Legendre + Taylor.
+- Topology + homology en `reasoning/topology/` (`ffa251b`). 38 tests. Smith Normal Form + Betti Z/Z2 + RP²/Klein torsion.
+- Automata DFA/NFA/PDA en `reasoning/automata/` (`1e6eeac`). 41 tests. Thompson + Hopcroft minimization.
+- Computability en `reasoning/computability/` (`6b92dad`). 39 tests. Turing machines + bounded halting + PRF + Ackermann + Rice.
+
+### Changed
+- 5014 → ~5300 tests.
+
+---
+
 ## [4.9.0] - 2026-05-17
 
 ### Added — V5 wave 3
