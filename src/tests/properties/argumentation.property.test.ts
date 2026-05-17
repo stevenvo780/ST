@@ -16,7 +16,7 @@ import {
   groundedExtension,
   preferredExtensions,
   completeExtensions,
-} from '../../argumentation';
+} from '../../reasoning/argumentation';
 
 function isSubsetOf(a: Set<string>, b: Set<string>): boolean {
   for (const x of a) if (!b.has(x)) return false;

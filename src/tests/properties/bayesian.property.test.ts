@@ -7,7 +7,7 @@
 
 import { describe, it } from 'vitest';
 import { fc, tinyBayesNet } from './generators';
-import { jointProbability } from '../../runtime/bayesian';
+import { jointProbability } from '../../reasoning/bayesian';
 
 describe('property: Bayesian joint distribution sums to 1', () => {
   it('Σ P(world) = 1 over all assignments', () => {

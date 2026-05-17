@@ -149,12 +149,12 @@ export {
   isConflictFree,
   defends,
   dotExport,
-} from './argumentation';
-export type { ArgumentationFramework } from './argumentation';
+} from './reasoning/argumentation';
+export type { ArgumentationFramework } from './reasoning/argumentation';
 // Backward-compat: re-export del tipo `Semantics` de argumentation.
 // Declarado localmente (no re-export directo) para permitir el namespace
 // homónimo añadido más abajo (declaration merging type + namespace).
-import type { Semantics as ArgumentationSemanticsType } from './argumentation';
+import type { Semantics as ArgumentationSemanticsType } from './reasoning/argumentation';
 export type Semantics = ArgumentationSemanticsType;
 
 // FOL prover
@@ -197,14 +197,14 @@ export { toSMTLIB, MockSMTBackend, SubprocessSMTBackend, detectAvailableSMT } fr
 export type { SMTBackend } from './runtime/smt';
 
 // Citation Reasoning (δ3)
-export { deriveWithCitations, explainProof } from './citation-reasoning';
+export { deriveWithCitations, explainProof } from './reasoning/citation-reasoning';
 export type {
   CitedClaim,
   CitationDerivation,
   CitationDerivationResult,
   DerivationStep,
   Evaluator,
-} from './citation-reasoning';
+} from './reasoning/citation-reasoning';
 
 // Curry-Howard — correspondencia term ↔ proof
 export {
@@ -350,7 +350,7 @@ export {
   listsSignature,
   termToString as lsTermToString,
   freeVars as lsFreeVars,
-} from './lemma-synthesis';
+} from './reasoning/lemma-synthesis';
 export type {
   Signature as LSSignature,
   Term as LSTerm,
@@ -359,7 +359,7 @@ export type {
   Evaluator as LSEvaluator,
   Prover as LSProver,
   VerifiedConjecture as LSVerifiedConjecture,
-} from './lemma-synthesis';
+} from './reasoning/lemma-synthesis';
 
 // coinduction — streams coinductivos y bisimulación
 export {

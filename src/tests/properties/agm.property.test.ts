@@ -10,9 +10,9 @@
 
 import { describe, it } from 'vitest';
 import { fc, beliefSetAndFormula } from './generators';
-import { newBeliefSet, revise, isConsistent } from '../../belief-revision';
-import { isSatisfiable } from '../../belief-revision';
-import { parsePropFormula } from '../../belief-revision';
+import { newBeliefSet, revise, isConsistent } from '../../reasoning/belief-revision';
+import { isSatisfiable } from '../../reasoning/belief-revision';
+import { parsePropFormula } from '../../reasoning/belief-revision';
 
 describe('property: AGM revise consistency preservation', () => {
   it('consistent(φ) ⇒ consistent(K * φ)', () => {

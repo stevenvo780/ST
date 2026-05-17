@@ -7,8 +7,8 @@
 
 import { describe, it } from 'vitest';
 import { fc } from './generators';
-import { weight } from '../../runtime/markov-logic';
-import type { MLNTheory, MLNWorld } from '../../runtime/markov-logic';
+import { weight } from '../../reasoning/markov-logic';
+import type { MLNTheory, MLNWorld } from '../../reasoning/markov-logic';
 
 describe('property: MLN hard constraints', () => {
   it('hard constraint violated ⇒ weight = -∞', () => {

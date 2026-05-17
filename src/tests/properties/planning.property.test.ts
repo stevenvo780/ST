@@ -8,8 +8,8 @@
 
 import { describe, it } from 'vitest';
 import { fc } from './generators';
-import { bfsPlan, applyAction, ground, goalSatisfied } from '../../runtime/planning';
-import type { STRIPSProblem, Fact } from '../../runtime/planning/types';
+import { bfsPlan, applyAction, ground, goalSatisfied } from '../../reasoning/planning';
+import type { STRIPSProblem, Fact } from '../../reasoning/planning/types';
 
 // Generador de un problema mini estilo blocksworld 1D:
 // objetos a..b en posiciones discretas; acción move(?x, ?y).

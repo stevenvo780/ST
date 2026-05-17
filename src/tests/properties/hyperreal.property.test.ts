@@ -6,7 +6,7 @@
 
 import { describe, it } from 'vitest';
 import { fc, hyperrealArb } from './generators';
-import { add, mul, eq } from '../../hyperreal';
+import { add, mul, eq } from '../../reasoning/hyperreal';
 
 describe('property: hyperreal arithmetic', () => {
   it('add is commutative', () => {

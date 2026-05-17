@@ -12,13 +12,13 @@
  *   const cited = Reasoning.citationReasoning.deriveWithCitations(claims, ev);
  */
 
-import * as argumentation from '../argumentation';
-import * as beliefRevision from '../belief-revision';
-import * as abduction from '../runtime/abduction';
-import * as markovLogic from '../runtime/markov-logic';
-import * as bayesian from '../runtime/bayesian';
-import * as citationReasoning from '../citation-reasoning';
-import * as hyperreal from '../hyperreal';
+import * as argumentation from '../reasoning/argumentation';
+import * as beliefRevision from '../reasoning/belief-revision';
+import * as abduction from '../reasoning/abduction';
+import * as markovLogic from '../reasoning/markov-logic';
+import * as bayesian from '../reasoning/bayesian';
+import * as citationReasoning from '../reasoning/citation-reasoning';
+import * as hyperreal from '../reasoning/hyperreal';
 import * as antiUnification from '../runtime/anti-unification';
 import * as termRewriting from '../runtime/term-rewriting';
 

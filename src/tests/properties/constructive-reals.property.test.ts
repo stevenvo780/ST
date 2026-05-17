@@ -8,7 +8,7 @@
 
 import { describe, it } from 'vitest';
 import { fc } from './generators';
-import { fromInt, fromRational, add, sub, mul, neg } from '../../constructive-reals';
+import { fromInt, fromRational, add, sub, mul, neg } from '../../reasoning/constructive-reals';
 
 function evalAt(r: { approx: (p: number) => { numerator: bigint; denominator: bigint } }, p: number): number {
   const { numerator, denominator } = r.approx(p);

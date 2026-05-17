@@ -234,7 +234,7 @@ describe('Symbolic diff + simplify — d/dx(x²) = 2x', () => {
 });
 
 // ── 5. Bayesian network P(Burglary|JohnCalls,MaryCalls) ≈ 0.284 ──────
-import { query, type BayesianNetwork } from '../../runtime/bayesian';
+import { query, type BayesianNetwork } from '../../reasoning/bayesian';
 
 describe('Bayesian inference — red clásica Burglary-Alarm', () => {
   const burglaryNet: BayesianNetwork = {
@@ -574,7 +574,7 @@ import {
   createContext as fcaCreateCtx,
   allConcepts,
   lattice as fcaLattice,
-} from '../../runtime/fca';
+} from '../../reasoning/fca';
 import {
   createFramework,
   groundedExtension,
@@ -584,7 +584,7 @@ import {
   isAdmissible,
   isConflictFree,
   DEFAULT_EXHAUSTIVE_LIMIT,
-} from '../../argumentation';
+} from '../../reasoning/argumentation';
 
 describe('FCA + Dung argumentation — conceptos como argumentos', () => {
   it('contexto FCA produce conceptos formales con clausura de Galois correcta', () => {
@@ -648,8 +648,8 @@ describe('FCA + Dung argumentation — conceptos como argumentos', () => {
 });
 
 // ── 12. STRIPS planning + CDCL: blocks world ─────────────────────────
-import { bfsPlan } from '../../runtime/planning/bfs';
-import type { STRIPSProblem } from '../../runtime/planning/types';
+import { bfsPlan } from '../../reasoning/planning/bfs';
+import type { STRIPSProblem } from '../../reasoning/planning/types';
 
 describe('STRIPS planning — blocks world', () => {
   it('mueve un bloque de A a B en 2 pasos', () => {

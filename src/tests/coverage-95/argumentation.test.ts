@@ -9,8 +9,8 @@ import {
   stableExtensions,
   semiStableExtensions,
   computeExtensions,
-} from '../../argumentation/extensions';
-import type { ArgumentationFramework } from '../../argumentation/types';
+} from '../../reasoning/argumentation/extensions';
+import type { ArgumentationFramework } from '../../reasoning/argumentation/types';
 
 function af(args: string[], attacks: Array<[string, string]>): ArgumentationFramework {
   return { arguments: new Set(args), attacks };
