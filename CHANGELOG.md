@@ -7,6 +7,21 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.11.0] - 2026-05-17
+
+### Added — V5 wave 5
+- Graph theory comprehensive en `reasoning/graph-theory/` (`14db0aa`). 32 tests. Dijkstra/Bellman/Floyd + Kruskal/Prim + Hopcroft-Karp + isomorphism.
+- Group presentations en `reasoning/group-presentation/` (`e08c0dd`). 31 tests. Todd-Coxeter HLT + Cayley graphs + S₃/S₄/Q₈/Klein.
+- Coq exporter v2 en `tooling/exporters/coq-v2/` (`dc08a5a`). 51 tests. Dependent types + tactic strategies + proofterm + hints.
+- Curated lemma library en `tooling/lemma-library/` (`2ecc4b0`). 27 tests + 95 lemmas. TF-IDF search + auto-apply.
+- Provenance audit DAG en `tooling/provenance/` (`2f4fe51`). 20 tests. SHA-256 IDs + trust chain + audit risk.
+- Distributed proof exchange gossip en `proof-systems/distributed-exchange/` (`3511dc3`). 19 tests. Multi-hop + anti-entropy + blacklist.
+
+### Changed
+- 5324 → ~5500 tests (+180 V5 wave 5).
+
+---
+
 ## [4.10.0] - 2026-05-17
 
 ### Added — V5 wave 4
