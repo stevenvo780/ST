@@ -6,9 +6,9 @@
 
 import { describe, it } from 'vitest';
 import { fc, mlttSimpleTerm } from './generators';
-import { inferType, isInferError } from '../../mltt';
-import { normalize as mlttNormalize } from '../../mltt/normalize';
-import { alphaBetaEq } from '../../mltt/equality';
+import { inferType, isInferError } from '../../type-theory/mltt';
+import { normalize as mlttNormalize } from '../../type-theory/mltt/normalize';
+import { alphaBetaEq } from '../../type-theory/mltt/equality';
 
 describe('property: MLTT normalize preserves type', () => {
   it('inferType(normalize(t)) ≡ inferType(t) for well-typed terms', () => {

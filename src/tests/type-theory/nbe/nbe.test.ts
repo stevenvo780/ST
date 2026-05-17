@@ -13,7 +13,7 @@ import {
   termToString,
   type Term,
   v,
-} from '../../nbe';
+} from '../../../type-theory/nbe';
 
 // ---------- Tipos base reutilizables ----------
 const P = tBase('P');

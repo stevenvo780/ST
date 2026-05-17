@@ -309,7 +309,7 @@ import {
   mVar,
   mUniverse,
   inferType as mlttInfer,
-} from '../../mltt';
+} from '../../type-theory/mltt';
 import {
   inferType as chInfer,
   isInferError,
@@ -317,7 +317,7 @@ import {
   arrow,
   abs,
   vr,
-} from '../../curry-howard';
+} from '../../type-theory/curry-howard';
 
 describe('MLTT + Curry-Howard: tipos dependientes ↔ fórmulas', () => {
   it('λ(x:A).x tiene tipo A→A (identidad)', () => {
@@ -437,7 +437,7 @@ import {
   isTypeError,
   normalize as sfNormalize,
   emptyContext,
-} from '../../system-f';
+} from '../../type-theory/system-f';
 
 describe('System F — polimorfismo paramétrico', () => {
   it('identidad polimórfica ΛX.λx:X.x tiene tipo ∀X.X→X', () => {
@@ -480,7 +480,7 @@ import {
   v as nbeVar,
   ap,
   makeFreshSupply,
-} from '../../nbe';
+} from '../../type-theory/nbe';
 
 describe('NbE — normalización β-corta η-larga', () => {
   it('(λx.x)[a] normaliza a a en tipo base', () => {
@@ -713,7 +713,7 @@ import {
   normalize as skiNormalize,
   ctermEq,
   termToString as skiTermToString,
-} from '../../combinators-ski';
+} from '../../type-theory/combinators-ski';
 
 describe('SKI combinators — SKK = I (identidad)', () => {
   it('SKK x normaliza a x para variable x', () => {

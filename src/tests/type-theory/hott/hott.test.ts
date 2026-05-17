@@ -35,7 +35,7 @@ import {
   univalence,
   univalenceWitness,
   type HoTTTerm,
-} from '../../hott';
+} from '../../../type-theory/hott';
 
 function unwrap(r: ReturnType<typeof inferType>): HoTTTerm {
   if (isInferErrorHoTT(r)) throw new Error(`unexpected error: ${r.error}`);

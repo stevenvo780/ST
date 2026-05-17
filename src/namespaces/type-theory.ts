@@ -11,13 +11,13 @@
  *   const proof = TypeTheory.curryHoward.termToProof(lam);
  */
 
-import * as curryHoward from '../curry-howard';
-import * as systemF from '../system-f';
-import * as mltt from '../mltt';
-import * as lambdaCalc from '../lambda-calc';
-import * as combinatorsSKI from '../combinators-ski';
-import * as nbe from '../nbe';
-import * as refinementTypes from '../refinement-types';
+import * as curryHoward from '../type-theory/curry-howard';
+import * as systemF from '../type-theory/system-f';
+import * as mltt from '../type-theory/mltt';
+import * as lambdaCalc from '../type-theory/lambda-calc';
+import * as combinatorsSKI from '../type-theory/combinators-ski';
+import * as nbe from '../type-theory/nbe';
+import * as refinementTypes from '../type-theory/refinement-types';
 import * as higherOrderUnify from '../higher-order-unify';
 
 export {

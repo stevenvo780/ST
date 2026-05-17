@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import * as ST from '../../index';
+import * as ST from '../..';
 
 describe('public API — namespaces semánticos', () => {
   // ── existencia básica ───────────────────────────────────────────────────

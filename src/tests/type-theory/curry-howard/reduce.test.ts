@@ -21,7 +21,7 @@ import {
   termToString,
   eqType,
   type LambdaTerm,
-} from '../../curry-howard';
+} from '../../../type-theory/curry-howard';
 
 const P = atom('P');
 const Q = atom('Q');

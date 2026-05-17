@@ -17,7 +17,7 @@ import {
   typeCheck,
   parsePredicate,
   predicateRenameVar,
-} from '../../refinement-types';
+} from '../../../type-theory/refinement-types';
 
 describe('refinement-types / predicates & solver', () => {
   it('checkVC: predicado vacío es trivialmente satisfacible', () => {

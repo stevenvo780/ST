@@ -22,7 +22,7 @@ import {
   isInferError,
   eqType,
   typeToString,
-} from '../../curry-howard';
+} from '../../../type-theory/curry-howard';
 
 const P = atom('P');
 const Q = atom('Q');

@@ -26,7 +26,7 @@ import {
   reduceStep,
   termToString,
   type MLTTTerm,
-} from '../../mltt';
+} from '../../../type-theory/mltt';
 
 function unwrap(r: ReturnType<typeof inferType>): MLTTTerm {
   if (isInferError(r)) throw new Error(`unexpected error: ${r.error}`);

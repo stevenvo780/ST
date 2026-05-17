@@ -20,7 +20,7 @@ import {
   typeOf,
   type FContext,
   type FType,
-} from '../../system-f';
+} from '../../../type-theory/system-f';
 
 // ---------- Helpers ----------
 const X = fAtom('X');

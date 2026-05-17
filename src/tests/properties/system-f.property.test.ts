@@ -7,7 +7,7 @@
 
 import { describe, it } from 'vitest';
 import { fc, fTermSimple } from './generators';
-import { typeOf, isTypeError, emptyContext, alphaEqType } from '../../system-f';
+import { typeOf, isTypeError, emptyContext, alphaEqType } from '../../type-theory/system-f';
 
 function makeCtx() {
   // Declaramos A y B como variables de tipo para que el well-formed check pase.

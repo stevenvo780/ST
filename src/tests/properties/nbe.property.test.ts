@@ -7,8 +7,8 @@
 
 import { describe, it } from 'vitest';
 import { fc } from './generators';
-import { normalize, alphaEq, tBase, tArr, v, lam, ap } from '../../nbe';
-import type { Term as NbETerm, Type as NbEType } from '../../nbe';
+import { normalize, alphaEq, tBase, tArr, v, lam, ap } from '../../type-theory/nbe';
+import type { Term as NbETerm, Type as NbEType } from '../../type-theory/nbe';
 
 // Generador de términos NbE bien-tipados pequeños:
 // usamos tipo (A → A) → A → A — el tipo de Church numerals.

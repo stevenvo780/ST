@@ -9,11 +9,11 @@
 import * as fc from 'fast-check';
 import type { Formula } from '../../types';
 import type { HOTerm } from '../../higher-order-unify';
-import type { Term as LamTerm } from '../../lambda-calc/types';
+import type { Term as LamTerm } from '../../type-theory/lambda-calc/types';
 import type { Term as TRSTerm, RewriteRule } from '../../runtime/term-rewriting/types';
 import type { Term as AUTerm } from '../../runtime/anti-unification/types';
-import type { FType, FTerm } from '../../system-f/types';
-import type { MLTTTerm } from '../../mltt/types';
+import type { FType, FTerm } from '../../type-theory/system-f/types';
+import type { MLTTTerm } from '../../type-theory/mltt/types';
 import type { Expr } from '../../runtime/symbolic-diff/types';
 import type { LTS } from '../../runtime/bisimulation/types';
 
@@ -490,7 +490,7 @@ export const hyperrealArb = (): fc.Arbitrary<{ standard: number; infinitesimal: 
 // Refinement types (RefType random simple)
 // ============================================================
 
-import type { RefType } from '../../refinement-types/types';
+import type { RefType } from '../../type-theory/refinement-types/types';
 
 export const refTypeIntSimple = (): fc.Arbitrary<RefType> =>
   fc.oneof(

@@ -220,7 +220,7 @@ export {
   typeToString as chTypeToString,
   termToString as chTermToString,
   eqType as chEqType,
-} from './curry-howard';
+} from './type-theory/curry-howard';
 export type {
   PropType,
   LambdaTerm,
@@ -228,7 +228,7 @@ export type {
   ProofRule,
   Context as CHContext,
   InferResult,
-} from './curry-howard';
+} from './type-theory/curry-howard';
 
 // MLTT — Martin-Löf Type Theory (Π/Σ/Id/Nat + universos)
 export {
@@ -259,12 +259,12 @@ export {
   freeVars as mlttFreeVars,
   occursFree as mlttOccursFree,
   termToString as mlttTermToString,
-} from './mltt';
+} from './type-theory/mltt';
 export type {
   MLTTTerm,
   InferContext as MLTTInferContext,
   InferResult as MLTTInferResult,
-} from './mltt';
+} from './type-theory/mltt';
 
 // λ-cálculo untyped puro — β/η, estrategias, combinadores, Church numerals
 export {
@@ -295,14 +295,14 @@ export {
   churchSucc as lcChurchSucc,
   churchAdd as lcChurchAdd,
   churchMul as lcChurchMul,
-} from './lambda-calc';
+} from './type-theory/lambda-calc';
 export type {
   Term as LCTerm,
   BetaStrategy as LCBetaStrategy,
   NormalStrategy as LCNormalStrategy,
   NormalizeOpts as LCNormalizeOpts,
   NormalizeResult as LCNormalizeResult,
-} from './lambda-calc';
+} from './type-theory/lambda-calc';
 
 // profile-bridge — traducciones entre perfiles lógicos
 export {
@@ -402,7 +402,7 @@ export {
   TypeEnv as HMTypeEnv,
   typeToString as hmTypeToString,
   schemeToString as hmSchemeToString,
-} from './hindley-milner';
+} from './type-theory/hindley-milner';
 export type {
   Type as HMType,
   TypeScheme as HMTypeScheme,
@@ -410,7 +410,7 @@ export type {
   Substitution as HMSubstitution,
   InferResult as HMInferResult,
   InferOutcome as HMInferOutcome,
-} from './hindley-milner';
+} from './type-theory/hindley-milner';
 
 // csp-hoare — Communicating Sequential Processes (Hoare 1978/1985).
 // Expuesto como namespace porque sus constructores cortos (`prefix`, `choice`,

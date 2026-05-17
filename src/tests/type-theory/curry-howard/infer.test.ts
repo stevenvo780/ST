@@ -19,7 +19,7 @@ import {
   absurd,
   typeToString,
   type PropType,
-} from '../../curry-howard';
+} from '../../../type-theory/curry-howard';
 
 const P = atom('P');
 const Q = atom('Q');

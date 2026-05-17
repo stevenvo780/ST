@@ -26,7 +26,7 @@ import {
   substitute,
   termToString,
   v,
-} from '../../lambda-calc';
+} from '../../../type-theory/lambda-calc';
 
 describe('lambda-calc / sustitución y α', () => {
   it('freeVars enumera variables libres respetando binders', () => {

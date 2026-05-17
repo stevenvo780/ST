@@ -13,8 +13,8 @@ import {
   isNormalForm,
   abstractFromLambda,
   toLambda,
-} from '../../combinators-ski';
-import type { CTerm } from '../../combinators-ski';
+} from '../../../type-theory/combinators-ski';
+import type { CTerm } from '../../../type-theory/combinators-ski';
 import {
   alphaEq,
   ap as lamAp,
@@ -22,8 +22,8 @@ import {
   lam,
   normalize as lamNormalize,
   v as lamVar,
-} from '../../lambda-calc';
-import type { Term as LambdaTerm } from '../../lambda-calc';
+} from '../../../type-theory/lambda-calc';
+import type { Term as LambdaTerm } from '../../../type-theory/lambda-calc';
 
 describe('combinators-ski / reducción básica', () => {
   it('I x reduce a x en un paso', () => {

@@ -9,7 +9,7 @@
 
 import { describe, it } from 'vitest';
 import { fc, lamTerm } from './generators';
-import { freeVars, substitute } from '../../lambda-calc/substitution';
+import { freeVars, substitute } from '../../type-theory/lambda-calc/substitution';
 
 describe('property: λ-calc substitution avoids variable capture', () => {
   it('FV(t[x:=r]) ⊆ FV(r) ∪ (FV(t) \\ {x})', () => {

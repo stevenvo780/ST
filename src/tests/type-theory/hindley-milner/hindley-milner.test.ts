@@ -37,7 +37,7 @@ import {
   TypeEnv,
   typeToString,
   unify,
-} from '../../hindley-milner';
+} from '../../../type-theory/hindley-milner';
 
 beforeEach(() => {
   resetFreshSupply();

@@ -9,7 +9,7 @@
 
 import { describe, it } from 'vitest';
 import { fc, refTypeIntSimple } from './generators';
-import { isSubtype } from '../../refinement-types';
+import { isSubtype } from '../../type-theory/refinement-types';
 
 describe('property: refinement-types subtype transitivity', () => {
   it('t1 <: t2 ∧ t2 <: t3 ⇒ t1 <: t3', () => {
