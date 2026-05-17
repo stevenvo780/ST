@@ -160,6 +160,26 @@ export type Semantics = ArgumentationSemanticsType;
 // FOL prover
 export { proveFOL, unify, skolemize, toCNF } from './fol-prover';
 
+// TPTP parser/emitter + bridge a fol-prover
+export {
+  parseTptp,
+  parseFormula as parseTptpFormula,
+  emitTptp,
+  emitFormula as emitTptpFormula,
+  toFolProverFormat as tptpToFolProverFormat,
+  tptpFormulaToFol,
+  TptpParserError,
+  TptpTokenizerError,
+} from './tptp';
+export type {
+  TptpFormula,
+  TptpProblem,
+  TptpAnnotated,
+  TptpTerm,
+  TptpLanguage,
+  TptpRole,
+} from './tptp';
+
 // Proof exchange
 export { canonicalize, hashProof, signProof, verifyProof, generateKeyPair } from './proof-exchange';
 export type { ProofPackage } from './proof-exchange';
