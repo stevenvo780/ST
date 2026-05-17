@@ -390,6 +390,11 @@ export type {
   InferOutcome as HMInferOutcome,
 } from './hindley-milner';
 
+// csp-hoare — Communicating Sequential Processes (Hoare 1978/1985).
+// Expuesto como namespace porque sus constructores cortos (`prefix`, `choice`,
+// `parallel`, `hide`...) colisionarían con otros módulos en el flat export.
+export * as CSPHoare from './csp-hoare';
+
 // ── Namespaces semánticos (aditivo, no breaking) ─────────────────────────────
 // Re-organiza los símbolos públicos por dominio sin remover los flat exports.
 // Uso: `import { Logic, TypeTheory } from '@stevenvo780/st-lang'`.
