@@ -90,10 +90,10 @@ ST V4 será:
 |---|---|---|
 | W1 | **ST → Coq/Lean exporter** — generar pruebas formales para asistentes maduros | [DONE] |
 | W2 | **ST playground web** en `agora.elenxos.com/st` con visualización árbol pruebas | [DONE] |
-| W3 | **Multi-tenant ST cloud** — libraries ST compartidas entre workspaces | [TODO] |
+| W3 | **Multi-tenant ST cloud** — libraries ST compartidas entre workspaces | [DONE en AgoraBack] Implementado en `AgoraBack/src/lib/cloud-libraries/` + endpoints `/api/st-libraries/*` con visibility public/private/workspace + subscribe. Commit `b7f19d4`. |
 | W4 | **Lattice 3D viewer** Belnap + modal frames con react-three-fiber | [PARTIAL] visualización 2D implementada, 3D sin terminar |
 | W5 | **ST-LSP** — language server (autocompletado/hover/go-to-def) para `.st` en VSCode/web | [DONE] |
-| W6 | **Agent dialogue tactics** — el agente IA aprende qué tools ST invocar por tipo de pregunta | [TODO] |
+| W6 | **Agent dialogue tactics** — el agente IA aprende qué tools ST invocar por tipo de pregunta | [DONE en AgoraBack] Implementado en `AgoraBack/src/lib/agora-ai/tactics-rag/` con TF-IDF + cosine similarity sobre Firestore `agentTactics/{id}`. Commit `573d7e5`. |
 | W7 | **Educational mode** — ST genera ejercicios progresivos según nivel del usuario | [DONE] |
 | W8 | **Argumentation graphs** — threads de docs → grafos Dung, compute extensions | [DONE] Dung argumentation implementada |
 | W9 | **ST-as-a-Service** — endpoint público autenticado | [DONE] |
