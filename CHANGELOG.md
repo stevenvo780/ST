@@ -7,6 +7,22 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.8.0] - 2026-05-17
+
+### Added — V5 wave 2 (post-refactor)
+- **Z3 WASM backend real** en `solver/smt-z3/` (`22a6550`). 28 tests. Reemplaza el mock con Z3 funcional in-process (LIA/LRA/BV/Bool/push-pop/unsat-cores). Dynamic import (no bundle bloat).
+- **Cubical Type Theory subset** en `type-theory/cubical/` (`aa06ad3`). 30 tests. Intervalo + conexiones + β interválica + PathP + glue.
+- **Mechanism design + VCG + Myerson** en `reasoning/mechanism-design/` (`6d548d9`). 24 tests. Auctions + revenue equivalence Monte Carlo.
+- **Combinatorial games** en `reasoning/combinatorial-games/` (`904b912`). 43 tests. Sprague-Grundy + Surreales Conway + Nim/Chomp.
+- **Probabilistic programming (PPL)** en `reasoning/probabilistic/` (`3715517`). 31 tests. 4 backends: enumerate/rejection/importance/MH MCMC.
+- **ML-guided proof search** en `tooling/proof-guidance/` (`a657ed8`). 27 tests. Logistic regression + beam search + cycle detection.
+
+### Changed
+- 4636 → 4800+ tests (~+180 V5 wave 2).
+- Z3 dep size: 34M dynamic (no afecta bundle publicado).
+
+---
+
 ## [4.7.0] - 2026-05-17
 
 ### Changed — V5.0 α1 structural refactor
