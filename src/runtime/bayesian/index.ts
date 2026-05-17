@@ -1,0 +1,26 @@
+// ============================================================
+// ST Bayesian Inference — Barrel
+// ============================================================
+//
+// Motor de inferencia bayesiana sobre redes discretas simples.
+// Variable elimination con orden min-fill, joint probability
+// y most probable explanation (MAP/MPE).
+//
+// API pública:
+//   - `query(net, queryVar, evidence?)`            → posterior P(Q | E)
+//   - `variableElimination(net, queryVar, ev?)`    → idem (alias explícito)
+//   - `jointProbability(net, assignment)`          → P(asignación completa)
+//   - `mostProbableExplanation(net, evidence?)`    → argmax P(· | E)
+//
+// Tipos: `BayesianNetwork`, `DiscreteVariable`, `CPT`, `Evidence`,
+// `PosteriorDistribution`.
+
+export { jointProbability, mostProbableExplanation, query, variableElimination } from './inference';
+
+export type {
+  BayesianNetwork,
+  CPT,
+  DiscreteVariable,
+  Evidence,
+  PosteriorDistribution,
+} from './types';
