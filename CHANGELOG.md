@@ -7,6 +7,30 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.6.0] - 2026-05-17
+
+### Added — V5 features wave
+- Hindley-Milner algorithm W con let-polymorphism + occurs check (`6298495`). 42 tests.
+- Categorical primitives: Category/Functor/NaturalTransformation + limits/colimits + monoidal (`9e06e66`). 30 tests.
+- HoTT base: paths + transport + J + S¹ + suspension + ua axiom (`0748ec0`). 39 tests.
+- TPTP parser FOF/CNF/TFF light + bridge a fol-prover (`c601120`). 73 tests.
+- CSP Hoare con traces + failures + refinement semantics (`f436617`). 37 tests.
+- Tactic DSL Lean/Coq-style con 14 tactics + 4 combinators (`dc7dbaf`). 39 tests.
+- Lemma synthesis QuickSpec-style: enumeración + random testing + pruning (`704b454`). 33 tests.
+
+### Tests infrastructure
+- Property-based testing con fast-check: 38 properties, 5000 runs (`95f5911`).
+- Performance regression CI: 87 benchmarks v5 + GH Actions auto-baselines (`5f9baac`).
+
+### Known issues
+- `export const then` top-level rompe Vite/vitest (módulo treated as thenable). Tactic DSL exports `seq` con alias `T.then`.
+- buildModel en cdcl-v2/solver.ts:74-81: lógica `varVal===1 || varVal===0` siempre true. Cosmético — phase-saving siempre asigna, sin observable bug.
+
+### Changed
+- ~4087 → ~4400+ tests (~+300 nuevos en este release).
+
+---
+
 ## [4.5.2] - 2026-05-17
 
 ### Added
