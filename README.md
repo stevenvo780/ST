@@ -7,7 +7,8 @@
 **ST** es un lenguaje ejecutable para lógica, argumentación y formalización documental.
 Combina verificación formal, scripting declarativo, control de flujo, funciones, perfiles lógicos múltiples y una **Text Layer** para conectar fórmulas con texto humano real.
 
-[![Version](https://img.shields.io/badge/version-3.3.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-4.5.0-blue.svg)](package.json)
+[![Tests](https://img.shields.io/badge/tests-4041-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
 
@@ -37,7 +38,7 @@ Combina verificación formal, scripting declarativo, control de flujo, funciones
 ### Con npm
 
 ```bash
-npm install -g @stevenvo780/st-lang
+npm install @stevenvo780/st-lang@4.5.0
 ```
 
 ### Desde el código fuente
@@ -52,41 +53,72 @@ npm link
 
 ---
 
-## Novedades en 3.3
+## What's new in V4 (4.0 → 4.5.0)
 
-### AST visitors tipados
+52+ módulos nuevos. 4041 tests (eran 1583 en v3.3).
 
-Refactor del parser monolítico a un sistema de visitors con tipos exhaustivos.
+### Performance & SAT
+- CDCL v2 con VSIDS, clause learning y reinicios Luby.
+- SAT incremental — reutiliza estado entre consultas.
+- MUS (Minimal Unsatisfiable Subsets) para diagnóstico de inconsistencias.
+- Cache de derivaciones con memoización y theorem-cache persistente.
 
-```typescript
-import { visit, BaseASTVisitor } from '@stevenvo780/st-lang/ast';
+### Type theory
+- Curry-Howard: pruebas como programas, términos como tipos.
+- System F con polimorfismo paramétrico.
+- MLTT (Martin-Löf Type Theory) con tipos dependientes.
+- NbE (Normalización por Evaluación) para reducción eficiente.
+- Refinement types sobre términos base.
 
-class MyVisitor extends BaseASTVisitor<string> {
-  visitDerive(node) { return `derive: ${node.conclusion}`; }
-  // TypeScript exige manejar cada variante del AST
-}
+### Modal & temporal
+- Frame axioms K / T / B / 4 / 5 / D; sistemas S4, S5, KD45 completos.
+- CTL (Computation Tree Logic) con operadores EX/AX/EF/AF/EG/AG.
+- LTL (Linear Temporal Logic) con next/until/release.
+- μ-calculus modal con punto fijo mínimo y máximo.
+- Hybrid logic con operadores de nombrado y satisfacción (@).
 
-const result = visit(programAST, new MyVisitor());
-```
+### Substructural & resource logic
+- Lógica lineal y afín (no-contraction, no-weakening).
+- π-calculus: razonamiento sobre procesos concurrentes.
+- Proof nets: representación canónica de pruebas lineales.
 
-### Type checker en runtime
+### Non-classical
+- Intuicionista NJ (natural deduction intuicionista completa).
+- Lógica many-valued (Łukasiewicz, Gödel) y Belnap four-valued.
+- Paraconsistente — soporte para contradicciones sin explosión.
 
-Valida programas antes de ejecutarlos. Detecta 7 categorías de error
-(TC001–TC008) con sugerencias automáticas vía distancia Levenshtein.
+### Decision procedures
+- FOL con igualdad — resolución para fragmentos decidibles.
+- ALC Description Logic (subsumption, instance checking).
+- AC-3 CSP — constraint propagation para problemas de satisfacción.
+- STRIPS — planificación clásica sobre estados y acciones.
 
-```typescript
-import { typeCheck, evaluate } from '@stevenvo780/st-lang';
+### Probabilistic & uncertainty
+- Bayesian reasoning con redes y propagación de evidencia.
+- Hyperreal extensions: probabilidad con infinitesimales.
+- Fuzzy logic — valores de verdad continuos en [0,1].
 
-const errors = typeCheck(programAST, 'classical', 'file.st');
-if (errors.length === 0) {
-  const result = evaluate(programAST, 'classical');
-}
-```
+### Term mechanics
+- TRS + KB (Term Rewriting Systems + Knuth-Bendix completion).
+- Anti-unification — lgg (least general generalization) de términos.
+- HO-unify (Higher-Order Unification).
+- SKI combinators y reducción.
+- λ-calculus con α/β/η reducción.
 
-### Cobertura y benchmarks
+### Integration
+- Text Layer v2 con invalidación propagada de claims.
+- MDX bridge bidireccional: prosa ↔ ST sincronizados.
+- Proof exchange Ed25519: pruebas firmadas y compartibles entre workspaces.
+- Time-travel: snapshots ST por commit de workspace.
+- Plugin system: perfiles lógicos custom registrables en runtime.
 
-- Tests: 1621 (cobertura 78.81%, subió desde 71%).
-- Suite de benchmarks formal con baselines y detección de regresión de rendimiento.
+### Knowledge & argumentation
+- FCA (Formal Concept Analysis) — retículos de conceptos formales.
+- Dung argumentation — grafos de ataque, extensiones admisibles/estables.
+- Default logic — inferencia por defecto con excepciones.
+- AGM belief revision — cambio de creencias con postulados AGM.
+- Abduction — inferencia a la mejor explicación.
+- Profile bridge — mapeo semántico entre perfiles lógicos.
 
 ---
 
@@ -402,6 +434,15 @@ const st = createInterpreter();
 st.exec('logic arithmetic');
 st.exec('explain 2 + 3 * 4');
 ```
+
+### Subpaths disponibles
+
+| Subpath | Uso |
+|---------|-----|
+| `@stevenvo780/st-lang` | Entrypoint principal: `evaluate`, `typeCheck`, `createInterpreter` |
+| `@stevenvo780/st-lang/api` | API pura sin CLI: `evaluate`, `createInterpreter` |
+| `@stevenvo780/st-lang/types` | Tipos TypeScript exportados (AST, perfiles, resultados) |
+| `@stevenvo780/st-lang/protocol` | `ProtocolHandler` para integraciones de editor |
 
 ---
 
