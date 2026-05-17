@@ -1,0 +1,16 @@
+// ============================================================
+// ST LTL-SAT — Procedimiento de decisión LTL vía tableau
+// ============================================================
+// API pública:
+//   isSatisfiable(φ): { sat, witness? }   — SAT explícito con lazo
+//   isValid(φ): boolean                   — ¬sat(¬φ)
+//   toBuchi(φ): { states, accepting }     — estimación de tamaño
+//
+// Operadores soportados: atom, ¬, ∧, ∨, X, F, G, U, R. El operador
+// derivado W (weak until) está disponible vía `weakUntil(φ,ψ)` y se
+// expande a `(φ U ψ) ∨ G φ` en la entrada.
+// ============================================================
+
+export * from './types';
+export { isSatisfiable, isValid, toBuchi } from './sat';
+export { toNNF, closure, enumerateAtoms, transitions } from './tableau';
