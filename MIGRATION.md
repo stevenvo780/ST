@@ -155,3 +155,210 @@ Referencia rápida (mediana, hardware de desarrollo):
 
 Los números varían según CPU. Usar `npm run bench:compare` para detectar
 regresiones frente al baseline del repo.
+
+---
+
+## 3.3.0 → 4.5.0
+
+Releases incrementales: 4.0.x → 4.1.0 → 4.2.0 → 4.3.0 → 4.4.0 → 4.5.0.
+**Sin breaking changes en la API pública.** `parse`, `evaluate`, `check`, `quickEval`,
+`createInterpreter`, `listProfiles`, `formulaToString`, `STInterpreter` mantienen firmas idénticas.
+
+---
+
+## Test suite
+
+| Versión | Tests | Delta |
+|---|---|---|
+| 3.2.3 | 1 583 | — |
+| 3.3.0 | 1 621 | +38 |
+| 4.0.x | 2 074 | +453 |
+| 4.1.0 | 2 705 | +631 (cobertura α1) |
+| 4.2.0 | 3 058 | +353 |
+| 4.3.0 | 3 414 | +356 |
+| 4.4.0 | 3 731 | +317 |
+| **4.5.0** | **4 041** | +310 (+200 features 4.8/4.9, +48 integration, +62 resto) |
+
+---
+
+## Nuevos exports desde `@stevenvo780/st-lang` (4.x)
+
+Todo lo siguiente es aditivo. Importar desde el barrel principal salvo que se indique subpath.
+
+### SAT solving
+
+| Export | Descripción |
+|---|---|
+| `solveCDCLv2` | CDCL v2 (17-556× más rápido que v1 en benchmarks — ver nota de performance) |
+| `cdcl`, `cdclAsync` | CDCL v1 — internamente usado por workers |
+| `dpll`, `dpllAsync` | DPLL clásico |
+| `workersAvailable`, `PARALLEL_THRESHOLD` | Flags del pool paralelo |
+| `evalParallel`, `shutdownPool` | Evaluación paralela con worker pool |
+| `ParallelEvalOptions`, `ParallelEvalResult` | Tipos |
+
+### Type checking y visitors
+
+| Export | Descripción |
+|---|---|
+| `typeCheck`, `TypeChecker` | Validación estática antes de `evaluate` (ya en 3.3.0) |
+| `TypeError` | Tipo de error de typecheck |
+| `visit`, `visitProgram`, `BaseASTVisitor` | Visitor pattern sobre AST (ya en 3.3.0) |
+| `ASTVisitor` | Interfaz del visitor |
+
+### Memoización y cache de teoremas
+
+| Export | Descripción |
+|---|---|
+| `DerivationCache`, `hashFormula` | Cache de derivaciones |
+| `TheoremCache`, `tryReuseProof` | Reuso persistente de pruebas |
+| `CachedTheorem`, `TheoremCacheOptions`, `TheoremCacheStats`, `TheoremReuseResult` | Tipos |
+
+### Streaming
+
+| Export | Descripción |
+|---|---|
+| `streamEval` | Evaluación con `AsyncIterable<StreamEvent>` |
+| `StreamEvent` | Tipo |
+
+### Countermodel y proof utilities
+
+| Export | Descripción |
+|---|---|
+| `minimizeCountermodel` | Minimización de contramodelos |
+| `CountermodelMinOptions`, `CountermodelMinAlgorithm`, `MinimalCountermodel` | Tipos |
+| `minifyProof`, `compactModusPonensChain`, `removeUnusedSubproofs` | Minificación de pruebas |
+| `GenericProofNode`, `MinifyOptions`, `MinifyResult`, `MinifyRule` | Tipos |
+
+### Exportadores y provers
+
+| Export | Descripción |
+|---|---|
+| `exportToCoq`, `exportProofToCoq` | Exporta pruebas a Coq |
+| `proveFOL`, `unify`, `skolemize`, `toCNF` | Prover FOL (subpath `./api`) |
+| `toSMTLIB`, `MockSMTBackend`, `SubprocessSMTBackend`, `detectAvailableSMT` | Bridge SMT |
+| `SMTBackend` | Tipo |
+
+### Argumentation (Dung framework)
+
+| Export | Descripción |
+|---|---|
+| `computeExtensions`, `isAdmissible`, `isConflictFree`, `defends`, `dotExport` | AF semánticas |
+| `ArgumentationFramework`, `Semantics` | Tipos |
+
+### Proof exchange e integridad
+
+| Export | Descripción |
+|---|---|
+| `canonicalize`, `hashProof`, `signProof`, `verifyProof`, `generateKeyPair` | Pruebas firmadas |
+| `ProofPackage` | Tipo |
+
+### Time-travel (snapshots de estado)
+
+| Export | Descripción |
+|---|---|
+| `captureSnapshot`, `SnapshotStore` | Historial de ejecución |
+| `STSnapshot`, `SnapshotDiff` | Tipos |
+
+### Educational
+
+| Export | Descripción |
+|---|---|
+| `generateExercise`, `checkAnswer`, `generateLessonPath` | Generación de ejercicios |
+| `Exercise`, `ExerciseLevel`, `ExerciseKind` | Tipos |
+
+### Citation reasoning (δ3)
+
+| Export | Descripción |
+|---|---|
+| `deriveWithCitations`, `explainProof` | Derivación con trazabilidad de fuentes |
+| `CitedClaim`, `CitationDerivation`, `CitationDerivationResult`, `DerivationStep`, `Evaluator` | Tipos |
+
+### Type theory avanzada
+
+**Curry-Howard:**
+
+| Export | Descripción |
+|---|---|
+| `inferType`, `isInferError`, `reduceBeta`, `normalize`, `isNormal` | Inferencia de tipos λ-cálculo tipado |
+| `termToProof`, `proofToTerm`, `proofIsConsistent`, `ProofConversionError` | Correspondencia term ↔ proof |
+| `chTypeToString`, `chTermToString`, `chEqType` | Utils de display |
+| `PropType`, `LambdaTerm`, `ProofTree`, `ProofRule`, `CHContext`, `InferResult` | Tipos |
+
+**Martin-Löf Type Theory (MLTT):**
+
+| Export | Descripción |
+|---|---|
+| `mVar`, `mUniverse`, `mPi`, `mLam`, `mApp`, `mSigma`, `mPair`, `mFst`, `mSnd` | Constructores de términos MLTT |
+| `mId`, `mRefl`, `mNat`, `mZero`, `mSucc`, `mArrow` | Constructores de tipos |
+| `mlttInferType`, `mlttCheckType`, `mlttIsInferError`, `mlttNormalize`, `mlttReduceStep` | Kernel |
+| `mlttIsNormal`, `mlttAlphaEq`, `mlttAlphaBetaEq`, `mlttSubstitute`, `mlttFreeVars`, `mlttOccursFree`, `mlttTermToString` | Utils |
+| `MLTTTerm`, `MLTTInferContext`, `MLTTInferResult` | Tipos |
+
+**λ-cálculo untyped puro (β/η, estrategias, Church numerals):**
+
+| Export | Descripción |
+|---|---|
+| `lcVar`, `lcLam`, `lcAp`, `lcApN` | Constructores |
+| `lcAlphaEq`, `lcTermToString`, `lcFreeVars`, `lcSubstitute`, `lcAlphaRename`, `lcMakeFreshSupply` | Utils |
+| `lcBetaStep`, `lcEtaStep`, `lcNormalize`, `lcIsNormalForm`, `lcIsWHNF` | Reducción |
+| `lcI`, `lcK`, `lcS`, `lcY`, `lcOmega`, `lcOmegaSmall` | Combinadores clásicos |
+| `lcChurchNumeral`, `lcDecodeChurch`, `lcEvalChurch`, `lcChurchSucc`, `lcChurchAdd`, `lcChurchMul` | Church numerals |
+| `LCTerm`, `LCBetaStrategy`, `LCNormalStrategy`, `LCNormalizeOpts`, `LCNormalizeResult` | Tipos |
+
+### Formato extendido
+
+| Export | Descripción |
+|---|---|
+| `formulaToUnicode`, `formulaToLaTeX` | Render a Unicode / LaTeX |
+| `detectFallacies` | Detección de falacias informales |
+| `FallacyInfo` | Tipo |
+
+### Text Layer
+
+| Export | Descripción |
+|---|---|
+| `TextLayerState`, `createTextLayerState`, `parseAnchorPath` | Estado de capa textual |
+| `registerPassage`, `registerFormalization`, `registerClaim`, `registerSupport` | Registros |
+| `registerConfidence`, `registerContext`, `compileClaimsToTheory`, `registerDefinition`, `registerSource`, `registerInterpretation` | Compilador |
+| `ClaimGraph`, `CycleError` | Grafo de claims v2 con propagación de invalidación |
+| `Claim`, `ClaimValidation`, `ClaimSource`, `ClaimEvaluator` | Tipos v2 |
+
+### LSP helpers
+
+| Export | Descripción |
+|---|---|
+| `hover`, `symbols`, `gotoDefinition`, `completion`, `render` | Soporte LSP básico (desde `./api`) |
+| `STHoverResult`, `STRenderResult` | Tipos |
+
+---
+
+## Subpaths disponibles
+
+| Subpath | Contenido |
+|---|---|
+| `@stevenvo780/st-lang` | Barrel completo |
+| `@stevenvo780/st-lang/api` | API programática (`evaluate`, `parse`, `check`, LSP helpers) |
+| `@stevenvo780/st-lang/types` | Tipos base del AST |
+| `@stevenvo780/st-lang/protocol` | `ProtocolHandler` |
+
+No existen subpaths para módulos internos (`/ast`, `/parser`, `/solver`, etc.).
+
+---
+
+## Performance notes (4.x)
+
+- **CDCL v2** (`solveCDCLv2`): 17-556× más rápido que CDCL v1 en benchmarks de satisfacibilidad.
+  Los workers internos conservan v1 para compatibilidad de protocolo.
+- **Parallel pool** (`evalParallel`): evaluación de múltiples programas en worker threads.
+  Usar `shutdownPool()` al terminar el proceso para liberar workers.
+- **DerivationCache / TheoremCache**: reducen tiempo de re-derivación en workspaces grandes
+  que repiten axiomas. Usar con caution en entornos con memoria limitada.
+
+Benchmarks de referencia establecidos en 3.3.0 (sin cambios de firma en 4.x):
+
+| Caso | Tiempo / op |
+|---|---|
+| `evaluate` programa corto (~3 stmts) | ~0.007 ms |
+| `evaluate` workspace pequeño (5 axiomas + derive) | ~0.098 ms |
+| `evaluate` workspace mediano (15 axiomas + glossary) | ~0.904 ms |
+| CDCL 3-SAT mediano (50 vars, 214 cláusulas) | ~10.2 ms |
