@@ -339,6 +339,28 @@ export {
 } from './game-semantics';
 export type { IPCFormula, Player, Move, GameState } from './game-semantics';
 
+// lemma synthesis — exploración de teoría QuickSpec-style
+export {
+  enumerateTerms as lsEnumerateTerms,
+  synthesizeEqualities,
+  pruneConsequences,
+  verifyConjectures,
+  naturalNumbersSignature,
+  booleansSignature,
+  listsSignature,
+  termToString as lsTermToString,
+  freeVars as lsFreeVars,
+} from './lemma-synthesis';
+export type {
+  Signature as LSSignature,
+  Term as LSTerm,
+  Conjecture as LSConjecture,
+  SynthesisOptions as LSSynthesisOptions,
+  Evaluator as LSEvaluator,
+  Prover as LSProver,
+  VerifiedConjecture as LSVerifiedConjecture,
+} from './lemma-synthesis';
+
 // coinduction — streams coinductivos y bisimulación
 export {
   take as streamTake,
