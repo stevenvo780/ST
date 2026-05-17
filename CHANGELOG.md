@@ -7,6 +7,20 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.1.0] - 2026-05-17
+
+### Added
+- **δ2 — MDX-ST bidirectional bridge** (`3659246`): `mdxToClaims`, `claimsToMDX`, `diffMDX`. Soporta HTML comments y fences ```st-claim. 22 tests.
+
+### Changed
+- **α1 cobertura** (`9df79e7`): statements 78.8% → 86.24%, branches 67.97% → 75.27%, functions 83.28% → 92.55%. +631 tests dirigidos a interpreter ND, propositional DPLL, modal tableau, CDCL learned-clause, SMT backends, FOL prover, argumentation.
+
+### Notes
+- Repo housekeeping: `coverage/`, `benchmarks/results.json` ahora gitignored. `ROADMAP_V4.md` trackeado.
+- 2074 → 2705 tests passing (+631).
+
+---
+
 ## [4.0.0] - 2026-05-17
 
 ### Added
