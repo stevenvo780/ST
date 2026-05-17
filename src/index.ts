@@ -205,6 +205,42 @@ export type {
   InferResult,
 } from './curry-howard';
 
+// MLTT — Martin-Löf Type Theory (Π/Σ/Id/Nat + universos)
+export {
+  mVar,
+  mUniverse,
+  mPi,
+  mLam,
+  mApp,
+  mSigma,
+  mPair,
+  mFst,
+  mSnd,
+  mId,
+  mRefl,
+  mNat,
+  mZero,
+  mSucc,
+  mArrow,
+  inferType as mlttInferType,
+  checkType as mlttCheckType,
+  isInferError as mlttIsInferError,
+  normalize as mlttNormalize,
+  reduceStep as mlttReduceStep,
+  isNormal as mlttIsNormal,
+  alphaEq as mlttAlphaEq,
+  alphaBetaEq as mlttAlphaBetaEq,
+  substitute as mlttSubstitute,
+  freeVars as mlttFreeVars,
+  occursFree as mlttOccursFree,
+  termToString as mlttTermToString,
+} from './mltt';
+export type {
+  MLTTTerm,
+  InferContext as MLTTInferContext,
+  InferResult as MLTTInferResult,
+} from './mltt';
+
 // λ-cálculo untyped puro — β/η, estrategias, combinadores, Church numerals
 export {
   v as lcVar,
