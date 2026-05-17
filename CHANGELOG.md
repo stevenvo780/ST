@@ -7,6 +7,20 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.13.0] - 2026-05-17
+
+### Added — V5 wave 6
+- Lambda Cube 8-system PTS en `type-theory/lambda-cube/` (`c243327`). 32 tests. λ→/λ2/λω/λP/λC + erasure.
+- Polynomial ring Z/Q/Zp en `reasoning/polynomial-ring/` (`37950a4`). 36 tests. Euclid gcd + rational roots + Berlekamp + Sylvester resultant.
+- Galois fields GF(p^n) en `reasoning/galois-fields/` (`f481722`). 26 tests. Rabin irreducibility + primitive elements + discrete log.
+- Lattice theory en `reasoning/lattice/` (`73517bb`). 35 tests. Dedekind N5/M3 + Heyting + Boolean detection.
+- Datalog engine en `reasoning/datalog/` (`a121a9f`). 26 tests. Semi-naive + SLD + magic sets + stratified negation.
+
+### Changed
+- ~5699 → ~5854 tests.
+
+---
+
 ## [4.12.0] - 2026-05-17
 
 ### Added — V5 wave 5b (rescued + new)
