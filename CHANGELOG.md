@@ -7,6 +7,63 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.0.0] - 2026-05-17
+
+### Added
+
+- **β1 — CDCL state-of-the-art** (`ec47ece`): VSIDS + clause learning 1-UIP +
+  Luby restarts + phase saving + LBD. API: `solveCDCLv2()`. 44 tests nuevos.
+- **β2 — Worker threads pool** (`f6d8778`): `evalParallel()`, `shutdownPool()`.
+  12 tests.
+- **β3 — Cache LRU derivaciones** (`048dd48`): `DerivationCache`,
+  `hashFormula()` con alpha-canonical hashing. Persist opcional. 28 tests.
+- **β4 — SMT bridge** (`7363601`): `toSMTLIB()`, `MockSMTBackend`,
+  `SubprocessSMTBackend` (z3/cvc5 stdio). 33 tests.
+- **β5 — Streaming evaluation** (`048dd48`): `streamEval()` AsyncIterable +
+  AbortSignal. 14 tests.
+- **δ1 — Text Layer 2.0** (`7876cf9`): `ClaimGraph` con Tarjan SCC + Kahn
+  topological + invalidación propagada. 27 tests.
+- **δ3 — Citation-aware reasoning** (`93c3eff`): `deriveWithCitations`,
+  `explainProof`. 13 tests.
+- **ε1 — Proof exchange** (`97d63a7`): `canonicalize()`, `hashProof()`,
+  `signProof()` Ed25519 WebCrypto. 15 tests.
+- **ε2 — Hyperreal probabilistic** (`ebcb901`): `Hyperreal` con
+  infinitesimales, `propagate` uncertainty bounds. 32 tests.
+- **ε3 — Time-travel snapshots** (`b060035`): `captureSnapshot`,
+  `SnapshotStore`, `SnapshotDiff`. 24 tests.
+- **ε4 — Plugin system** (`f70aa58`): `ProfileRegistry`, `validatePlugin`.
+  32 tests.
+- **ε5 — FOL prover** (`efc8481`): resolution-based con skolemización + CNF +
+  unify. 25 tests.
+- **W1 — Coq exporter** (`b9cc108`): `exportToCoq`, `exportProofToCoq`.
+  77 tests.
+- **W5 — LSP server** (`6f1d034`): `STLanguageServer`
+  hover/definition/completion/diagnostics + `bin/st-lsp.js`. 19 tests.
+- **W7 — Educational mode** (`16f1ab0`): `generateExercise`, `checkAnswer`,
+  `generateLessonPath` con 17 templates en 4 niveles. 37 tests.
+- **W8 — Dung argumentation** (`2be174a`): `computeExtensions`,
+  grounded/preferred/stable/complete/semi-stable. 21 tests.
+- **Fase γ — AI-Native Integration** (en AgoraBack): tools `st_check`,
+  `st_derive`, `st_countermodel`, `st_formalize`; feedback loop LLM↔ST;
+  auto-formalizer unificado; Belnap-aware reasoning; trace LaTeX export.
+- **Wildcards consumer-side** (en AgoraFront/AgoraBack): web playground
+  `/st-playground`, lattice viewer SVG `/lattice-viewer`, proof debugger
+  `/proof-debugger`, agent dialogue tactics RAG, ST-as-a-Service endpoint.
+
+### Performance
+
+- **β1**: bench 17–556× speedup sobre CDCL v1 en conjuntos satisfacibles e
+  insatisfacibles.
+
+### Notes
+
+- Suite total: 1583 → 2074+ tests (+491 nuevos).
+- **Breaking change (convención)**: major bump por amplitud de alcance. La API
+  pública es backward-compatible: `parse`, `evaluate`, `derive`, `check`,
+  `formulaToString`, `STInterpreter` sin cambios. `typeCheck` es aditivo.
+
+---
+
 ## [3.3.0] - 2026-05-16
 
 ### Added
