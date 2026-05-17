@@ -1,0 +1,42 @@
+// ============================================================
+// ST Planning — Barrel
+// ============================================================
+//
+// Planificación clásica STRIPS / PDDL light.
+//
+// API pública:
+//   - `bfsPlan(problem, opts?)`       → BFS, plan de menor longitud
+//   - `aStarPlan(problem, opts?)`     → A*, plan de menor costo
+//   - `ground(action, bindings)`      → instanciar schema
+//   - `applyAction(state, ground)`    → estado sucesor
+//   - `goalSatisfied(state, goal)`    → goal ⊆ state
+//   - `fastForwardHeuristic(...)`     → heurística FF por niveles
+//   - `makeFFHeuristic(problem)`      → curry FF al problema
+//   - `goalCountHeuristic`            → |goal\state| trivial
+//
+// Tipos: `STRIPSAction`, `STRIPSProblem`, `Plan`, `PlanStep`,
+// `GroundedAction`, `Heuristic`, `PlannerOptions`, `AStarOptions`.
+
+export { bfsPlan, hashState } from './bfs';
+export { aStarPlan } from './astar';
+export {
+  applyAction,
+  goalSatisfied,
+  ground,
+  groundAll,
+  preconditionsSatisfied,
+  substituteVars,
+} from './ground';
+export { fastForwardHeuristic, goalCountHeuristic, makeFFHeuristic } from './heuristic';
+export type {
+  AStarOptions,
+  CostFunction,
+  Fact,
+  GroundedAction,
+  Heuristic,
+  Plan,
+  PlanStep,
+  PlannerOptions,
+  STRIPSAction,
+  STRIPSProblem,
+} from './types';
