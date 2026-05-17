@@ -105,6 +105,15 @@ export type { ParallelEvalOptions, ParallelEvalResult } from './runtime/parallel
 // Memoization
 export { DerivationCache, hashFormula } from './runtime/memo';
 
+// Theorem cache (proof reuse persistente)
+export { TheoremCache, tryReuseProof } from './runtime/theorem-cache';
+export type {
+  CachedTheorem,
+  CacheOptions as TheoremCacheOptions,
+  CacheStats as TheoremCacheStats,
+  ReuseResult as TheoremReuseResult,
+} from './runtime/theorem-cache';
+
 // Streaming
 export { streamEval } from './runtime/streaming';
 export type { StreamEvent } from './runtime/streaming';
