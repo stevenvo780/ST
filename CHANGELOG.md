@@ -7,6 +7,27 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.3.0] - 2026-05-17
+
+### Added
+- 4.4.1 Bisimulation Paige-Tarjan + strong/weak (`60cdc2e`). 19 tests.
+- 4.4.2 Intuitionistic NJ + Kripke counter-models (`4a0dd5c`). 27 tests.
+- 4.4.3 Abductive reasoning con cost preferences (`bcc0f04`). 26 tests.
+- 4.4.4 Term Rewriting System + Knuth-Bendix + LPO (`4f43781`). 32 tests.
+- 4.4.5 Proof minification con detrivialization/MP-compact (`aed1fa5`). 27 tests.
+- 4.4.6 Lambda calc untyped puro + Church numerals (`0f38acc`). 22 tests.
+- 4.5.1 Modal frame axioms K/T/B/4/5/D + S4/S5/KD45 (`19b1f3b`). 57 tests.
+- 4.5.2 Substructural linear + affine logic (`8db6843`). 35 tests.
+- 4.5.3 Many-valued Łukasiewicz/Gödel/Product. 21 tests.
+- 4.5.4 Bayesian inference + MPE (`86a25d0`). 24 tests.
+- 4.5.5 FCA Next Closure + Hasse lattice (`bcffd2f`). 27 tests.
+- 4.5.6 Symbolic differentiation + gradient (`7cc6e4a`). 39 tests.
+
+### Changed
+- 3058 → 3414 tests (+ ~356 tests nuevos).
+
+---
+
 ## [4.2.0] - 2026-05-17
 
 ### Added
