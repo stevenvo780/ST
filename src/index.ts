@@ -140,7 +140,7 @@ export type {
 } from './proof-systems/proof-minify';
 
 // Coq exporter
-export { exportToCoq, exportProofToCoq } from './exporters/coq';
+export { exportToCoq, exportProofToCoq } from './tooling/exporters/coq';
 
 // Argumentation (Dung framework)
 export {
@@ -170,7 +170,7 @@ export {
   tptpFormulaToFol,
   TptpParserError,
   TptpTokenizerError,
-} from './tptp';
+} from './tooling/tptp';
 export type {
   TptpFormula,
   TptpProblem,
@@ -178,19 +178,19 @@ export type {
   TptpTerm,
   TptpLanguage,
   TptpRole,
-} from './tptp';
+} from './tooling/tptp';
 
 // Proof exchange
 export { canonicalize, hashProof, signProof, verifyProof, generateKeyPair } from './proof-systems/proof-exchange';
 export type { ProofPackage } from './proof-systems/proof-exchange';
 
 // Time-travel
-export { captureSnapshot, SnapshotStore } from './time-travel';
-export type { STSnapshot, SnapshotDiff } from './time-travel';
+export { captureSnapshot, SnapshotStore } from './tooling/time-travel';
+export type { STSnapshot, SnapshotDiff } from './tooling/time-travel';
 
 // Educational
-export { generateExercise, checkAnswer, generateLessonPath } from './educational';
-export type { Exercise, ExerciseLevel, ExerciseKind } from './educational';
+export { generateExercise, checkAnswer, generateLessonPath } from './tooling/educational';
+export type { Exercise, ExerciseLevel, ExerciseKind } from './tooling/educational';
 
 // SMT bridge
 export { toSMTLIB, MockSMTBackend, SubprocessSMTBackend, detectAvailableSMT } from './solver/smt';

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { STLanguageServer, type OutgoingMessage } from '../../lsp/server';
-import type { JsonRpcRequest, JsonRpcNotification } from '../../lsp/types';
+import { STLanguageServer, type OutgoingMessage } from '../../tooling/lsp/server';
+import type { JsonRpcRequest, JsonRpcNotification } from '../../tooling/lsp/types';
 
 function req(id: number, method: string, params: unknown = {}): JsonRpcRequest {
   return { jsonrpc: '2.0', id, method, params };
