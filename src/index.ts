@@ -109,6 +109,14 @@ export { DerivationCache, hashFormula } from './runtime/memo';
 export { streamEval } from './runtime/streaming';
 export type { StreamEvent } from './runtime/streaming';
 
+// Countermodel minimization
+export { minimizeCountermodel } from './runtime/countermodel-min';
+export type {
+  CountermodelMinOptions,
+  CountermodelMinAlgorithm,
+  MinimalCountermodel,
+} from './runtime/countermodel-min';
+
 // Coq exporter
 export { exportToCoq, exportProofToCoq } from './exporters/coq';
 
