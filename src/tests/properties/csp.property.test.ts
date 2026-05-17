@@ -7,8 +7,8 @@
 
 import { describe, it } from 'vitest';
 import { fc } from './generators';
-import { ac3 } from '../../runtime/csp';
-import type { CSP } from '../../runtime/csp';
+import { ac3 } from '../../solver/csp';
+import type { CSP } from '../../solver/csp';
 
 type V = string;
 type D = number;

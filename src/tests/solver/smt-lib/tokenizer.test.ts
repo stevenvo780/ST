@@ -3,7 +3,7 @@
 // ============================================================
 
 import { describe, it, expect } from 'vitest';
-import { tokenize, SmtTokenizerError } from '../../smt-lib/tokenizer';
+import { tokenize, SmtTokenizerError } from '../../../solver/smt-lib/tokenizer';
 
 describe('SMT-LIB tokenizer', () => {
   it('tokeniza paréntesis y símbolos básicos', () => {

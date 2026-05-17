@@ -3,8 +3,8 @@
 // ============================================================
 
 import { describe, it, expect } from 'vitest';
-import { emitCommand, emitSmtLib, emitSort, emitTerm, quoteSymbol } from '../../smt-lib/emitter';
-import { parseSmtLib, parseSort } from '../../smt-lib/parser';
+import { emitCommand, emitSmtLib, emitSort, emitTerm, quoteSymbol } from '../../../solver/smt-lib/emitter';
+import { parseSmtLib, parseSort } from '../../../solver/smt-lib/parser';
 
 describe('SMT-LIB emitter', () => {
   it('emite (check-sat) y (exit)', () => {

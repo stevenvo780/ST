@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PhaseSaver } from '../../solver/cdcl-v2';
+import { PhaseSaver } from '../../../solver/cdcl-v2';
 
 describe('PhaseSaver', () => {
   it('returns initial phase before any save', () => {

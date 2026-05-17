@@ -7,7 +7,7 @@ import {
   SubprocessSMTBackend,
   detectAvailableSMT,
   detectAvailableSMTDetailed,
-} from '../../runtime/smt/subprocess-backend';
+} from '../../../solver/smt/subprocess-backend';
 
 afterEach(() => {
   vi.restoreAllMocks();

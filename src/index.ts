@@ -193,8 +193,8 @@ export { generateExercise, checkAnswer, generateLessonPath } from './educational
 export type { Exercise, ExerciseLevel, ExerciseKind } from './educational';
 
 // SMT bridge
-export { toSMTLIB, MockSMTBackend, SubprocessSMTBackend, detectAvailableSMT } from './runtime/smt';
-export type { SMTBackend } from './runtime/smt';
+export { toSMTLIB, MockSMTBackend, SubprocessSMTBackend, detectAvailableSMT } from './solver/smt';
+export type { SMTBackend } from './solver/smt';
 
 // Citation Reasoning (δ3)
 export { deriveWithCitations, explainProof } from './reasoning/citation-reasoning';

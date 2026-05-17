@@ -9,7 +9,7 @@ import {
   type MUSAlgorithm,
   type SATOracle,
   type AssumptionSolver,
-} from '../../runtime/mus';
+} from '../../../solver/mus';
 
 // ── Oráculo SAT brute-force (suficiente para los tests) ───────
 //

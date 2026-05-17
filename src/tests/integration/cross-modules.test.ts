@@ -9,8 +9,8 @@ import { describe, it, expect } from 'vitest';
 
 // ── 1. CDCL incremental + MUS extraction ─────────────────────────────
 import { IncrementalCDCL } from '../../solver/cdcl-v2-incremental/solver';
-import { extractMUS } from '../../runtime/mus/extract';
-import type { SATOracle } from '../../runtime/mus/types';
+import { extractMUS } from '../../solver/mus/extract';
+import type { SATOracle } from '../../solver/mus/types';
 
 describe('CDCL incremental + MUS extraction', () => {
   it('CDCL resuelve SAT y extrae MUS del núcleo unsat', () => {

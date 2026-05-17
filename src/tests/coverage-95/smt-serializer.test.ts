@@ -4,7 +4,7 @@ import {
   inferDeclarations,
   emitDeclareConst,
   defaultSortFor,
-} from '../../runtime/smt/serializer';
+} from '../../solver/smt/serializer';
 import type { Formula } from '../../types';
 
 const atom = (name: string): Formula => ({ kind: 'atom', name });

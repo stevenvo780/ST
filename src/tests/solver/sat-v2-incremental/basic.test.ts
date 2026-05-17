@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { IncrementalCDCL } from '../../solver/cdcl-v2-incremental';
+import { IncrementalCDCL } from '../../../solver/cdcl-v2-incremental';
 
 describe('IncrementalCDCL — sat/unsat triviales', () => {
   it('SAT: sin cláusulas, 0 vars', () => {

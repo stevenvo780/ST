@@ -13,9 +13,9 @@
 
 import * as cdclV2 from '../solver/cdcl-v2';
 import * as cdclV2Incremental from '../solver/cdcl-v2-incremental';
-import * as csp from '../runtime/csp';
-import * as mus from '../runtime/mus';
-import * as smt from '../runtime/smt';
+import * as csp from '../solver/csp';
+import * as mus from '../solver/mus';
+import * as smt from '../solver/smt';
 import * as parallel from '../runtime/parallel';
 
 export { cdclV2, cdclV2Incremental, csp, mus, smt, parallel };

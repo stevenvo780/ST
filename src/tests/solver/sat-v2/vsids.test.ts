@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { VSIDS } from '../../solver/cdcl-v2';
+import { VSIDS } from '../../../solver/cdcl-v2';
 
 describe('VSIDS', () => {
   it('initializes activities from clause appearances', () => {

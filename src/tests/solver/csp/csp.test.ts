@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ac3, backtrack, allSolutions, graphColoring, nQueens } from '../../runtime/csp';
-import type { CSP } from '../../runtime/csp';
+import { ac3, backtrack, allSolutions, graphColoring, nQueens } from '../../../solver/csp';
+import type { CSP } from '../../../solver/csp';
 
 describe('CSP — AC-3 arc consistency', () => {
   it('AC-3 deja UNSAT el 3-coloreo de C3 con 2 colores (cualquier par adyacente bloquea)', () => {

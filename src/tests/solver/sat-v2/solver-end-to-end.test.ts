@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { solveCDCLv2, type SatResult, type UnsatResult } from '../../solver/cdcl-v2';
+import { solveCDCLv2, type SatResult, type UnsatResult } from '../../../solver/cdcl-v2';
 
 function isSat(r: { sat?: true } | { unsat?: true }): r is SatResult {
   return (r as { sat?: true }).sat === true;

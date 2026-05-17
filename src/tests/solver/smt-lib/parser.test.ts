@@ -3,8 +3,8 @@
 // ============================================================
 
 import { describe, it, expect } from 'vitest';
-import { parseSmtLib, parseSort, parseTerm, SmtParserError } from '../../smt-lib/parser';
-import type { SmtCommand } from '../../smt-lib/ast';
+import { parseSmtLib, parseSort, parseTerm, SmtParserError } from '../../../solver/smt-lib/parser';
+import type { SmtCommand } from '../../../solver/smt-lib/ast';
 
 describe('SMT-LIB parser — comandos', () => {
   it('parsea (check-sat) como comando único', () => {

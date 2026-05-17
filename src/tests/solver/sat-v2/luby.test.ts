@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LubyRestartPolicy, luby, lubySequence } from '../../solver/cdcl-v2';
+import { LubyRestartPolicy, luby, lubySequence } from '../../../solver/cdcl-v2';
 
 describe('luby sequence', () => {
   it('matches the canonical first 15 terms', () => {

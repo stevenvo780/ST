@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MockSMTBackend } from '../../runtime/smt/mock-backend';
+import { MockSMTBackend } from '../../solver/smt/mock-backend';
 import type { Formula } from '../../types';
 
 const atom = (name: string): Formula => ({ kind: 'atom', name });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeLBD, selectClausesToRemove, type LearnedMeta } from '../../solver/cdcl-v2';
+import { computeLBD, selectClausesToRemove, type LearnedMeta } from '../../../solver/cdcl-v2';
 
 describe('computeLBD', () => {
   // varLevel[v] = nivel de decisión en que se asignó v (1-indexado).

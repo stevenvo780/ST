@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { analyzeConflict1UIP, NO_ANTECEDENT } from '../../solver/cdcl-v2';
+import { analyzeConflict1UIP, NO_ANTECEDENT } from '../../../solver/cdcl-v2';
 
 describe('analyzeConflict1UIP', () => {
   it('produces empty learned + btLevel=-1 when conflict at root level (DL=0)', () => {

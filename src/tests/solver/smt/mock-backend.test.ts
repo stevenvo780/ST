@@ -3,9 +3,9 @@
 // ============================================================
 
 import { describe, it, expect } from 'vitest';
-import { MockSMTBackend } from '../../runtime/smt/mock-backend';
-import { toSMTLIB, inferDeclarations } from '../../runtime/smt/serializer';
-import type { Formula } from '../../types';
+import { MockSMTBackend } from '../../../solver/smt/mock-backend';
+import { toSMTLIB, inferDeclarations } from '../../../solver/smt/serializer';
+import type { Formula } from '../../../types';
 
 function atom(name: string): Formula {
   return { kind: 'atom', name };
