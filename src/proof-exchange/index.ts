@@ -1,7 +1,4 @@
-import { webcrypto } from 'node:crypto';
 import type { Proof } from '../types';
-
-export type { webcrypto };
 
 export interface ProofPackage {
   version: '1.0';
@@ -43,7 +40,7 @@ export function canonicalize(pkg: ProofPackage): string {
   return canonicalizeValue(pkg as unknown as JsonObject);
 }
 
-const subtle: webcrypto.SubtleCrypto = webcrypto.subtle;
+const subtle: SubtleCrypto = globalThis.crypto.subtle;
 
 export async function hashProof(pkg: ProofPackage): Promise<string> {
   const canonical = canonicalize(pkg);
@@ -54,37 +51,42 @@ export async function hashProof(pkg: ProofPackage): Promise<string> {
 }
 
 export async function generateKeyPair(): Promise<{
-  publicKey: webcrypto.CryptoKey;
-  privateKey: webcrypto.CryptoKey;
+  publicKey: CryptoKey;
+  privateKey: CryptoKey;
 }> {
   try {
-    const result = await subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
-    const pair = result as webcrypto.CryptoKeyPair;
-    return { publicKey: pair.publicKey, privateKey: pair.privateKey };
+    const pair = await subtle.generateKey({ name: 'Ed25519' }, true, [
+      'sign',
+      'verify',
+    ] as KeyUsage[]);
+    return {
+      publicKey: (pair as CryptoKeyPair).publicKey,
+      privateKey: (pair as CryptoKeyPair).privateKey,
+    };
   } catch {
     const key = await subtle.generateKey({ name: 'HMAC', hash: 'SHA-256', length: 256 }, true, [
       'sign',
       'verify',
-    ]);
+    ] as KeyUsage[]);
     return { publicKey: key, privateKey: key };
   }
 }
 
 export async function signProof(
   pkg: ProofPackage,
-  privateKey: webcrypto.CryptoKey,
+  privateKey: CryptoKey,
 ): Promise<{ signature: string; algorithm: 'Ed25519' | 'HMAC-SHA256' }> {
   const canonical = canonicalize(pkg);
   const data = new TextEncoder().encode(canonical);
   const algorithm = privateKey.algorithm.name === 'Ed25519' ? 'Ed25519' : 'HMAC-SHA256';
-  const algoParam: webcrypto.AlgorithmIdentifier = algorithm === 'Ed25519' ? 'Ed25519' : 'HMAC';
+  const algoParam: AlgorithmIdentifier = algorithm === 'Ed25519' ? 'Ed25519' : 'HMAC';
   const sigBuffer = await subtle.sign(algoParam, privateKey, data);
   const sigArray = Array.from(new Uint8Array(sigBuffer));
   const signature = sigArray.map((b) => b.toString(16).padStart(2, '0')).join('');
   return { signature, algorithm };
 }
 
-function hexToUint8Array(hex: string): Uint8Array {
+function hexToUint8Array(hex: string): Uint8Array<ArrayBuffer> {
   if (hex.length % 2 !== 0) throw new Error('Invalid hex string');
   const result = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length; i += 2) {
@@ -96,7 +98,7 @@ function hexToUint8Array(hex: string): Uint8Array {
 export async function verifyProof(
   pkg: ProofPackage,
   signature: string,
-  publicKey: webcrypto.CryptoKey | string,
+  publicKey: CryptoKey | string,
 ): Promise<boolean> {
   try {
     const canonical = canonicalize(pkg);
@@ -116,7 +118,7 @@ export async function verifyProof(
     }
 
     const algoName = publicKey.algorithm.name;
-    const algoParam: webcrypto.AlgorithmIdentifier = algoName === 'Ed25519' ? 'Ed25519' : 'HMAC';
+    const algoParam: AlgorithmIdentifier = algoName === 'Ed25519' ? 'Ed25519' : 'HMAC';
     return await subtle.verify(algoParam, publicKey, sigBytes, data);
   } catch {
     return false;
