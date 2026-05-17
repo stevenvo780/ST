@@ -7,6 +7,21 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.9.0] - 2026-05-17
+
+### Added — V5 wave 3
+- mathlib subset curado en `tooling/mathlib/` (`547023d`). 38 tests. Order/groups/rings/fields + Z/nZ + S3 + Rationals.
+- Differential privacy en `reasoning/differential-privacy/` (`64b5164`). 38 tests. Laplace/Gaussian/exponential + composition.
+- Algebraic effects + free monads en `type-theory/effects/` (`ab4e9db`). 31 tests. State/Reader/Writer/Exception.
+- BAN logic crypto protocols en `reasoning/ban-logic/` (`47b049b`). 28 tests. Needham-Schroeder symmetric/PK + Kerberos.
+- PROOFLIB certificate format en `proof-systems/certificate/` (`422a3b8`). 30 tests. LFSC import/export + Ed25519/HMAC sign.
+- Quantum logic Birkhoff-vN en `logic/profiles/quantum/` (`ee439f4`). 30 tests. Cabello-18 KS provably non-colorable.
+
+### Changed
+- 4819 → ~5000 tests (~+200 V5 wave 3).
+
+---
+
 ## [4.8.0] - 2026-05-17
 
 ### Added — V5 wave 2 (post-refactor)
