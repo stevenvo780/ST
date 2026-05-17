@@ -7,6 +7,21 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.7.0] - 2026-05-17
+
+### Changed — V5.0 α1 structural refactor
+- **Reorganización por dominios** (8 buckets): logic/, proof-systems/, type-theory/, solver/, reasoning/, semantics/, tooling/ + runtime/ (mantenido).
+- 60+ módulos movidos a su bucket semántico.
+- API pública IDÉNTICA: 322 símbolos, 84 export lines, mismos 4 entry points (`dist/index.js`, `dist/api.js`, `dist/types/index.js`, `dist/protocol/handler.js`).
+- Backward-compat 100%: consumers no requieren cambio alguno.
+
+### Internal
+- 4636 tests preservados (cero regresiones).
+- 8 commits secuenciales por dominio para historial git limpio + bisect.
+- `git log --follow` sigue rastreando todos los módulos movidos.
+
+---
+
 ## [4.6.0] - 2026-05-17
 
 ### Added — V5 features wave
