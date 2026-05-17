@@ -18,6 +18,7 @@ import * as abduction from '../reasoning/abduction';
 import * as markovLogic from '../reasoning/markov-logic';
 import * as bayesian from '../reasoning/bayesian';
 import * as probabilistic from '../reasoning/probabilistic';
+import * as differentialPrivacy from '../reasoning/differential-privacy';
 import * as citationReasoning from '../reasoning/citation-reasoning';
 import * as hyperreal from '../reasoning/hyperreal';
 import * as antiUnification from '../runtime/anti-unification';
@@ -30,6 +31,7 @@ export {
   markovLogic,
   bayesian,
   probabilistic,
+  differentialPrivacy,
   citationReasoning,
   hyperreal,
   antiUnification,
