@@ -7,6 +7,26 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.4.0] - 2026-05-17
+
+### Added
+- 4.6.1 Modal μ-calculus + fixed-point + ctlToMu (`db3c33d`). 32 tests.
+- 4.6.2 Markov Logic Networks + Gibbs + MaxWalkSAT (`86c7ba3`). 22 tests.
+- 4.6.3 Theorem cache LRU persistente + proof reuse (`4a59bec`). 42 tests.
+- 4.6.4 Anti-unification Plotkin lgg + n-way (`695d893`). 25 tests.
+- 4.6.5 STRIPS planner BFS+A*+FF heuristic (`475ef15`). 32 tests.
+- 4.6.6 CSP solver AC-3+MAC+MRV+LCV (`d1d148b`). 17 tests.
+- 4.7.1 System F polymorphic λ con Λ/type-app (`3be32a3`). 27 tests.
+- 4.7.2 Martin-Löf Type Theory Π/Σ/Id/Nat + universe hierarchy (`afa1dec`). 34 tests.
+- 4.7.3 Sequent LK + Gentzen Hauptsatz cut-elimination (`50b96bb`). 24 tests.
+- 4.7.4 π-calculus Milner con scope extrusion (`098ede0`). 34 tests.
+- 4.7.5 Refinement types bidireccional + VC solver (`7d38ab0`). 28 tests.
+
+### Changed
+- 3261 → 3610+ tests (+349 nuevos).
+
+---
+
 ## [4.3.0] - 2026-05-17
 
 ### Added

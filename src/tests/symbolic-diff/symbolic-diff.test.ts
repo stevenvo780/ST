@@ -27,7 +27,12 @@ import type { Expr } from '../../runtime/symbolic-diff';
  * Verificación numérica de la derivada: compara differentiate(f,x) con
  * un cociente diferencial centrado en varios puntos.
  */
-function numericDerivative(expr: Expr, varName: string, x0: number, env: Record<string, number> = {}): number {
+function numericDerivative(
+  expr: Expr,
+  varName: string,
+  x0: number,
+  env: Record<string, number> = {},
+): number {
   const h = 1e-6;
   const envPlus = { ...env, [varName]: x0 + h };
   const envMinus = { ...env, [varName]: x0 - h };
@@ -39,7 +44,7 @@ function assertDerivativeMatches(
   varName: string,
   points: number[],
   extraEnv: Record<string, number> = {},
-  tol = 1e-4
+  tol = 1e-4,
 ): void {
   const df = differentiate(f, varName);
   for (const x of points) {

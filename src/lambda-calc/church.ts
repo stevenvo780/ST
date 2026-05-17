@@ -61,14 +61,8 @@ export const churchSucc: Term = lam(
 // PLUS = λm.λn.λf.λx. m f (n f x)
 export const churchAdd: Term = lam(
   'm',
-  lam(
-    'n',
-    lam('f', lam('x', apN(v('m'), v('f'), apN(v('n'), v('f'), v('x'))))),
-  ),
+  lam('n', lam('f', lam('x', apN(v('m'), v('f'), apN(v('n'), v('f'), v('x')))))),
 );
 
 // MULT = λm.λn.λf. m (n f)
-export const churchMul: Term = lam(
-  'm',
-  lam('n', lam('f', ap(v('m'), ap(v('n'), v('f'))))),
-);
+export const churchMul: Term = lam('m', lam('n', lam('f', ap(v('m'), ap(v('n'), v('f'))))));

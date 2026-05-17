@@ -207,9 +207,9 @@ describe('MLTT / checkType bidireccional', () => {
   });
 
   it('checkType acepta refl(succ zero) : Id(Nat, succ zero, succ zero)', () => {
-    expect(
-      checkType(mRefl(mSucc(mZero())), mId(mNat(), mSucc(mZero()), mSucc(mZero()))),
-    ).toBe(true);
+    expect(checkType(mRefl(mSucc(mZero())), mId(mNat(), mSucc(mZero()), mSucc(mZero())))).toBe(
+      true,
+    );
   });
 
   it('occursFree detecta dependencia en codomain de Π', () => {

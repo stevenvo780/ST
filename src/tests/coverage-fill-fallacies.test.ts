@@ -2,7 +2,7 @@
  * Coverage fill — src/runtime/fallacies.ts
  * Current coverage: ~65% stmts, ~48% branch
  */
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- test stubs use partial any casts for brevity */
+/* eslint-disable @typescript-eslint/no-unsafe-argument -- test stubs use partial any casts for brevity */
 
 import { describe, it, expect } from 'vitest';
 import { detectFallacies } from '../runtime/fallacies';

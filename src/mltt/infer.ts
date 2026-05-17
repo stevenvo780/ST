@@ -85,14 +85,18 @@ export function inferType(term: MLTTTerm, ctx: InferContext = emptyCtx()): Infer
       if (isInferError(domT)) return domT;
       const i = universeLevel(domT);
       if (i === null) {
-        return { error: `dominio de Π no es un universo: ${termToString(term.domain)} : ${termToString(domT)}` };
+        return {
+          error: `dominio de Π no es un universo: ${termToString(term.domain)} : ${termToString(domT)}`,
+        };
       }
       const newCtx = extend(ctx, term.bind, term.domain);
       const codT = inferType(term.codomain, newCtx);
       if (isInferError(codT)) return codT;
       const j = universeLevel(codT);
       if (j === null) {
-        return { error: `codominio de Π no es un universo: ${termToString(term.codomain)} : ${termToString(codT)}` };
+        return {
+          error: `codominio de Π no es un universo: ${termToString(term.codomain)} : ${termToString(codT)}`,
+        };
       }
       return mUniverse(Math.max(i, j));
     }
@@ -101,14 +105,18 @@ export function inferType(term: MLTTTerm, ctx: InferContext = emptyCtx()): Infer
       if (isInferError(fT)) return fT;
       const i = universeLevel(fT);
       if (i === null) {
-        return { error: `primer componente de Σ no es un universo: ${termToString(term.first)} : ${termToString(fT)}` };
+        return {
+          error: `primer componente de Σ no es un universo: ${termToString(term.first)} : ${termToString(fT)}`,
+        };
       }
       const newCtx = extend(ctx, term.bind, term.first);
       const sT = inferType(term.second, newCtx);
       if (isInferError(sT)) return sT;
       const j = universeLevel(sT);
       if (j === null) {
-        return { error: `segundo componente de Σ no es un universo: ${termToString(term.second)} : ${termToString(sT)}` };
+        return {
+          error: `segundo componente de Σ no es un universo: ${termToString(term.second)} : ${termToString(sT)}`,
+        };
       }
       return mUniverse(Math.max(i, j));
     }
@@ -117,7 +125,9 @@ export function inferType(term: MLTTTerm, ctx: InferContext = emptyCtx()): Infer
       const domT = inferType(term.domain, ctx);
       if (isInferError(domT)) return domT;
       if (universeLevel(domT) === null) {
-        return { error: `anotación de λ no es un tipo: ${termToString(term.domain)} : ${termToString(domT)}` };
+        return {
+          error: `anotación de λ no es un tipo: ${termToString(term.domain)} : ${termToString(domT)}`,
+        };
       }
       const newCtx = extend(ctx, term.bind, term.domain);
       const bodyT = inferType(term.body, newCtx);
@@ -177,12 +187,16 @@ export function inferType(term: MLTTTerm, ctx: InferContext = emptyCtx()): Infer
       const lT = inferType(term.left, ctx);
       if (isInferError(lT)) return lT;
       if (!alphaBetaEq(lT, term.type)) {
-        return { error: `lado izquierdo de Id tiene tipo ${termToString(lT)}, esperaba ${termToString(term.type)}` };
+        return {
+          error: `lado izquierdo de Id tiene tipo ${termToString(lT)}, esperaba ${termToString(term.type)}`,
+        };
       }
       const rT = inferType(term.right, ctx);
       if (isInferError(rT)) return rT;
       if (!alphaBetaEq(rT, term.type)) {
-        return { error: `lado derecho de Id tiene tipo ${termToString(rT)}, esperaba ${termToString(term.type)}` };
+        return {
+          error: `lado derecho de Id tiene tipo ${termToString(rT)}, esperaba ${termToString(term.type)}`,
+        };
       }
       return mUniverse(i);
     }

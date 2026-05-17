@@ -105,10 +105,7 @@ export function or(left: FuzzyFormula, right: FuzzyFormula): FuzzyFormula {
   return { kind: 'or', left, right };
 }
 
-export function implies(
-  left: FuzzyFormula,
-  right: FuzzyFormula,
-): FuzzyFormula {
+export function implies(left: FuzzyFormula, right: FuzzyFormula): FuzzyFormula {
   return { kind: 'implies', left, right };
 }
 
@@ -210,16 +207,16 @@ function forEachValuation(
   const indices = new Array<number>(atoms.length).fill(0);
   for (let n = 0; n < total; n++) {
     for (let i = 0; i < atoms.length; i++) {
-      const key = atoms[i] as string;
-      const gi = indices[i] as number;
-      env[key] = grid[gi] as number;
+      const key = atoms[i];
+      const gi = indices[i];
+      env[key] = grid[gi];
     }
     const value = evaluate(formula, env, system);
     const res = visit({ ...env }, value);
     if (res === false) return;
     // increment indices (base = grid.length)
     for (let i = atoms.length - 1; i >= 0; i--) {
-      const idx = (indices[i] as number) + 1;
+      const idx = indices[i] + 1;
       if (idx < grid.length) {
         indices[i] = idx;
         break;

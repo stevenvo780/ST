@@ -27,32 +27,26 @@ export function substitute(term: MLTTTerm, name: string, value: MLTTTerm): MLTTT
     case 'zero':
       return term;
     case 'pi':
-      return substBinder(
-        term,
-        name,
-        value,
-        term.domain,
-        term.codomain,
-        (bind, dom, cod) => ({ kind: 'pi', bind, domain: dom, codomain: cod }),
-      );
+      return substBinder(term, name, value, term.domain, term.codomain, (bind, dom, cod) => ({
+        kind: 'pi',
+        bind,
+        domain: dom,
+        codomain: cod,
+      }));
     case 'sigma':
-      return substBinder(
-        term,
-        name,
-        value,
-        term.first,
-        term.second,
-        (bind, dom, cod) => ({ kind: 'sigma', bind, first: dom, second: cod }),
-      );
+      return substBinder(term, name, value, term.first, term.second, (bind, dom, cod) => ({
+        kind: 'sigma',
+        bind,
+        first: dom,
+        second: cod,
+      }));
     case 'lam':
-      return substBinder(
-        term,
-        name,
-        value,
-        term.domain,
-        term.body,
-        (bind, dom, body) => ({ kind: 'lam', bind, domain: dom, body }),
-      );
+      return substBinder(term, name, value, term.domain, term.body, (bind, dom, body) => ({
+        kind: 'lam',
+        bind,
+        domain: dom,
+        body,
+      }));
     case 'app':
       return {
         kind: 'app',

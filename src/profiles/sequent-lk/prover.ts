@@ -213,7 +213,10 @@ export function proveLK(seq: LKSequent, options: { budget?: number } = {}): LKPr
 }
 
 /** Atajo: ⊢ φ. */
-export function proveLKFormula(formula: LKFormula, options: { budget?: number } = {}): LKProof | null {
+export function proveLKFormula(
+  formula: LKFormula,
+  options: { budget?: number } = {},
+): LKProof | null {
   return proveLK({ left: [], right: [formula] }, options);
 }
 
@@ -388,12 +391,14 @@ export function isValid(proof: LKProof): boolean {
       // conclusion: Γ ⊢ A∧B, Δ ; premisas: Γ ⊢ A, Δ y Γ ⊢ B, Δ
       if (!containsKey(R, lkKey(pf))) return false;
       const delta = removeFirstByKey(R, lkKey(pf));
-      const okL = sameMultiset(p1.goal.left, L)
-        && containsKey(p1.goal.right, lkKey(pf.left))
-        && sameMultiset(removeFirstByKey(p1.goal.right, lkKey(pf.left)), delta);
-      const okR = sameMultiset(p2.goal.left, L)
-        && containsKey(p2.goal.right, lkKey(pf.right))
-        && sameMultiset(removeFirstByKey(p2.goal.right, lkKey(pf.right)), delta);
+      const okL =
+        sameMultiset(p1.goal.left, L) &&
+        containsKey(p1.goal.right, lkKey(pf.left)) &&
+        sameMultiset(removeFirstByKey(p1.goal.right, lkKey(pf.left)), delta);
+      const okR =
+        sameMultiset(p2.goal.left, L) &&
+        containsKey(p2.goal.right, lkKey(pf.right)) &&
+        sameMultiset(removeFirstByKey(p2.goal.right, lkKey(pf.right)), delta);
       return okL && okR;
     }
     case 'orL': {
@@ -404,12 +409,14 @@ export function isValid(proof: LKProof): boolean {
       if (!pf || pf.kind !== 'or') return false;
       if (!containsKey(L, lkKey(pf))) return false;
       const gamma = removeFirstByKey(L, lkKey(pf));
-      const okL = containsKey(p1.goal.left, lkKey(pf.left))
-        && sameMultiset(removeFirstByKey(p1.goal.left, lkKey(pf.left)), gamma)
-        && sameMultiset(p1.goal.right, R);
-      const okR = containsKey(p2.goal.left, lkKey(pf.right))
-        && sameMultiset(removeFirstByKey(p2.goal.left, lkKey(pf.right)), gamma)
-        && sameMultiset(p2.goal.right, R);
+      const okL =
+        containsKey(p1.goal.left, lkKey(pf.left)) &&
+        sameMultiset(removeFirstByKey(p1.goal.left, lkKey(pf.left)), gamma) &&
+        sameMultiset(p1.goal.right, R);
+      const okR =
+        containsKey(p2.goal.left, lkKey(pf.right)) &&
+        sameMultiset(removeFirstByKey(p2.goal.left, lkKey(pf.right)), gamma) &&
+        sameMultiset(p2.goal.right, R);
       return okL && okR;
     }
     case 'orR': {
@@ -433,13 +440,15 @@ export function isValid(proof: LKProof): boolean {
       if (!containsKey(L, lkKey(pf))) return false;
       const gamma = removeFirstByKey(L, lkKey(pf));
       // p1: Γ ⊢ A, Δ
-      const okL = sameMultiset(p1.goal.left, gamma)
-        && containsKey(p1.goal.right, lkKey(pf.left))
-        && sameMultiset(removeFirstByKey(p1.goal.right, lkKey(pf.left)), R);
+      const okL =
+        sameMultiset(p1.goal.left, gamma) &&
+        containsKey(p1.goal.right, lkKey(pf.left)) &&
+        sameMultiset(removeFirstByKey(p1.goal.right, lkKey(pf.left)), R);
       // p2: B, Γ ⊢ Δ
-      const okR = containsKey(p2.goal.left, lkKey(pf.right))
-        && sameMultiset(removeFirstByKey(p2.goal.left, lkKey(pf.right)), gamma)
-        && sameMultiset(p2.goal.right, R);
+      const okR =
+        containsKey(p2.goal.left, lkKey(pf.right)) &&
+        sameMultiset(removeFirstByKey(p2.goal.left, lkKey(pf.right)), gamma) &&
+        sameMultiset(p2.goal.right, R);
       return okL && okR;
     }
     case 'impR': {
@@ -451,10 +460,12 @@ export function isValid(proof: LKProof): boolean {
       // conclusion: Γ ⊢ A→B, Δ ; premisa: A, Γ ⊢ B, Δ
       if (!containsKey(R, lkKey(pf))) return false;
       const delta = removeFirstByKey(R, lkKey(pf));
-      const okL = containsKey(p.goal.left, lkKey(pf.left))
-        && sameMultiset(removeFirstByKey(p.goal.left, lkKey(pf.left)), L);
-      const okR = containsKey(p.goal.right, lkKey(pf.right))
-        && sameMultiset(removeFirstByKey(p.goal.right, lkKey(pf.right)), delta);
+      const okL =
+        containsKey(p.goal.left, lkKey(pf.left)) &&
+        sameMultiset(removeFirstByKey(p.goal.left, lkKey(pf.left)), L);
+      const okR =
+        containsKey(p.goal.right, lkKey(pf.right)) &&
+        sameMultiset(removeFirstByKey(p.goal.right, lkKey(pf.right)), delta);
       return okL && okR;
     }
   }

@@ -73,8 +73,7 @@ export const mZero = (): MLTTTerm => ({ kind: 'zero' });
 export const mSucc = (arg: MLTTTerm): MLTTTerm => ({ kind: 'succ', arg });
 
 // Arrow no-dependiente: Π (_ : A). B  con B sin referencia a _.
-export const mArrow = (from: MLTTTerm, to: MLTTTerm): MLTTTerm =>
-  mPi('_', from, to);
+export const mArrow = (from: MLTTTerm, to: MLTTTerm): MLTTTerm => mPi('_', from, to);
 
 // ---------- Helpers de inspección ----------
 
@@ -108,9 +107,7 @@ export function occursFree(name: string, term: MLTTTerm): boolean {
       return occursFree(name, term.pair);
     case 'identity':
       return (
-        occursFree(name, term.type) ||
-        occursFree(name, term.left) ||
-        occursFree(name, term.right)
+        occursFree(name, term.type) || occursFree(name, term.left) || occursFree(name, term.right)
       );
     case 'refl':
       return occursFree(name, term.term);

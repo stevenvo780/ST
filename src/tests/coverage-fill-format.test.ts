@@ -3,7 +3,7 @@
  * Targets: formulaToUnicode, formulaToLaTeX, proofToLaTeX
  * Current coverage: ~52% stmts, ~43% branch
  */
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- test stubs use partial any casts for brevity */
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment -- test stubs use partial any casts for brevity */
 
 import { describe, it, expect } from 'vitest';
 import { formulaToUnicode, formulaToLaTeX, proofToLaTeX } from '../runtime/format';

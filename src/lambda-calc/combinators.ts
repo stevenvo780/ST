@@ -16,18 +16,12 @@ export const I: Term = lam('x', v('x'));
 
 export const K: Term = lam('x', lam('y', v('x')));
 
-export const S: Term = lam(
-  'x',
-  lam('y', lam('z', apN(v('x'), v('z'), ap(v('y'), v('z'))))),
-);
+export const S: Term = lam('x', lam('y', lam('z', apN(v('x'), v('z'), ap(v('y'), v('z'))))));
 
 // Y-combinator (Curry).
 export const Y: Term = lam(
   'f',
-  ap(
-    lam('x', ap(v('f'), ap(v('x'), v('x')))),
-    lam('x', ap(v('f'), ap(v('x'), v('x')))),
-  ),
+  ap(lam('x', ap(v('f'), ap(v('x'), v('x')))), lam('x', ap(v('f'), ap(v('x'), v('x'))))),
 );
 
 // ω = λx.xx

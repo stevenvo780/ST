@@ -1,5 +1,18 @@
 import type { Expr } from './types';
-import { cst, v as makeVar, add, mul, sub, div, pow, neg, sin, cos, log, exp } from './constructors';
+import {
+  cst,
+  v as makeVar,
+  add,
+  mul,
+  sub,
+  div,
+  pow,
+  neg,
+  sin,
+  cos,
+  log,
+  exp,
+} from './constructors';
 import { simplify } from './simplify';
 
 /**

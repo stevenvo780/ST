@@ -21,13 +21,7 @@ import type { CSP, Constraint } from './types';
  * tupla (a, b) según el orden de `c.vars`. Si los var indices están
  * cruzados, alinea automáticamente.
  */
-function binaryAccepts<V, D>(
-  c: Constraint<V, D>,
-  xi: V,
-  xj: V,
-  a: D,
-  b: D,
-): boolean {
+function binaryAccepts<V, D>(c: Constraint<V, D>, xi: V, xj: V, a: D, b: D): boolean {
   if (c.vars.length !== 2) {
     throw new Error('binaryAccepts: la restricción no es binaria');
   }
@@ -61,12 +55,7 @@ function buildBinaryNeighbors<V, D>(
  * Revisa el arco (xi → xj): elimina de D(xi) todo valor sin soporte
  * en D(xj). Retorna `true` si el dominio cambió.
  */
-function revise<V, D>(
-  domains: Map<V, D[]>,
-  xi: V,
-  xj: V,
-  constraint: Constraint<V, D>,
-): boolean {
+function revise<V, D>(domains: Map<V, D[]>, xi: V, xj: V, constraint: Constraint<V, D>): boolean {
   const dxi = domains.get(xi);
   const dxj = domains.get(xj);
   if (!dxi || !dxj) return false;
@@ -95,7 +84,9 @@ function revise<V, D>(
  * La firma deja los dominios originales intactos: el caller decide si
  * adoptar `reducedDomains` o conservar los originales.
  */
-export function ac3<V, D>(csp: CSP<V, D>): {
+export function ac3<V, D>(
+  csp: CSP<V, D>,
+): {
   consistent: boolean;
   reducedDomains: Map<V, D[]>;
 } {
@@ -142,10 +133,7 @@ export function ac3<V, D>(csp: CSP<V, D>): {
  * sobre un set de dominios ya provisto (mutación in-place permitida)
  * y devuelve `true` si los dominios siguen consistentes.
  */
-export function ac3InPlace<V, D>(
-  csp: CSP<V, D>,
-  domains: Map<V, D[]>,
-): boolean {
+export function ac3InPlace<V, D>(csp: CSP<V, D>, domains: Map<V, D[]>): boolean {
   const neighbors = buildBinaryNeighbors(csp);
   type Arc = { xi: V; xj: V; constraint: Constraint<V, D> };
   const queue: Arc[] = [];

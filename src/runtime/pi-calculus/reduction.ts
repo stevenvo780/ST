@@ -227,22 +227,12 @@ function replaceTwoPrefixes(
   marker: { found: boolean },
 ): PiProcess {
   // ¿Es el input que buscamos?
-  if (
-    p.kind === 'input' &&
-    p.channel === i.channel &&
-    p.bind === i.bind &&
-    p.cont === i.cont
-  ) {
+  if (p.kind === 'input' && p.channel === i.channel && p.bind === i.bind && p.cont === i.cont) {
     const substituted = substitute(p.cont, p.bind, o.value);
     return substituted;
   }
   // ¿Es el output que buscamos?
-  if (
-    p.kind === 'output' &&
-    p.channel === o.channel &&
-    p.value === o.value &&
-    p.cont === o.cont
-  ) {
+  if (p.kind === 'output' && p.channel === o.channel && p.value === o.value && p.cont === o.cont) {
     return p.cont;
   }
   switch (p.kind) {
@@ -400,7 +390,7 @@ export function trace(p: PiProcess, maxSteps: number = 100): PiProcess[] {
   for (let step = 0; step < maxSteps; step++) {
     const next = reduce(current);
     if (next.length === 0) break;
-    const head = next[0]!;
+    const head = next[0];
     result.push(head);
     current = head;
   }

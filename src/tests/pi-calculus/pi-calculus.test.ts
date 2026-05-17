@@ -140,7 +140,7 @@ describe('π-calculus — reducción COMM', () => {
     const p = par(out('c', 'a'), inp('c', 'x'));
     const next = reduce(p);
     expect(next.length).toBeGreaterThanOrEqual(1);
-    const head = next[0]!;
+    const head = next[0];
     expect(structuralCongruence(head, par(nil, nil))).toBe(true);
   });
 
@@ -158,7 +158,7 @@ describe('π-calculus — reducción COMM', () => {
     const next = reduce(p);
     expect(next.length).toBeGreaterThan(0);
     // El resultado debe contener un output a^⟨b⟩.0 visible (ya que x ↦ a).
-    const reduced = next[0]!;
+    const reduced = next[0];
     // (νc)(0 | ā⟨b⟩.0) — c ya no aparece libre dentro, pero seguimos
     // teniendo ā⟨b⟩.0 visible bajo el scope.
     const expected = nu('c', par(nil, out('a', 'b')));
@@ -205,7 +205,7 @@ describe('π-calculus — match / replicación / choice', () => {
     const p = match('x', 'x', inner);
     const next = reduce(p);
     expect(next.length).toBeGreaterThanOrEqual(1);
-    expect(structuralCongruence(next[0]!, inner)).toBe(true);
+    expect(structuralCongruence(next[0], inner)).toBe(true);
   });
 
   it('[x = y].P no reduce si x ≠ y', () => {

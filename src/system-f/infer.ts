@@ -10,13 +10,7 @@
 //   M [T] : U[X := T]        si M : ∀X. U  y  T well-formed en Δ
 
 import type { FContext, FTerm, FType } from './types';
-import {
-  alphaEqType,
-  cloneContext,
-  emptyContext,
-  fTypeToString,
-  isWellFormed,
-} from './types';
+import { alphaEqType, cloneContext, emptyContext, fTypeToString, isWellFormed } from './types';
 import { substType } from './reduce';
 
 export type FTypeResult = FType | { error: string };

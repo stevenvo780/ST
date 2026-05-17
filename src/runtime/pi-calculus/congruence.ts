@@ -25,7 +25,7 @@
 // ============================================================
 
 import type { PiProcess } from './types';
-import { alphaRename, freeNames, freshName } from './names';
+import { alphaRename, freeNames } from './names';
 
 /**
  * Normaliza un proceso a forma canónica para comparar ≡.
@@ -109,7 +109,7 @@ function normalize(p: PiProcess): PiProcess {
         .map(normalize)
         .filter((q) => q.kind !== 'nil');
       if (parts.length === 0) return { kind: 'nil' };
-      if (parts.length === 1) return parts[0]!;
+      if (parts.length === 1) return parts[0];
       parts.sort((a, b) => structKey(a).localeCompare(structKey(b)));
       return parts.reduceRight((acc, q) => ({ kind: 'parallel', left: q, right: acc }));
     }
@@ -118,7 +118,7 @@ function normalize(p: PiProcess): PiProcess {
         .map(normalize)
         .filter((q) => q.kind !== 'nil');
       if (parts.length === 0) return { kind: 'nil' };
-      if (parts.length === 1) return parts[0]!;
+      if (parts.length === 1) return parts[0];
       parts.sort((a, b) => structKey(a).localeCompare(structKey(b)));
       return parts.reduceRight((acc, q) => ({ kind: 'choice', left: q, right: acc }));
     }

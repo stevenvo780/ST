@@ -18,22 +18,14 @@
 // ============================================================
 
 import { ac3InPlace } from './ac3';
-import type {
-  CSP,
-  CSPResult,
-  Constraint,
-  BacktrackOptions,
-} from './types';
+import type { CSP, CSPResult, Constraint, BacktrackOptions } from './types';
 
 /**
  * Comprueba si una asignación parcial respeta todas las restricciones
  * cuyas variables ya están todas asignadas. Las restricciones con
  * variables aún sin asignar se posponen.
  */
-function consistent<V, D>(
-  csp: CSP<V, D>,
-  assignment: Map<V, D>,
-): boolean {
+function consistent<V, D>(csp: CSP<V, D>, assignment: Map<V, D>): boolean {
   for (const c of csp.constraints) {
     let allAssigned = true;
     const vals: D[] = [];
@@ -89,12 +81,7 @@ function selectUnassigned<V, D>(
  * métrica usada es la suma de # de eliminaciones que provocaría
  * en los dominios de los vecinos binarios.
  */
-function orderValues<V, D>(
-  csp: CSP<V, D>,
-  domains: Map<V, D[]>,
-  variable: V,
-  lcv: boolean,
-): D[] {
+function orderValues<V, D>(csp: CSP<V, D>, domains: Map<V, D[]>, variable: V, lcv: boolean): D[] {
   const dom = domains.get(variable) ?? [];
   if (!lcv) return [...dom];
 
@@ -132,10 +119,7 @@ function orderValues<V, D>(
  * Devuelve la primera solución encontrada o `null` si UNSAT. Para
  * enumerar todas las soluciones, ver `allSolutions`.
  */
-export function backtrack<V, D>(
-  csp: CSP<V, D>,
-  opts: BacktrackOptions = {},
-): CSPResult<V, D> {
+export function backtrack<V, D>(csp: CSP<V, D>, opts: BacktrackOptions = {}): CSPResult<V, D> {
   const useAC3 = opts.useAC3 ?? true;
   const mrv = opts.mrv ?? true;
   const lcv = opts.lcv ?? true;

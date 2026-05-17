@@ -37,11 +37,7 @@ export function alphaEq(a: MLTTTerm, b: MLTTTerm): boolean {
     }
     case 'identity': {
       const bb = b as typeof a;
-      return (
-        alphaEq(a.type, bb.type) &&
-        alphaEq(a.left, bb.left) &&
-        alphaEq(a.right, bb.right)
-      );
+      return alphaEq(a.type, bb.type) && alphaEq(a.left, bb.left) && alphaEq(a.right, bb.right);
     }
     case 'refl':
       return alphaEq(a.term, (b as typeof a).term);
@@ -79,10 +75,6 @@ let alphaCounter = 0;
  * Igualdad αβ (definicional): normaliza ambos y luego compara α.
  * `ctx` reservado para implementaciones futuras (η, definitional unfolding).
  */
-export function alphaBetaEq(
-  a: MLTTTerm,
-  b: MLTTTerm,
-  _ctx?: Map<string, MLTTTerm>,
-): boolean {
+export function alphaBetaEq(a: MLTTTerm, b: MLTTTerm, _ctx?: Map<string, MLTTTerm>): boolean {
   return alphaEq(normalize(a), normalize(b));
 }

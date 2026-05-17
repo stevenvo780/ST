@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  ac3,
-  backtrack,
-  allSolutions,
-  graphColoring,
-  nQueens,
-} from '../../runtime/csp';
+import { ac3, backtrack, allSolutions, graphColoring, nQueens } from '../../runtime/csp';
 import type { CSP } from '../../runtime/csp';
 
 describe('CSP — AC-3 arc consistency', () => {
@@ -36,7 +30,7 @@ describe('CSP — AC-3 arc consistency', () => {
       constraints: [
         {
           vars: ['x', 'y'],
-          predicate: ([a, b]) => (a as number) < (b as number),
+          predicate: ([a, b]) => a < b,
         },
       ],
     };
@@ -75,7 +69,7 @@ describe('CSP — AC-3 arc consistency', () => {
       constraints: [
         {
           vars: ['x', 'y'],
-          predicate: ([a, b]) => (a as number) < (b as number),
+          predicate: ([a, b]) => a < b,
         },
       ],
     };
@@ -199,8 +193,8 @@ describe('CSP — N-queens', () => {
     // Verificar: no misma columna ni diagonal.
     for (let i = 0; i < sol.length; i++) {
       for (let j = i + 1; j < sol.length; j++) {
-        const ci = sol[i] as number;
-        const cj = sol[j] as number;
+        const ci = sol[i];
+        const cj = sol[j];
         expect(ci).not.toBe(cj);
         expect(Math.abs(ci - cj)).not.toBe(j - i);
       }
@@ -214,8 +208,8 @@ describe('CSP — N-queens', () => {
     expect(sol.length).toBe(8);
     for (let i = 0; i < 8; i++) {
       for (let j = i + 1; j < 8; j++) {
-        const ci = sol[i] as number;
-        const cj = sol[j] as number;
+        const ci = sol[i];
+        const cj = sol[j];
         expect(ci).not.toBe(cj);
         expect(Math.abs(ci - cj)).not.toBe(j - i);
       }
@@ -295,9 +289,7 @@ describe('CSP — backtracking y stats', () => {
     expect(r.solution).not.toBeNull();
     if (!r.solution) return;
     const sum =
-      (r.solution.get('x') ?? 0) +
-      (r.solution.get('y') ?? 0) +
-      (r.solution.get('z') ?? 0);
+      (r.solution.get('x') ?? 0) + (r.solution.get('y') ?? 0) + (r.solution.get('z') ?? 0);
     expect(sum).toBe(6);
   });
 
@@ -317,7 +309,7 @@ describe('CSP — backtracking y stats', () => {
         ['c', 'd'],
         ['a', 'd'],
       ].map((edge) => ({
-        vars: edge as string[],
+        vars: edge,
         predicate: ([x, y]: number[]) => x !== y,
       })),
     };

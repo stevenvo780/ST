@@ -128,9 +128,10 @@ export function fTypeToString(t: FType): string {
     case 'atom':
       return t.name;
     case 'arrow': {
-      const lhs = t.from.kind === 'arrow' || t.from.kind === 'forall'
-        ? `(${fTypeToString(t.from)})`
-        : fTypeToString(t.from);
+      const lhs =
+        t.from.kind === 'arrow' || t.from.kind === 'forall'
+          ? `(${fTypeToString(t.from)})`
+          : fTypeToString(t.from);
       return `${lhs} → ${fTypeToString(t.to)}`;
     }
     case 'forall':

@@ -2,7 +2,7 @@
  * Coverage fill — src/profiles/intuitionistic/propositional.ts
  * Current coverage: ~48% stmts, ~34% branch
  */
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- test stubs use partial any casts for brevity */
+/* eslint-disable @typescript-eslint/no-unsafe-argument -- test stubs use partial any casts for brevity */
 
 import { describe, it, expect } from 'vitest';
 import { evaluate } from '../api';

@@ -26,7 +26,6 @@ import {
   substitute,
   termToString,
   v,
-  type Term,
 } from '../../lambda-calc';
 
 describe('lambda-calc / sustitución y α', () => {

@@ -63,15 +63,9 @@ describe('many-valued logics — núcleo de evaluación', () => {
   it('Producto: P → P es tautología y P → Q vale q/p cuando p>q', () => {
     expect(isTautology(implies(P, P), 'product')).toBe(true);
     // P=0.8, Q=0.2 → q/p = 0.25
-    expect(evaluate(implies(P, Q), { P: 0.8, Q: 0.2 }, 'product')).toBeCloseTo(
-      0.25,
-      9,
-    );
+    expect(evaluate(implies(P, Q), { P: 0.8, Q: 0.2 }, 'product')).toBeCloseTo(0.25, 9);
     // P=0.2, Q=0.8 → 1 (porque p<=q)
-    expect(evaluate(implies(P, Q), { P: 0.2, Q: 0.8 }, 'product')).toBeCloseTo(
-      1,
-      9,
-    );
+    expect(evaluate(implies(P, Q), { P: 0.2, Q: 0.8 }, 'product')).toBeCloseTo(1, 9);
   });
 
   it('Comparación: P ∧ Q con P=0.6, Q=0.4 da distinto en cada sistema', () => {

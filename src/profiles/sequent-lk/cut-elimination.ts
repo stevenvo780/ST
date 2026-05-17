@@ -24,7 +24,7 @@
 // El resultado garantiza `hasCut(out) === false` cuando la entrada
 // es valida y derivable.
 
-import { LKFormula, LKProof } from './types';
+import { LKProof } from './types';
 import { lkKey } from './util';
 import { hasCut, isValid, proveLK } from './prover';
 
@@ -76,7 +76,16 @@ function eliminateCutAtRoot(proof: LKProof): LKProof {
         const subBC = p2.premises[0];
         if (!subB || !subC || !subBC) break;
         const innerCut: LKProof = {
-          goal: { left: [...subC.goal.left, ...subBC.goal.left.filter((f) => lkKey(f) !== lkKey(A.right))], right: [...subC.goal.right.filter((f) => lkKey(f) !== lkKey(A.right)), ...subBC.goal.right] },
+          goal: {
+            left: [
+              ...subC.goal.left,
+              ...subBC.goal.left.filter((f) => lkKey(f) !== lkKey(A.right)),
+            ],
+            right: [
+              ...subC.goal.right.filter((f) => lkKey(f) !== lkKey(A.right)),
+              ...subBC.goal.right,
+            ],
+          },
           rule: 'cut',
           cutFormula: A.right,
           premises: [subC, subBC],
@@ -98,7 +107,18 @@ function eliminateCutAtRoot(proof: LKProof): LKProof {
         if (!subBC || !subB || !subC) break;
         // Cut sobre B y luego C:
         const innerCut: LKProof = {
-          goal: { left: [...subBC.goal.left, ...subC.goal.left.filter((f) => lkKey(f) !== lkKey(A.right))], right: [...subBC.goal.right.filter((f) => lkKey(f) !== lkKey(A.right) && lkKey(f) !== lkKey(A.left)), ...subC.goal.right] },
+          goal: {
+            left: [
+              ...subBC.goal.left,
+              ...subC.goal.left.filter((f) => lkKey(f) !== lkKey(A.right)),
+            ],
+            right: [
+              ...subBC.goal.right.filter(
+                (f) => lkKey(f) !== lkKey(A.right) && lkKey(f) !== lkKey(A.left),
+              ),
+              ...subC.goal.right,
+            ],
+          },
           rule: 'cut',
           cutFormula: A.right,
           premises: [subBC, subC],
@@ -121,7 +141,13 @@ function eliminateCutAtRoot(proof: LKProof): LKProof {
         // Cut sobre B: Σ ⊢ B, Π  y  B, Γ ⊢ C, Δ  → Σ, Γ ⊢ C, Π, Δ
         // Cut sobre C: ↑resultado  y  C, Σ ⊢ Π  → Σ, Γ, Σ ⊢ Π, Δ
         const innerCut: LKProof = {
-          goal: { left: [...subB.goal.left, ...subBC.goal.left.filter((f) => lkKey(f) !== lkKey(A.left))], right: [...subB.goal.right.filter((f) => lkKey(f) !== lkKey(A.left)), ...subBC.goal.right] },
+          goal: {
+            left: [...subB.goal.left, ...subBC.goal.left.filter((f) => lkKey(f) !== lkKey(A.left))],
+            right: [
+              ...subB.goal.right.filter((f) => lkKey(f) !== lkKey(A.left)),
+              ...subBC.goal.right,
+            ],
+          },
           rule: 'cut',
           cutFormula: A.left,
           premises: [subB, subBC],

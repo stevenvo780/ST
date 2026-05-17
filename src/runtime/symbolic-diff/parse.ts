@@ -1,4 +1,4 @@
-import type { Expr, UnaryFn } from './types';
+import type { Expr } from './types';
 import { isUnaryFn } from './types';
 import { cst, v, add, mul, sub, div, pow, neg, fn } from './constructors';
 
@@ -124,7 +124,7 @@ class Parser {
         if (!isUnaryFn(tok.name)) {
           throw new Error(`parse: función desconocida '${tok.name}'`);
         }
-        return fn(tok.name as UnaryFn, arg);
+        return fn(tok.name, arg);
       }
       return v(tok.name);
     }
@@ -150,7 +150,15 @@ function tokenize(input: string): Token[] {
       i++;
       continue;
     }
-    if (ch === '+' || ch === '-' || ch === '*' || ch === '/' || ch === '^' || ch === '(' || ch === ')') {
+    if (
+      ch === '+' ||
+      ch === '-' ||
+      ch === '*' ||
+      ch === '/' ||
+      ch === '^' ||
+      ch === '(' ||
+      ch === ')'
+    ) {
       tokens.push({ kind: 'punct', value: ch });
       i++;
       continue;

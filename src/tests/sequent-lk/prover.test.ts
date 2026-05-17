@@ -168,15 +168,23 @@ describe('LK — Hauptsatz / cut elimination', () => {
     // p1 (concluye P, Q ⊢ P∧Q): andR de P ⊢ P y Q ⊢ Q  → este es el lado derecho del cut
     // p2 (concluye P∧Q ⊢ P∧Q): axiom
     // cut: P, Q ⊢ P∧Q   cut_{P∧Q}   P∧Q ⊢ P∧Q  → P, Q ⊢ P∧Q
-    const axP: LKProof = { goal: { left: [P], right: [P] }, rule: 'axiom', premises: [], principalFormula: P };
-    const axQ: LKProof = { goal: { left: [Q], right: [Q] }, rule: 'axiom', premises: [], principalFormula: Q };
     // andR para P, Q ⊢ P∧Q: premisas P, Q ⊢ P  y  P, Q ⊢ Q
     // Usamos derivaciones donde la formula extra viene como axiom multisuccedente, lo cual exige
     // pasar por axiomas con weakening. Para mantener la prueba estructuralmente valida construimos
     // p1 a partir de un cut trivial cuya eliminacion seria correcta — pero como aqui solo testeamos
     // hasCut/eliminateCut, sirve igual: la entrada tiene cuts, la salida no.
-    const subAndL: LKProof = { goal: { left: [P, Q], right: [P] }, rule: 'axiom', premises: [], principalFormula: P };
-    const subAndR: LKProof = { goal: { left: [P, Q], right: [Q] }, rule: 'axiom', premises: [], principalFormula: Q };
+    const subAndL: LKProof = {
+      goal: { left: [P, Q], right: [P] },
+      rule: 'axiom',
+      premises: [],
+      principalFormula: P,
+    };
+    const subAndR: LKProof = {
+      goal: { left: [P, Q], right: [Q] },
+      rule: 'axiom',
+      premises: [],
+      principalFormula: Q,
+    };
     const p1: LKProof = {
       goal: { left: [P, Q], right: [and(P, Q)] },
       rule: 'andR',
@@ -200,13 +208,23 @@ describe('LK — Hauptsatz / cut elimination', () => {
     expect(hasCut(elim)).toBe(false);
     expect(isValid(elim)).toBe(true);
     // El secuente terminal debe coincidir
-    expect(elim.goal.left.map((f) => f.kind === 'atom' ? f.name : '').sort()).toEqual(['P', 'Q']);
+    expect(elim.goal.left.map((f) => (f.kind === 'atom' ? f.name : '')).sort()).toEqual(['P', 'Q']);
   });
 
   it('cut con axioma como una de las premisas se reduce a la otra premisa', () => {
     // Axiom A ⊢ A   cut_A   A ⊢ A   ⟹   A ⊢ A
-    const axL: LKProof = { goal: { left: [P], right: [P] }, rule: 'axiom', premises: [], principalFormula: P };
-    const axR: LKProof = { goal: { left: [P], right: [P] }, rule: 'axiom', premises: [], principalFormula: P };
+    const axL: LKProof = {
+      goal: { left: [P], right: [P] },
+      rule: 'axiom',
+      premises: [],
+      principalFormula: P,
+    };
+    const axR: LKProof = {
+      goal: { left: [P], right: [P] },
+      rule: 'axiom',
+      premises: [],
+      principalFormula: P,
+    };
     const withCut: LKProof = {
       goal: { left: [P], right: [P] },
       rule: 'cut',
@@ -222,17 +240,32 @@ describe('LK — Hauptsatz / cut elimination', () => {
 
 describe('LK — isValid sobre estructuras', () => {
   it('isValid acepta axiom genuino', () => {
-    const ax: LKProof = { goal: { left: [P, Q], right: [P, R] }, rule: 'axiom', premises: [], principalFormula: P };
+    const ax: LKProof = {
+      goal: { left: [P, Q], right: [P, R] },
+      rule: 'axiom',
+      premises: [],
+      principalFormula: P,
+    };
     expect(isValid(ax)).toBe(true);
   });
 
   it('isValid rechaza axiom sin formula compartida', () => {
-    const bad: LKProof = { goal: { left: [P], right: [Q] }, rule: 'axiom', premises: [], principalFormula: P };
+    const bad: LKProof = {
+      goal: { left: [P], right: [Q] },
+      rule: 'axiom',
+      premises: [],
+      principalFormula: P,
+    };
     expect(isValid(bad)).toBe(false);
   });
 
   it('isValid acepta impR construido a mano: ⊢ P → P', () => {
-    const ax: LKProof = { goal: { left: [P], right: [P] }, rule: 'axiom', premises: [], principalFormula: P };
+    const ax: LKProof = {
+      goal: { left: [P], right: [P] },
+      rule: 'axiom',
+      premises: [],
+      principalFormula: P,
+    };
     const impR: LKProof = {
       goal: { left: [], right: [imp(P, P)] },
       rule: 'impR',
@@ -243,7 +276,12 @@ describe('LK — isValid sobre estructuras', () => {
   });
 
   it('isValid acepta weakL', () => {
-    const ax: LKProof = { goal: { left: [P], right: [P] }, rule: 'axiom', premises: [], principalFormula: P };
+    const ax: LKProof = {
+      goal: { left: [P], right: [P] },
+      rule: 'axiom',
+      premises: [],
+      principalFormula: P,
+    };
     const w: LKProof = {
       goal: { left: [Q, P], right: [P] },
       rule: 'weakL',
