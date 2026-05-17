@@ -7,6 +7,25 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.12.0] - 2026-05-17
+
+### Added — V5 wave 5b (rescued + new)
+- TSDoc → Markdown doc generator en `tooling/doc-gen/` (`caeab96`). 17 tests.
+- Linear algebra primitives en `reasoning/linear-algebra/` (`72e6080`). 31 tests. LU/QR/SVD + eigenvalues + Gram-Schmidt.
+- Constructive analysis Bishop en `reasoning/constructive-analysis/` (`199c0a9`). 23 tests. Cauchy seqs + IVT + Bishop integral.
+- Test harness combinators en `tooling/test-harness/` (`199c0a9`). 20 tests. Cross-product + snapshots + mutation.
+- Combinatorics en `reasoning/combinatorics/` (`f26aa2a`). 41 tests. Stirling/Catalan/Bell/Euler + Burnside + GFs.
+- FOL prover advanced en `proof-systems/fol-prover-advanced/` (`f26aa2a`). 25 tests. Hyperresolution + SoS + KBO/LPO + subsumption.
+- Set theory ZFC en `reasoning/set-theory/` (`b40ebdd`). 38 tests. HF sets Vω + von Neumann ordinals + ZFC axiom checks.
+
+### Changed
+- 5504 → ~5800 tests (real: 5699 passing).
+
+### Notes
+- 6 módulos fueron rescatados desde commits errantes a AgoraFront mediante revert+re-apply en ST. Repo principal correcto.
+
+---
+
 ## [4.11.0] - 2026-05-17
 
 ### Added — V5 wave 5
