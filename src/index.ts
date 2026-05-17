@@ -117,6 +117,19 @@ export type {
   MinimalCountermodel,
 } from './runtime/countermodel-min';
 
+// Proof minification
+export {
+  minifyProof,
+  compactModusPonensChain,
+  removeUnusedSubproofs,
+} from './runtime/proof-minify';
+export type {
+  GenericProofNode,
+  MinifyOptions,
+  MinifyResult,
+  MinifyRule,
+} from './runtime/proof-minify';
+
 // Coq exporter
 export { exportToCoq, exportProofToCoq } from './exporters/coq';
 
