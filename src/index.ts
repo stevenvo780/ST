@@ -182,3 +182,41 @@ export type {
   Context as CHContext,
   InferResult,
 } from './curry-howard';
+
+// λ-cálculo untyped puro — β/η, estrategias, combinadores, Church numerals
+export {
+  v as lcVar,
+  lam as lcLam,
+  ap as lcAp,
+  apN as lcApN,
+  alphaEq as lcAlphaEq,
+  termToString as lcTermToString,
+  freeVars as lcFreeVars,
+  substitute as lcSubstitute,
+  alphaRename as lcAlphaRename,
+  makeFreshSupply as lcMakeFreshSupply,
+  betaStep as lcBetaStep,
+  etaStep as lcEtaStep,
+  normalize as lcNormalize,
+  isNormalForm as lcIsNormalForm,
+  isWeakHeadNormalForm as lcIsWHNF,
+  I as lcI,
+  K as lcK,
+  S as lcS,
+  Y as lcY,
+  omega as lcOmega,
+  omegaSmall as lcOmegaSmall,
+  churchNumeral as lcChurchNumeral,
+  decodeChurch as lcDecodeChurch,
+  evalChurch as lcEvalChurch,
+  churchSucc as lcChurchSucc,
+  churchAdd as lcChurchAdd,
+  churchMul as lcChurchMul,
+} from './lambda-calc';
+export type {
+  Term as LCTerm,
+  BetaStrategy as LCBetaStrategy,
+  NormalStrategy as LCNormalStrategy,
+  NormalizeOpts as LCNormalizeOpts,
+  NormalizeResult as LCNormalizeResult,
+} from './lambda-calc';
