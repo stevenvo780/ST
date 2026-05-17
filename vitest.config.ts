@@ -12,7 +12,14 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.ts'],
-      exclude: ['src/tests/**', 'src/types/**'],
+      exclude: [
+        'src/tests/**',
+        'src/types/**',
+        'src/cli/**',
+        'src/repl/**',
+        'src/runtime/parallel/worker.ts',
+        'src/**/index.ts',
+      ],
     },
   },
 });
