@@ -7,6 +7,27 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.2.0] - 2026-05-17
+
+### Added
+- **4.2.1 SAT incremental** (`31b5838`): `IncrementalCDCL` con push/pop, assumptions, failedAssumptions via cone-of-conflict. 32 tests.
+- **4.2.2 ALC Description Logic** (`1b58ef4`): tableau con NNF, ∃/∀ duality, TBox internalization, subset blocking. 41 tests.
+- **4.2.3 Countermodel minimization** (`675618b`): 3 algoritmos (one-at-a-time, binary-search, delta-debug). 28 tests.
+- **4.2.4 Sequent calculus G3** (`daba532`): backward proof + bussproofs LaTeX export. 29 tests.
+- **4.2.5 Curry-Howard** (`d761ec9`): term ↔ proof, β-reducción, type inference. 44 tests.
+- **4.2.6 Belief revision AGM** (`d761ec9`): expand/contract/revise con Levi identity. 25 tests.
+- **4.3.1 CTL model checker** (`460f1ca`): bounded BMC con witness paths lasso. 28 tests.
+- **4.3.2 LTL satisfiability** (`c287eff`): tableau Vardi-Wolper con witness. 30 tests.
+- **4.3.3 Hybrid logic** (`d4cf578`): nominales + @-operator + ↓-binder. 20 tests.
+- **4.3.4 MUS extraction** (`15ca8ba`): deletion/insertion/QuickXplain. 35 tests.
+- **4.3.5 FOL equality** (`3d8788f`): paramodulation + demodulation + factoring. 16 tests.
+- **4.3.6 Default logic Reiter** (`c287eff`): credulous/skeptical entailment. 25 tests.
+
+### Changed
+- 2705 → 3058 tests (+353 tests nuevos en 12 módulos).
+
+---
+
 ## [4.1.0] - 2026-05-17
 
 ### Added
