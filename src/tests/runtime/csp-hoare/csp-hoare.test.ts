@@ -29,8 +29,8 @@ import {
   vendingMachineLoop,
   diningPhilosophers,
   TICK,
-} from '../../csp-hoare';
-import type { Event, Trace } from '../../csp-hoare';
+} from '../../../runtime/csp-hoare';
+import type { Event, Trace } from '../../../runtime/csp-hoare';
 
 // ── Helpers ──────────────────────────────────────────────────
 

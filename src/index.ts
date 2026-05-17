@@ -426,7 +426,7 @@ export type {
 // csp-hoare — Communicating Sequential Processes (Hoare 1978/1985).
 // Expuesto como namespace porque sus constructores cortos (`prefix`, `choice`,
 // `parallel`, `hide`...) colisionarían con otros módulos en el flat export.
-export * as CSPHoare from './csp-hoare';
+export * as CSPHoare from './runtime/csp-hoare';
 
 // ── Namespaces semánticos (aditivo, no breaking) ─────────────────────────────
 // Re-organiza los símbolos públicos por dominio sin remover los flat exports.

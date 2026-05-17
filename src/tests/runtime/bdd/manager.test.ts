@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BDDManager, isTerminal } from '../../bdd';
+import { BDDManager, isTerminal } from '../../../runtime/bdd';
 
 describe('BDDManager / constructores básicos', () => {
   it('true_ y false_ son terminales distintos', () => {
