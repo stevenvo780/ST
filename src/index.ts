@@ -150,3 +150,27 @@ export type {
   DerivationStep,
   Evaluator,
 } from './citation-reasoning';
+
+// Curry-Howard — correspondencia term ↔ proof
+export {
+  inferType,
+  isInferError,
+  reduceBeta,
+  normalize,
+  isNormal,
+  termToProof,
+  proofToTerm,
+  proofIsConsistent,
+  ProofConversionError,
+  typeToString as chTypeToString,
+  termToString as chTermToString,
+  eqType as chEqType,
+} from './curry-howard';
+export type {
+  PropType,
+  LambdaTerm,
+  ProofTree,
+  ProofRule,
+  Context as CHContext,
+  InferResult,
+} from './curry-howard';
