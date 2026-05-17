@@ -7,6 +7,23 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.5.2] - 2026-05-17
+
+### Added
+- BDD ROBDDs con unique table + apply algorithm + quantification (`4b6f082`). 57 tests.
+- Information theory: Shannon/Rényi entropy + KL/JS/TV/Hellinger + mutual info (`08471a0`). 42 tests.
+- HOL (Higher-Order Logic) Church-style con 10 reglas primitivas (`e98145a`). 42 tests.
+- Public API namespaces (Logic/ProofSystems/TypeTheory/Solvers/Reasoning/Semantics) (`e8f4121`). 25 paridad tests.
+- LP simplex 2-phase + ILP branch-and-bound (`c6ccb8e`). 30 tests.
+- Game theory: Nash equilibrium via Lemke-Howson + support enum + dominance (`1b4a6b5`). 20 tests.
+- SMT-LIB v2 parser + emisor + tokenizer (22 comandos, 48 tests) (`9c777c3`).
+
+### Changed
+- 4041 → ~4087+ tests.
+- API pública ahora accesible via flat exports + namespaces semánticos (backward-compat).
+
+---
+
 ## [4.5.1] - 2026-05-17
 
 ### Fixed
