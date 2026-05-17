@@ -150,7 +150,12 @@ export {
   defends,
   dotExport,
 } from './argumentation';
-export type { ArgumentationFramework, Semantics } from './argumentation';
+export type { ArgumentationFramework } from './argumentation';
+// Backward-compat: re-export del tipo `Semantics` de argumentation.
+// Declarado localmente (no re-export directo) para permitir el namespace
+// homónimo añadido más abajo (declaration merging type + namespace).
+import type { Semantics as ArgumentationSemanticsType } from './argumentation';
+export type Semantics = ArgumentationSemanticsType;
 
 // FOL prover
 export { proveFOL, unify, skolemize, toCNF } from './fol-prover';
@@ -335,3 +340,17 @@ export {
   applyHOSubst,
 } from './higher-order-unify';
 export type { HOTerm, HOSubst } from './higher-order-unify';
+
+// ── Namespaces semánticos (aditivo, no breaking) ─────────────────────────────
+// Re-organiza los símbolos públicos por dominio sin remover los flat exports.
+// Uso: `import { Logic, TypeTheory } from '@stevenvo780/st-lang'`.
+//
+// Nota: el namespace `Semantics` (valor) convive con `type Semantics` ya
+// exportado por argumentation usando `export * as` (re-export wildcard), que
+// crea un namespace de valor compatible con la fusión de declaraciones de TS.
+export * as Logic from './namespaces/logic';
+export * as ProofSystems from './namespaces/proof-systems';
+export * as TypeTheory from './namespaces/type-theory';
+export * as Solvers from './namespaces/solvers';
+export * as Reasoning from './namespaces/reasoning';
+export * as Semantics from './namespaces/semantics';
