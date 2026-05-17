@@ -7,6 +7,22 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.14.0] - 2026-05-17
+
+### Added — V5 wave 7
+- Hoare logic verification en `reasoning/hoare-logic/` (`c9319a4`). 36 tests. WP/SP + symbolic exec + swap/factorial/gcd/linear-search.
+- Separation logic en `reasoning/separation-logic/` (`a9dc906`). 26 tests. emp/points-to/star/magic-wand + listSegment/tree inductive predicates.
+- Universal algebra en `reasoning/universal-algebra/` (`dfe0094`). 25 tests. Álgebras + homomorphisms + congruences + variedades + free term algebra.
+- Model checking explicit-state en `reasoning/model-checking/` (`dfe0094`). 23 tests. BFS + safety/liveness GF/FG + BMC + deadlock + Peterson/Dining philosophers/Reader-writer.
+
+### Changed
+- ~5854 → ~5964 tests.
+
+### Note
+- Model checking detectó bug en modelo Peterson original durante desarrollo (permitía 2 procesos críticos simultáneamente). Modelo corregido + test safety validado.
+
+---
+
 ## [4.13.0] - 2026-05-17
 
 ### Added — V5 wave 6
