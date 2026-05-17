@@ -16,7 +16,7 @@ import {
   detectFallacies,
 } from '../../api';
 import { Interpreter } from '../../runtime/interpreter';
-import { registry } from '../../profiles/interface';
+import { registry } from '../../logic/profiles/interface';
 import type { Formula } from '../../types';
 
 describe('api — evaluate / parse / check / quickEval', () => {

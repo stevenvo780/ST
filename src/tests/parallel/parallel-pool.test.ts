@@ -10,8 +10,8 @@
 
 import { describe, it, expect, afterAll } from 'vitest';
 import { evalParallel, shutdownPool } from '../../runtime/parallel';
-import { registry } from '../../profiles/interface';
-import '../../profiles';
+import { registry } from '../../logic/profiles/interface';
+import '../../logic/profiles';
 import type { Formula, RunResult } from '../../types';
 
 // Fórmula tautológica simple (P -> P)

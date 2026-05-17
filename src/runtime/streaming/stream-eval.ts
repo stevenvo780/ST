@@ -3,9 +3,9 @@
 // ============================================================
 
 import type { Formula } from '../../types';
-import { registry } from '../../profiles/interface';
-import { formulaToString } from '../../profiles/classical/propositional';
-import '../../profiles'; // registra perfiles built-in
+import { registry } from '../../logic/profiles/interface';
+import { formulaToString } from '../../logic/profiles/classical/propositional';
+import '../../logic/profiles'; // registra perfiles built-in
 import type { StreamEvent, EvalResult, ProfileName } from './types';
 
 // ── Opciones ──────────────────────────────────────────────────

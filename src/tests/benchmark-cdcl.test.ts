@@ -7,8 +7,8 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { FormulaFactory } from '../runtime/formula-factory';
-import { cdcl } from '../profiles/classical/cdcl';
-import { dpllLegacy } from '../profiles/classical/dpll';
+import { cdcl } from '../logic/profiles/classical/cdcl';
+import { dpllLegacy } from '../logic/profiles/classical/dpll';
 import type { Formula } from '../types';
 
 afterEach(() => {

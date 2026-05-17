@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { evaluate } from '../api';
-import { AristotelianSyllogistic } from '../profiles/aristotelian/syllogistic';
+import { AristotelianSyllogistic } from '../logic/profiles/aristotelian/syllogistic';
 import type { Formula } from '../types';
 
 const profile = new AristotelianSyllogistic();

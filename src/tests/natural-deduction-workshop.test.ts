@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ClassicalPropositional, formulaToString } from '../profiles/classical/propositional';
+import { ClassicalPropositional, formulaToString } from '../logic/profiles/classical/propositional';
 import { Formula, Theory } from '../types';
 
 function makeTheory(axioms: Record<string, Formula>): Theory {

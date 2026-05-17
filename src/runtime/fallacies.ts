@@ -7,7 +7,7 @@
 // ============================================================
 
 import { Formula } from '../types';
-import { LogicProfile } from '../profiles/interface';
+import { LogicProfile } from '../logic/profiles/interface';
 import { formulaToUnicode } from './format';
 
 /** Información sobre una falacia detectada. */

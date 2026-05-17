@@ -17,9 +17,9 @@ import {
   and as iand,
   or as ior,
   implies as iimplies,
-} from '../../profiles/intuitionistic-nj';
-import type { IntuitFormula } from '../../profiles/intuitionistic-nj/types';
-import { proveFormula as proveClassical } from '../../profiles/sequent-g3';
+} from '../../logic/profiles/intuitionistic-nj';
+import type { IntuitFormula } from '../../logic/profiles/intuitionistic-nj/types';
+import { proveFormula as proveClassical } from '../../logic/profiles/sequent-g3';
 import type { Formula } from '../../types';
 
 // Generador de IntuitFormula simple.

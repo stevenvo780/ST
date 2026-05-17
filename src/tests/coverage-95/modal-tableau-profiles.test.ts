@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { ModalK } from '../../profiles/modal/k';
-import { DeonticStandard } from '../../profiles/deontic/standard';
-import { EpistemicS5 } from '../../profiles/epistemic/s5';
-import { IntuitionisticPropositional } from '../../profiles/intuitionistic/propositional';
-import { AristotelianSyllogistic } from '../../profiles/aristotelian/syllogistic';
+import { ModalK } from '../../logic/profiles/modal/k';
+import { DeonticStandard } from '../../logic/profiles/deontic/standard';
+import { EpistemicS5 } from '../../logic/profiles/epistemic/s5';
+import { IntuitionisticPropositional } from '../../logic/profiles/intuitionistic/propositional';
+import { AristotelianSyllogistic } from '../../logic/profiles/aristotelian/syllogistic';
 import type { Formula, Theory } from '../../types';
 
 const atom = (name: string): Formula => ({ kind: 'atom', name });

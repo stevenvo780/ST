@@ -11,11 +11,11 @@
 
 import { describe, it } from 'vitest';
 import { fc, propFormula } from './generators';
-import { proveFormula as proveClassical } from '../../profiles/sequent-g3';
-import { glivenkoTranslation } from '../../profile-bridge';
-import { proveIntuitionistically } from '../../profiles/intuitionistic-nj';
+import { proveFormula as proveClassical } from '../../logic/profiles/sequent-g3';
+import { glivenkoTranslation } from '../../logic/profile-bridge';
+import { proveIntuitionistically } from '../../logic/profiles/intuitionistic-nj';
 import type { Formula } from '../../types';
-import type { IntuitFormula } from '../../profiles/intuitionistic-nj/types';
+import type { IntuitFormula } from '../../logic/profiles/intuitionistic-nj/types';
 
 // Convierte Formula (clásico) a IntuitFormula.
 function classicalToIntuit(phi: Formula): IntuitFormula {

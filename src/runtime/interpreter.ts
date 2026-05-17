@@ -55,18 +55,18 @@ import {
   InterpretCmdNode,
   GlossaryCmdNode,
 } from '../ast/nodes';
-import { registry } from '../profiles/interface';
+import { registry } from '../logic/profiles/interface';
 import {
   formulaToString,
   collectAtoms,
   evaluateClassical,
   generateValuationsLazy,
-} from '../profiles/classical/propositional';
-import { evalNumeric } from '../profiles/arithmetic';
+} from '../logic/profiles/classical/propositional';
+import { evalNumeric } from '../logic/profiles/arithmetic';
 import { formulaToUnicode, formulaToLaTeX } from './format';
 import { detectFallacies, FallacyInfo } from './fallacies';
 // Barrel import: registra todos los perfiles automáticamente
-import '../profiles';
+import '../logic/profiles';
 import {
   createTextLayerState,
   registerPassage,

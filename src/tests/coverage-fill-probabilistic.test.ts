@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { evaluate } from '../api';
-import { ProbabilisticBasic } from '../profiles/probabilistic/basic';
+import { ProbabilisticBasic } from '../logic/profiles/probabilistic/basic';
 import type { Formula } from '../types';
 
 // ── Direct class instantiation ────────────────────────────────────────────────

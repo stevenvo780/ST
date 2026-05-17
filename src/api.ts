@@ -10,7 +10,7 @@ import { Parser } from './parser/parser';
 import { Interpreter } from './runtime/interpreter';
 import { createReplCompatState, transformReplInput } from './runtime/compat';
 import { ProtocolHandler } from './protocol/handler';
-import { registry } from './profiles/interface';
+import { registry } from './logic/profiles/interface';
 import type {
   Diagnostic,
   RunResult,
@@ -271,7 +271,7 @@ export function createInterpreter(): STInterpreter {
 // ── Utilidades expuestas ──────────────────────────────────────
 
 /** Convierte una fórmula AST a string legible (notación programática) */
-export { formulaToString } from './profiles/classical/propositional';
+export { formulaToString } from './logic/profiles/classical/propositional';
 
 /** Convierte una fórmula AST a notación Unicode (¬, ∧, ∨, →, ↔, □, ◇, ∀, ∃) */
 export { formulaToUnicode } from './runtime/format';

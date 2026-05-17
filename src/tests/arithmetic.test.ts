@@ -6,8 +6,8 @@ import { describe, it, expect } from 'vitest';
 import { Interpreter } from '../runtime/interpreter';
 import { Parser } from '../parser/parser';
 import { formulaToUnicode, formulaToLaTeX } from '../runtime/format';
-import { evalNumeric } from '../profiles/arithmetic';
-import { registry } from '../profiles/interface';
+import { evalNumeric } from '../logic/profiles/arithmetic';
+import { registry } from '../logic/profiles/interface';
 import type { Formula } from '../types';
 
 // ── Helpers ──────────────────────────────────────────────────

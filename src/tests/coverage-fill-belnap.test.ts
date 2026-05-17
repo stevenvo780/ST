@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { evaluate } from '../api';
-import { ParaconsistentBelnap } from '../profiles/paraconsistent/belnap';
+import { ParaconsistentBelnap } from '../logic/profiles/paraconsistent/belnap';
 import type { Formula } from '../types';
 
 const profile = new ParaconsistentBelnap();

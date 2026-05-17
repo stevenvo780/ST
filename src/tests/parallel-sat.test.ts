@@ -11,15 +11,15 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { FormulaFactory } from '../runtime/formula-factory';
-import { cdcl, cdclAsync } from '../profiles/classical/cdcl';
-import { dpll, dpllAsync } from '../profiles/classical/dpll';
+import { cdcl, cdclAsync } from '../logic/profiles/classical/cdcl';
+import { dpll, dpllAsync } from '../logic/profiles/classical/dpll';
 import {
   packClauses,
   unpackClauses,
   workersAvailable,
   tryParallelSolve,
   PARALLEL_THRESHOLD,
-} from '../profiles/classical/parallel-sat';
+} from '../logic/profiles/classical/parallel-sat';
 import { Formula } from '../types';
 
 afterEach(() => {

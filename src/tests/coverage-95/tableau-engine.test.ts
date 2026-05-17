@@ -13,7 +13,7 @@ import {
   FRAME_S5,
   FRAME_T,
   FRAME_S4,
-} from '../../profiles/shared/tableau-engine';
+} from '../../logic/profiles/shared/tableau-engine';
 import type { Formula } from '../../types';
 
 const atom = (name: string): Formula => ({ kind: 'atom', name });

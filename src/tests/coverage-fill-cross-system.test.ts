@@ -11,7 +11,7 @@ import type { Formula } from '../types';
 // Ensure registry is populated by creating an interpreter
 new Interpreter();
 // The registry is exported from profiles/interface
-import { registry } from '../profiles/interface';
+import { registry } from '../logic/profiles/interface';
 
 const atom = (name: string): Formula => ({ kind: 'atom', name });
 const not = (a: Formula): Formula => ({ kind: 'not', args: [a] });

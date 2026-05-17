@@ -15,8 +15,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { Interpreter } from '../runtime/interpreter';
 import { FormulaFactory } from '../runtime/formula-factory';
-import { cdcl } from '../profiles/classical/cdcl';
-import { dpll } from '../profiles/classical/dpll';
+import { cdcl } from '../logic/profiles/classical/cdcl';
+import { dpll } from '../logic/profiles/classical/dpll';
 import { Formula } from '../types';
 
 afterEach(() => {

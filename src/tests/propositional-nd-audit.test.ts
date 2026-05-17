@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ClassicalPropositional, formulaToString } from '../profiles/classical/propositional';
+import { ClassicalPropositional, formulaToString } from '../logic/profiles/classical/propositional';
 import { Formula, Theory } from '../types';
 
 function atom(name: string): Formula {

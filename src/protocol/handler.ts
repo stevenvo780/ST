@@ -13,7 +13,7 @@ import {
 import { Parser } from '../parser/parser';
 import { Interpreter } from '../runtime/interpreter';
 import { Statement } from '../ast/nodes';
-import { formulaToString } from '../profiles/classical/propositional';
+import { formulaToString } from '../logic/profiles/classical/propositional';
 
 export class ProtocolHandler {
   handle(request: ProtocolRequest): ProtocolResponse {

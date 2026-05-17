@@ -4,8 +4,8 @@
 
 import * as readline from 'readline';
 import { Interpreter } from '../runtime/interpreter';
-import { formulaToString } from '../profiles/classical/propositional';
-import { registry } from '../profiles/interface';
+import { formulaToString } from '../logic/profiles/classical/propositional';
+import { registry } from '../logic/profiles/interface';
 import { createReplCompatState, transformReplInput } from '../runtime/compat';
 import type { ExecutionOutput } from '../types';
 

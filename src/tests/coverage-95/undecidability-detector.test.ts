@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectUndecidable } from '../../profiles/classical/undecidability-detector';
+import { detectUndecidable } from '../../logic/profiles/classical/undecidability-detector';
 import type { Formula } from '../../types';
 
 const atom = (name: string): Formula => ({ kind: 'atom', name });

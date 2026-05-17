@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { Interpreter } from '../runtime/interpreter';
-import { formulaToString } from '../profiles/classical/propositional';
+import { formulaToString } from '../logic/profiles/classical/propositional';
 
 describe('Interpreter — script completo (criterio de exito 02)', () => {
   it('ejecuta el script de criterio de exito del Logic Core', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { TemporalLTL } from '../../profiles/temporal/ltl';
+import { TemporalLTL } from '../../logic/profiles/temporal/ltl';
 import type { Formula } from '../../types';
 
 const atom = (name: string): Formula => ({ kind: 'atom', name });

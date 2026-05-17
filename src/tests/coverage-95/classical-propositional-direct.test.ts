@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ClassicalPropositional } from '../../profiles/classical/propositional';
+import { ClassicalPropositional } from '../../logic/profiles/classical/propositional';
 import type { Formula, Theory } from '../../types';
 
 const atom = (name: string): Formula => ({ kind: 'atom', name });

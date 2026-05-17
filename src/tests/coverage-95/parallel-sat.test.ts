@@ -5,7 +5,7 @@ import {
   workersAvailable,
   PARALLEL_THRESHOLD,
   MAX_WORKERS,
-} from '../../profiles/classical/parallel-sat';
+} from '../../logic/profiles/classical/parallel-sat';
 
 describe('parallel-sat — packing utilities', () => {
   it('pack and unpack roundtrip for empty array', () => {

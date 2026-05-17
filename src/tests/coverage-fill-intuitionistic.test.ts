@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { evaluate } from '../api';
-import { IntuitionisticPropositional } from '../profiles/intuitionistic/propositional';
+import { IntuitionisticPropositional } from '../logic/profiles/intuitionistic/propositional';
 import type { Formula } from '../types';
 
 const profile = new IntuitionisticPropositional();

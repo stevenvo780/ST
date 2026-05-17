@@ -22,7 +22,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { Interpreter } from '../runtime/interpreter';
 import { FormulaFactory } from '../runtime/formula-factory';
-import { cdcl } from '../profiles/classical/cdcl';
+import { cdcl } from '../logic/profiles/classical/cdcl';
 import { Formula } from '../types';
 
 afterEach(() => {

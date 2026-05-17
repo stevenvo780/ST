@@ -7,8 +7,8 @@ import { Interpreter } from '../runtime/interpreter';
 import { Parser } from '../parser/parser';
 import { formulaToUnicode, formulaToLaTeX } from '../runtime/format';
 import { detectFallacies } from '../runtime/fallacies';
-import { registry } from '../profiles/interface';
-import { formulaEqual } from '../profiles/shared/tableau-engine';
+import { registry } from '../logic/profiles/interface';
+import { formulaEqual } from '../logic/profiles/shared/tableau-engine';
 import type { Formula } from '../types';
 
 // ── Helpers ──────────────────────────────────────────────────

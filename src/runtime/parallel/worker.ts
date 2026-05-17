@@ -12,8 +12,8 @@ const { parentPort } = require('worker_threads') as typeof import('worker_thread
 import type { Formula, RunResult } from '../../types';
 
 // Registrar perfiles en el contexto del worker
-import '../../profiles';
-import { registry } from '../../profiles/interface';
+import '../../logic/profiles';
+import { registry } from '../../logic/profiles/interface';
 
 export interface WorkerTask {
   profileName: string;

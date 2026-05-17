@@ -3,7 +3,7 @@
 // ============================================================
 
 import { describe, it, expect } from 'vitest';
-import { ClassicalPropositional, formulaToString } from '../profiles/classical/propositional';
+import { ClassicalPropositional, formulaToString } from '../logic/profiles/classical/propositional';
 import { Interpreter } from '../runtime/interpreter';
 import { Formula, Theory } from '../types';
 

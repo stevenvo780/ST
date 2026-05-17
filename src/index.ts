@@ -38,17 +38,17 @@ export * from './ast/nodes';
 export { Parser } from './parser/parser';
 
 // Perfiles
-export { LogicProfile, ProfileRegistry, registry } from './profiles/interface';
-export { ClassicalPropositional, formulaToString } from './profiles/classical/propositional';
-export { ClassicalFirstOrder } from './profiles/classical/first-order';
-export { ModalK } from './profiles/modal/k';
-export { ParaconsistentBelnap } from './profiles/paraconsistent/belnap';
+export { LogicProfile, ProfileRegistry, registry } from './logic/profiles/interface';
+export { ClassicalPropositional, formulaToString } from './logic/profiles/classical/propositional';
+export { ClassicalFirstOrder } from './logic/profiles/classical/first-order';
+export { ModalK } from './logic/profiles/modal/k';
+export { ParaconsistentBelnap } from './logic/profiles/paraconsistent/belnap';
 
 // SAT Solving (parallelism support)
-export { cdcl, cdclAsync } from './profiles/classical/cdcl';
-export type { CDCLResult } from './profiles/classical/cdcl';
-export { dpll, dpllAsync } from './profiles/classical/dpll';
-export { workersAvailable, PARALLEL_THRESHOLD } from './profiles/classical/parallel-sat';
+export { cdcl, cdclAsync } from './logic/profiles/classical/cdcl';
+export type { CDCLResult } from './logic/profiles/classical/cdcl';
+export { dpll, dpllAsync } from './logic/profiles/classical/dpll';
+export { workersAvailable, PARALLEL_THRESHOLD } from './logic/profiles/classical/parallel-sat';
 
 // Formato / Unicode / LaTeX
 export { formulaToUnicode, formulaToLaTeX } from './runtime/format';
@@ -76,7 +76,12 @@ export {
 
 // Text Layer 2.0 — grafo de claims con dependencias e invalidación propagada
 export { ClaimGraph, CycleError } from './semantics/text-layer/v2';
-export type { Claim, ClaimValidation, ClaimSource, ClaimEvaluator } from './semantics/text-layer/v2';
+export type {
+  Claim,
+  ClaimValidation,
+  ClaimSource,
+  ClaimEvaluator,
+} from './semantics/text-layer/v2';
 
 // Runtime
 export { Interpreter } from './runtime/interpreter';
@@ -181,7 +186,13 @@ export type {
 } from './tooling/tptp';
 
 // Proof exchange
-export { canonicalize, hashProof, signProof, verifyProof, generateKeyPair } from './proof-systems/proof-exchange';
+export {
+  canonicalize,
+  hashProof,
+  signProof,
+  verifyProof,
+  generateKeyPair,
+} from './proof-systems/proof-exchange';
 export type { ProofPackage } from './proof-systems/proof-exchange';
 
 // Time-travel
@@ -313,8 +324,8 @@ export {
   findTranslationPath,
   translateFormula,
   TRANSLATIONS,
-} from './profile-bridge';
-export type { Profile, GenericFormula, Translation } from './profile-bridge';
+} from './logic/profile-bridge';
+export type { Profile, GenericFormula, Translation } from './logic/profile-bridge';
 
 // tableau-framework — probador semántico por tableau
 export { TableauProver, createPropositionalProver } from './proof-systems/tableau-framework';

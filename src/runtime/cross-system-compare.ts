@@ -1,5 +1,5 @@
 import { Formula } from '../types';
-import { ProfileRegistry } from '../profiles/interface';
+import { ProfileRegistry } from '../logic/profiles/interface';
 
 export function compareAcrossSystems(
   formula: Formula,

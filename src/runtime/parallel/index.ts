@@ -7,8 +7,8 @@
 
 import { cpus } from 'os';
 import type { Formula, RunResult } from '../../types';
-import { registry } from '../../profiles/interface';
-import '../../profiles';
+import { registry } from '../../logic/profiles/interface';
+import '../../logic/profiles';
 import type { WorkerTask, WorkerResponse } from './worker';
 
 // ── Tipos públicos ──────────────────────────────────────────────

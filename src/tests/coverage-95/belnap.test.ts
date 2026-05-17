@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ParaconsistentBelnap } from '../../profiles/paraconsistent/belnap';
+import { ParaconsistentBelnap } from '../../logic/profiles/paraconsistent/belnap';
 import type { Formula, Theory } from '../../types';
 
 const atom = (name: string): Formula => ({ kind: 'atom', name });

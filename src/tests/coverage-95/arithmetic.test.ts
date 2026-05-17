@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { evalNumeric, ArithmeticProfile } from '../../profiles/arithmetic';
+import { evalNumeric, ArithmeticProfile } from '../../logic/profiles/arithmetic';
 import type { Formula, Theory } from '../../types';
 
 const num = (v: number): Formula => ({ kind: 'number', value: v });

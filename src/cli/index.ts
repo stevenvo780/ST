@@ -12,7 +12,7 @@ import { Interpreter } from '../runtime/interpreter';
 import { REPL } from '../repl/repl';
 import { ProtocolHandler } from '../protocol/handler';
 import { Parser } from '../parser/parser';
-import { registry } from '../profiles/interface';
+import { registry } from '../logic/profiles/interface';
 import { ProtocolRequest } from '../types';
 
 // Version is injected at bundle time via esbuild --define, or read from package.json in dev

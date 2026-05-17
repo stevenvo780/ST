@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ClassicalFirstOrder, toPrenex, skolemize } from '../../profiles/classical/first-order';
+import { ClassicalFirstOrder, toPrenex, skolemize } from '../../logic/profiles/classical/first-order';
 import type { Formula, Theory } from '../../types';
 
 const pred = (name: string, ...params: string[]): Formula => ({

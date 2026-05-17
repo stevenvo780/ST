@@ -8,8 +8,8 @@
 
 import { describe, it } from 'vitest';
 import { fc, propFormula } from './generators';
-import { proveFormula } from '../../profiles/sequent-g3';
-import type { ProofTree } from '../../profiles/sequent-g3/types';
+import { proveFormula } from '../../logic/profiles/sequent-g3';
+import type { ProofTree } from '../../logic/profiles/sequent-g3/types';
 
 function isClosed(tree: ProofTree): boolean {
   if (!tree.closed) return false;

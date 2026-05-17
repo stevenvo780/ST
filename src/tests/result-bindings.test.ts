@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Interpreter } from '../runtime/interpreter';
-import { formulaToString } from '../profiles/classical/propositional';
+import { formulaToString } from '../logic/profiles/classical/propositional';
 
 describe('Captured action results', () => {
   it('stores derivation results in variables with structured fields', () => {

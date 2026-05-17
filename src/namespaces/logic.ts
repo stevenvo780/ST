@@ -12,34 +12,34 @@
  */
 
 // Perfil registry + interfaces compartidas
-export { LogicProfile, ProfileRegistry, registry } from '../profiles/interface';
+export { LogicProfile, ProfileRegistry, registry } from '../logic/profiles/interface';
 
 // Perfiles "clase suelta" (un solo símbolo)
-export { ClassicalPropositional, formulaToString } from '../profiles/classical/propositional';
-export { ClassicalFirstOrder } from '../profiles/classical/first-order';
-export { ModalK } from '../profiles/modal/k';
-export { ParaconsistentBelnap } from '../profiles/paraconsistent/belnap';
-export { IntuitionisticPropositional } from '../profiles/intuitionistic/propositional';
-export { TemporalLTL } from '../profiles/temporal/ltl';
-export { EpistemicS5 } from '../profiles/epistemic/s5';
-export { DeonticStandard } from '../profiles/deontic/standard';
-export { AristotelianSyllogistic } from '../profiles/aristotelian/syllogistic';
-export { ProbabilisticBasic } from '../profiles/probabilistic/basic';
+export { ClassicalPropositional, formulaToString } from '../logic/profiles/classical/propositional';
+export { ClassicalFirstOrder } from '../logic/profiles/classical/first-order';
+export { ModalK } from '../logic/profiles/modal/k';
+export { ParaconsistentBelnap } from '../logic/profiles/paraconsistent/belnap';
+export { IntuitionisticPropositional } from '../logic/profiles/intuitionistic/propositional';
+export { TemporalLTL } from '../logic/profiles/temporal/ltl';
+export { EpistemicS5 } from '../logic/profiles/epistemic/s5';
+export { DeonticStandard } from '../logic/profiles/deontic/standard';
+export { AristotelianSyllogistic } from '../logic/profiles/aristotelian/syllogistic';
+export { ProbabilisticBasic } from '../logic/profiles/probabilistic/basic';
 
 // Sub-namespaces (cada perfil con barrel propio)
-import * as ctl from '../profiles/ctl';
-import * as ltl from '../profiles/ltl-sat';
-import * as muCalculus from '../profiles/mu-calculus';
-import * as hybrid from '../profiles/hybrid-logic';
-import * as descriptionLogic from '../profiles/description-logic';
-import * as modalAxioms from '../profiles/modal-frame-axioms';
-import * as sequentG3 from '../profiles/sequent-g3';
-import * as sequentLK from '../profiles/sequent-lk';
-import * as intuitNJ from '../profiles/intuitionistic-nj';
-import * as defaultLogic from '../profiles/default-logic';
-import * as manyValued from '../profiles/many-valued';
-import * as substructural from '../profiles/substructural';
-import * as arithmetic from '../profiles/arithmetic';
+import * as ctl from '../logic/profiles/ctl';
+import * as ltl from '../logic/profiles/ltl-sat';
+import * as muCalculus from '../logic/profiles/mu-calculus';
+import * as hybrid from '../logic/profiles/hybrid-logic';
+import * as descriptionLogic from '../logic/profiles/description-logic';
+import * as modalAxioms from '../logic/profiles/modal-frame-axioms';
+import * as sequentG3 from '../logic/profiles/sequent-g3';
+import * as sequentLK from '../logic/profiles/sequent-lk';
+import * as intuitNJ from '../logic/profiles/intuitionistic-nj';
+import * as defaultLogic from '../logic/profiles/default-logic';
+import * as manyValued from '../logic/profiles/many-valued';
+import * as substructural from '../logic/profiles/substructural';
+import * as arithmetic from '../logic/profiles/arithmetic';
 
 export {
   ctl,
@@ -58,7 +58,7 @@ export {
 };
 
 // SAT solving (algoritmos clásicos para evaluación de fórmulas)
-export { cdcl, cdclAsync } from '../profiles/classical/cdcl';
-export type { CDCLResult } from '../profiles/classical/cdcl';
-export { dpll, dpllAsync } from '../profiles/classical/dpll';
-export { workersAvailable, PARALLEL_THRESHOLD } from '../profiles/classical/parallel-sat';
+export { cdcl, cdclAsync } from '../logic/profiles/classical/cdcl';
+export type { CDCLResult } from '../logic/profiles/classical/cdcl';
+export { dpll, dpllAsync } from '../logic/profiles/classical/dpll';
+export { workersAvailable, PARALLEL_THRESHOLD } from '../logic/profiles/classical/parallel-sat';

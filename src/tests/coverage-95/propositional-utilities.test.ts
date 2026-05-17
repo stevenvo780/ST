@@ -8,7 +8,7 @@ import {
   toDNF,
   extractClauses,
   collectAtoms,
-} from '../../profiles/classical/propositional';
+} from '../../logic/profiles/classical/propositional';
 import type { Formula, Valuation } from '../../types';
 
 const atom = (name: string): Formula => ({ kind: 'atom', name });

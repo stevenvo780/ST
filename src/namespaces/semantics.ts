@@ -18,7 +18,7 @@ import * as textLayerCompiler from '../semantics/text-layer/compiler';
 import * as textLayerV2 from '../semantics/text-layer/v2';
 
 import * as gameSemantics from '../semantics/game-semantics';
-import * as profileBridge from '../profile-bridge';
+import * as profileBridge from '../logic/profile-bridge';
 import * as coinduction from '../semantics/coinduction';
 
 export {
