@@ -7,6 +7,13 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.5.1] - 2026-05-17
+
+### Fixed
+- Re-exports de barrel para profile-bridge, tableau-framework, game-semantics, coinduction, higher-order-unify. Ahora accesibles vía `import { X } from '@stevenvo780/st-lang'`.
+
+---
+
 ## [4.5.0] - 2026-05-17
 
 ### Added

@@ -278,3 +278,60 @@ export type {
   NormalizeOpts as LCNormalizeOpts,
   NormalizeResult as LCNormalizeResult,
 } from './lambda-calc';
+
+// profile-bridge — traducciones entre perfiles lógicos
+export {
+  glivenkoTranslation,
+  godelTranslation,
+  ltlToCTL,
+  ctlToLTL,
+  findTranslationPath,
+  translateFormula,
+  TRANSLATIONS,
+} from './profile-bridge';
+export type { Profile, GenericFormula, Translation } from './profile-bridge';
+
+// tableau-framework — probador semántico por tableau
+export { TableauProver, createPropositionalProver } from './tableau-framework';
+export type {
+  TableauNode,
+  TableauBranch,
+  Tableau,
+  Rule,
+  ClosureCondition,
+} from './tableau-framework';
+
+// game-semantics — juegos dialógicos IPC (Lorenzen-Felscher)
+export {
+  winningStrategy,
+  play,
+  ipcAtom,
+  ipcAnd,
+  ipcOr,
+  ipcImplies,
+  ipcNot,
+  ipcBottom,
+} from './game-semantics';
+export type { IPCFormula, Player, Move, GameState } from './game-semantics';
+
+// coinduction — streams coinductivos y bisimulación
+export {
+  take as streamTake,
+  repeat as streamRepeat,
+  iterate as streamIterate,
+  map as streamMap,
+  zipWith as streamZipWith,
+  naturals,
+  fibonacci,
+  isBisimilar,
+} from './coinduction';
+export type { Stream, BisimulationProof } from './coinduction';
+
+// higher-order-unify — unificación de orden superior
+export {
+  isPattern as hoIsPattern,
+  isHigherOrderPattern,
+  unifyPattern as hoUnifyPattern,
+  applyHOSubst,
+} from './higher-order-unify';
+export type { HOTerm, HOSubst } from './higher-order-unify';
