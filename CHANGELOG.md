@@ -7,6 +7,25 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.5.0] - 2026-05-17
+
+### Added
+- 4.8.1 SKI combinatory + bracket abstraction λ→SKI (`2cff5a5`). 25 tests.
+- 4.8.2 NbE Normalization by Evaluation STLC con η-larga (`1c994e6`). 17 tests.
+- 4.8.3 Constructive reals via Cauchy sequences + BigInt (`d1648b4`). 58 tests.
+- 4.8.4 Game semantics IPC dialógicas Lorenzen-Felscher (`5d55678`). 21 tests.
+- 4.8.5 Proof nets MLL + Danos-Regnier (`d4ae8a3`). 21 tests.
+- 4.9.1 Higher-order Miller pattern unification (`9729b07`). 32 tests.
+- 4.9.2 Coinduction streams + bisimulation (`8784951`). 10+ tests.
+- 4.9.3 Tableau extensible framework (`4383f36`). 16 tests.
+- 4.9.4 Profile bridge Glivenko + Gödel-McKinsey + LTL↔CTL (`57b8d40`). 37 tests.
+- QA integration suite cross-modules V4 (`76e1b93`). 48 tests end-to-end.
+
+### Changed
+- 3731 → 3920+ tests (+200+ nuevos).
+
+---
+
 ## [4.4.0] - 2026-05-17
 
 ### Added
