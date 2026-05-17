@@ -12,7 +12,7 @@ import {
   ipcToString,
   toIntuit,
   type Move,
-} from '../../game-semantics';
+} from '../../../semantics/game-semantics';
 
 const P = ipcAtom('P');
 const Q = ipcAtom('Q');

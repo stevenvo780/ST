@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ProtocolHandler } from '../protocol/handler';
-import { createTextLayerState, parseAnchorPath, registerPassage } from '../text-layer/compiler';
+import { createTextLayerState, parseAnchorPath, registerPassage } from '../semantics/text-layer/compiler';
 
 describe('ProtocolHandler validation', () => {
   it('rechaza params invalidos antes de despachar', () => {

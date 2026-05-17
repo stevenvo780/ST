@@ -30,7 +30,7 @@ import {
   isBisimilar,
   prove,
   __internals,
-} from '../../coinduction';
+} from '../../../semantics/coinduction';
 
 describe('Coinduction — constructores básicos', () => {
   it('repeat genera un stream constante', () => {

@@ -11,7 +11,7 @@ import {
   DefinitionEntry,
   SourceInfo,
   InterpretationEntry,
-} from '../types';
+} from '../../types';
 
 export type { TextLayerState };
 

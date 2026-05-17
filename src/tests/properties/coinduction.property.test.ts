@@ -7,8 +7,8 @@
 
 import { describe, it } from 'vitest';
 import { fc } from './generators';
-import { take, isBisimilar, iterate, repeat, naturals, fibonacci } from '../../coinduction';
-import type { Stream } from '../../coinduction';
+import { take, isBisimilar, iterate, repeat, naturals, fibonacci } from '../../semantics/coinduction';
+import type { Stream } from '../../semantics/coinduction';
 
 const streamArb: fc.Arbitrary<Stream<number>> = fc.oneof(
   fc.integer({ min: -100, max: 100 }).map((x) => repeat(x)),

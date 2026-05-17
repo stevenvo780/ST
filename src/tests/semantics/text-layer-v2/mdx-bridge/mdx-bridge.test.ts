@@ -7,7 +7,7 @@ import {
   mdxToClaimsDetailed,
   stripMDXMetadata,
   type Claim,
-} from '../../../text-layer/v2';
+} from '../../../../semantics/text-layer/v2';
 
 const mk = (
   id: string,

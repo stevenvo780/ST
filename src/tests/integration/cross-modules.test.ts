@@ -141,8 +141,8 @@ import {
   take,
   zipWith,
   fibonacci,
-} from '../../coinduction';
-import type { BisimulationProof } from '../../coinduction';
+} from '../../semantics/coinduction';
+import type { BisimulationProof } from '../../semantics/coinduction';
 
 describe('Bisimulación coinductiva cross-módulo', () => {
   it('repeat(0) es bisimilar a iterate(x => x, 0)', () => {

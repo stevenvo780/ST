@@ -72,11 +72,11 @@ export {
   registerDefinition,
   registerSource,
   registerInterpretation,
-} from './text-layer/compiler';
+} from './semantics/text-layer/compiler';
 
 // Text Layer 2.0 — grafo de claims con dependencias e invalidación propagada
-export { ClaimGraph, CycleError } from './text-layer/v2';
-export type { Claim, ClaimValidation, ClaimSource, ClaimEvaluator } from './text-layer/v2';
+export { ClaimGraph, CycleError } from './semantics/text-layer/v2';
+export type { Claim, ClaimValidation, ClaimSource, ClaimEvaluator } from './semantics/text-layer/v2';
 
 // Runtime
 export { Interpreter } from './runtime/interpreter';
@@ -336,8 +336,8 @@ export {
   ipcImplies,
   ipcNot,
   ipcBottom,
-} from './game-semantics';
-export type { IPCFormula, Player, Move, GameState } from './game-semantics';
+} from './semantics/game-semantics';
+export type { IPCFormula, Player, Move, GameState } from './semantics/game-semantics';
 
 // lemma synthesis — exploración de teoría QuickSpec-style
 export {
@@ -371,8 +371,8 @@ export {
   naturals,
   fibonacci,
   isBisimilar,
-} from './coinduction';
-export type { Stream, BisimulationProof } from './coinduction';
+} from './semantics/coinduction';
+export type { Stream, BisimulationProof } from './semantics/coinduction';
 
 // higher-order-unify — unificación de orden superior
 export {

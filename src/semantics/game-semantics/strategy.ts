@@ -34,7 +34,7 @@
 // La movida producida por la estrategia es válida (los tests lo
 // chequean a través de `play`).
 
-import { proveIntuitionistically } from '../profiles/intuitionistic-nj';
+import { proveIntuitionistically } from '../../profiles/intuitionistic-nj';
 import { toIntuit } from './convert';
 import { GameState, IPCFormula, Move, Player, ipcEquals, ipcKey, ipcToString } from './types';
 

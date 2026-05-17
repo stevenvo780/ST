@@ -8,14 +8,14 @@
 // estrategia ganadora en el juego dialógico sobre φ sii φ es
 // demostrable en NJ (equivalentemente, válida en IPC).
 
-import type { IntuitFormula } from '../profiles/intuitionistic-nj';
+import type { IntuitFormula } from '../../profiles/intuitionistic-nj';
 import {
   atom as njAtom,
   bottom as njBottom,
   and as njAnd,
   or as njOr,
   implies as njImplies,
-} from '../profiles/intuitionistic-nj';
+} from '../../profiles/intuitionistic-nj';
 import { IPCFormula } from './types';
 
 export function toIntuit(f: IPCFormula): IntuitFormula {

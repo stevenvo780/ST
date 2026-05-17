@@ -13,13 +13,13 @@
  */
 
 // Text layer v1 — compilador legacy
-import * as textLayerCompiler from '../text-layer/compiler';
+import * as textLayerCompiler from '../semantics/text-layer/compiler';
 // Text layer v2 — grafo de claims con dependencias
-import * as textLayerV2 from '../text-layer/v2';
+import * as textLayerV2 from '../semantics/text-layer/v2';
 
-import * as gameSemantics from '../game-semantics';
+import * as gameSemantics from '../semantics/game-semantics';
 import * as profileBridge from '../profile-bridge';
-import * as coinduction from '../coinduction';
+import * as coinduction from '../semantics/coinduction';
 
 export {
   textLayerCompiler,

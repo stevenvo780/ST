@@ -79,7 +79,7 @@ import {
   registerDefinition,
   registerSource,
   registerInterpretation,
-} from '../text-layer/compiler';
+} from '../semantics/text-layer/compiler';
 import { classifyFormula } from './formula-classifier';
 import { FormulaFactory } from './formula-factory';
 

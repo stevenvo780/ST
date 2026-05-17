@@ -33,7 +33,7 @@ import {
   type FinSetMor,
   type Diagram,
   type Cone,
-} from '../../categorical';
+} from '../../../semantics/categorical';
 
 // Reutilizamos estos objetos en varios tests.
 const A: FinSetObj = { name: 'A', elements: ['a0', 'a1'] };
