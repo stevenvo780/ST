@@ -1,0 +1,44 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`exportToLean4 — snapshot stability > (P ∧ Q) → P snapshot is stable 1`] = `
+"import Mathlib.Tactic
+
+namespace STExport
+
+def stmt : Prop := ((P ∧ Q) → P)
+
+theorem stmt_proof : stmt := by
+    intro h
+    exact h.left
+
+end STExport"
+`;
+
+exports[`exportToLean4 — snapshot stability > P → P snapshot is stable 1`] = `
+"import Mathlib.Tactic
+
+namespace STExport
+
+def stmt : Prop := (P → P)
+
+theorem stmt_proof : stmt := by
+    intro h
+    exact h
+
+end STExport"
+`;
+
+exports[`exportToLean4 — snapshot stability > ∀x. P(x) → ∃y. P(y) snapshot is stable 1`] = `
+"import Mathlib.Tactic
+
+namespace STExport
+
+def stmt : Prop := (∀ x : Prop, ((P x) → (∃ y : Prop, (P y))))
+
+theorem stmt_proof : stmt := by
+    intro x
+    intro h
+    exact ⟨y, h⟩
+
+end STExport"
+`;
