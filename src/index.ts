@@ -341,6 +341,35 @@ export {
 } from './higher-order-unify';
 export type { HOTerm, HOSubst } from './higher-order-unify';
 
+// hindley-milner — Algorithm W (Damas-Milner) con let-polimorfismo
+export {
+  algorithmW as hmAlgorithmW,
+  infer as hmInfer,
+  inferScheme as hmInferScheme,
+  isInferError as hmIsInferError,
+  initialEnv as hmInitialEnv,
+  normalizeScheme as hmNormalizeScheme,
+  unify as hmUnify,
+  isUnifyError as hmIsUnifyError,
+  applySubst as hmApplySubst,
+  composeSubsts as hmComposeSubsts,
+  freshTypeVar as hmFreshTypeVar,
+  resetFreshSupply as hmResetFreshSupply,
+  generalize as hmGeneralize,
+  instantiate as hmInstantiate,
+  TypeEnv as HMTypeEnv,
+  typeToString as hmTypeToString,
+  schemeToString as hmSchemeToString,
+} from './hindley-milner';
+export type {
+  Type as HMType,
+  TypeScheme as HMTypeScheme,
+  Expr as HMExpr,
+  Substitution as HMSubstitution,
+  InferResult as HMInferResult,
+  InferOutcome as HMInferOutcome,
+} from './hindley-milner';
+
 // ── Namespaces semánticos (aditivo, no breaking) ─────────────────────────────
 // Re-organiza los símbolos públicos por dominio sin remover los flat exports.
 // Uso: `import { Logic, TypeTheory } from '@stevenvo780/st-lang'`.
