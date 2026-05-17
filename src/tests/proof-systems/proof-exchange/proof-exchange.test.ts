@@ -6,8 +6,8 @@ import {
   verifyProof,
   generateKeyPair,
   type ProofPackage,
-} from '../../proof-exchange';
-import type { Proof } from '../../types';
+} from '../../../proof-systems/proof-exchange';
+import type { Proof } from '../../../types';
 
 function makeProof(): Proof {
   return {

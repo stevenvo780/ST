@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { mkVar, mkConst, mkFunc, FOLTerm } from '../../fol-prover/types';
-import { unify, applyTerm } from '../../fol-prover/unify';
+import { mkVar, mkConst, mkFunc, FOLTerm } from '../../../proof-systems/fol-prover/types';
+import { unify, applyTerm } from '../../../proof-systems/fol-prover/unify';
 
 describe('FOL unification (Robinson)', () => {
   it('unifies P(x) with P(a) → { x → a }', () => {

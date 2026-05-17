@@ -14,7 +14,7 @@ import {
   normalizeCuts,
   isCutFree,
   type ProofNet,
-} from '../../proof-nets';
+} from '../../../proof-systems/proof-nets';
 
 describe('Proof Nets / fórmulas y dualidad', () => {
   it('dualidad es involutiva sobre átomos', () => {

@@ -26,7 +26,7 @@ import {
   unifyMetaApp,
   resetFreshCounter,
   type HOTerm,
-} from '../../higher-order-unify';
+} from '../../../proof-systems/higher-order-unify';
 
 // ---- Helpers de construcción ----
 

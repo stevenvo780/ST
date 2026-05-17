@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseTptp } from '../../tptp/parser';
 import { toFolProverFormat, tptpFormulaToFol } from '../../tptp/bridge';
-import { proveFOL } from '../../fol-prover';
+import { proveFOL } from '../../proof-systems/fol-prover';
 
 describe('TPTP bridge — tptpFormulaToFol', () => {
   it('convierte atom proposicional', () => {

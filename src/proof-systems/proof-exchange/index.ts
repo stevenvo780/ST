@@ -1,4 +1,4 @@
-import type { Proof } from '../types';
+import type { Proof } from '../../types';
 
 export interface ProofPackage {
   version: '1.0';

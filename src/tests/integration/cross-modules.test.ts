@@ -78,7 +78,7 @@ describe('CDCL incremental + MUS extraction', () => {
 });
 
 // ── 2. FOL prover + theorem-cache ────────────────────────────────────
-import { proveFOL } from '../../fol-prover/prove';
+import { proveFOL } from '../../proof-systems/fol-prover/prove';
 import { TheoremCache } from '../../runtime/theorem-cache/cache';
 import type { Formula } from '../../types';
 
@@ -531,7 +531,7 @@ import {
   constructFromSequent,
   isCorrect,
   isCutFree,
-} from '../../proof-nets';
+} from '../../proof-systems/proof-nets';
 
 describe('Proof Nets + MLL — construcción y corrección Danos-Regnier', () => {
   it('axiom ⊢ A, A⊥ construye net correcto', () => {
@@ -746,7 +746,7 @@ describe('SKI combinators — SKK = I (identidad)', () => {
 });
 
 // ── 14. FOL prover: silogismo con premises reales ─────────────────────
-import { mkConst, mkVar as folMkVar, mkFunc as folMkFunc, mkLit } from '../../fol-prover';
+import { mkConst, mkVar as folMkVar, mkFunc as folMkFunc, mkLit } from '../../proof-systems/fol-prover';
 
 describe('FOL prover — silogismo de primer orden', () => {
   it('∀x.Mortal(x) ⊢ Mortal(socrates) usando resolución', () => {

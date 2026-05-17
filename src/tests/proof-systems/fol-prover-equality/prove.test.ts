@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Formula } from '../../types';
-import type { FOLClause, FOLTerm } from '../../fol-prover/types';
+import type { Formula } from '../../../types';
+import type { FOLClause, FOLTerm } from '../../../proof-systems/fol-prover/types';
 import {
   EQ_PREDICATE,
   demodulate,
@@ -9,7 +9,7 @@ import {
   paramodulate,
   proveWithEquality,
   reflexivityResolve,
-} from '../../fol-prover-equality';
+} from '../../../proof-systems/fol-prover-equality';
 
 // ---------- Formula helpers ----------
 

@@ -1,4 +1,4 @@
-import type { Formula } from '../types';
+import type { Formula } from '../../types';
 import type { FOLClause, FOLLiteral, FOLTerm } from '../fol-prover/types';
 import { toCNF } from '../fol-prover/cnf';
 import { resolveWithRecord } from '../fol-prover/resolve';

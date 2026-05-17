@@ -1,4 +1,4 @@
-import { Formula } from '../types';
+import { Formula } from '../../types';
 import { toCNF } from './cnf';
 import { runResolutionLoop } from './resolve';
 import { FOLProveOptions, FOLProveResult } from './types';

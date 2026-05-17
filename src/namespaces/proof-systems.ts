@@ -9,12 +9,12 @@
  *   ProofSystems.proofExchange.signProof(pkg, key);
  */
 
-import * as folProver from '../fol-prover';
-import * as folProverEquality from '../fol-prover-equality';
-import * as proofExchange from '../proof-exchange';
-import * as proofMinify from '../runtime/proof-minify';
-import * as tableauFramework from '../tableau-framework';
-import * as proofNets from '../proof-nets';
+import * as folProver from '../proof-systems/fol-prover';
+import * as folProverEquality from '../proof-systems/fol-prover-equality';
+import * as proofExchange from '../proof-systems/proof-exchange';
+import * as proofMinify from '../proof-systems/proof-minify';
+import * as tableauFramework from '../proof-systems/tableau-framework';
+import * as proofNets from '../proof-systems/proof-nets';
 
 export {
   folProver,

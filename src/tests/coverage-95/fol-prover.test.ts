@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { toCNF, skolemize, negate } from '../../fol-prover/cnf';
-import { resolve, resolveWithRecord, runResolutionLoop } from '../../fol-prover/resolve';
+import { toCNF, skolemize, negate } from '../../proof-systems/fol-prover/cnf';
+import { resolve, resolveWithRecord, runResolutionLoop } from '../../proof-systems/fol-prover/resolve';
 import {
   mkVar,
   mkConst,
@@ -8,7 +8,7 @@ import {
   mkLit,
   type FOLClause,
   type FOLTerm,
-} from '../../fol-prover/types';
+} from '../../proof-systems/fol-prover/types';
 import type { Formula } from '../../types';
 
 const atom = (name: string): Formula => ({ kind: 'atom', name });

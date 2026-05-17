@@ -8,7 +8,7 @@
 
 import { describe, it } from 'vitest';
 import { fc, hoPatternTerm } from './generators';
-import { unifyPattern, isPattern } from '../../higher-order-unify';
+import { unifyPattern, isPattern } from '../../proof-systems/higher-order-unify';
 
 describe('property: HO-unify Miller pattern determinism', () => {
   it('unifyPattern is deterministic for patterns', () => {

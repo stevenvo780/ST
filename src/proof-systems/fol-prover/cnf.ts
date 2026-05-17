@@ -1,4 +1,4 @@
-import { Formula } from '../types';
+import { Formula } from '../../types';
 import { FOLClause, FOLLiteral, FOLTerm, mkConst, mkFunc, mkVar } from './types';
 
 interface SkolemContext {

@@ -18,7 +18,7 @@ import * as lambdaCalc from '../type-theory/lambda-calc';
 import * as combinatorsSKI from '../type-theory/combinators-ski';
 import * as nbe from '../type-theory/nbe';
 import * as refinementTypes from '../type-theory/refinement-types';
-import * as higherOrderUnify from '../higher-order-unify';
+import * as higherOrderUnify from '../proof-systems/higher-order-unify';
 
 export {
   curryHoward,

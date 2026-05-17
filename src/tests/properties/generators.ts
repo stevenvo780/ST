@@ -8,7 +8,7 @@
 
 import * as fc from 'fast-check';
 import type { Formula } from '../../types';
-import type { HOTerm } from '../../higher-order-unify';
+import type { HOTerm } from '../../proof-systems/higher-order-unify';
 import type { Term as LamTerm } from '../../type-theory/lambda-calc/types';
 import type { Term as TRSTerm, RewriteRule } from '../../runtime/term-rewriting/types';
 import type { Term as AUTerm } from '../../runtime/anti-unification/types';

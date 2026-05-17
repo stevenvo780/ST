@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { Formula } from '../../types';
-import { toCNF, skolemize } from '../../fol-prover/cnf';
+import { Formula } from '../../../types';
+import { toCNF, skolemize } from '../../../proof-systems/fol-prover/cnf';
 
 function predicate(name: string, params: string[]): Formula {
   return { kind: 'predicate', name, params, terms: params };

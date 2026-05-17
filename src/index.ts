@@ -131,13 +131,13 @@ export {
   minifyProof,
   compactModusPonensChain,
   removeUnusedSubproofs,
-} from './runtime/proof-minify';
+} from './proof-systems/proof-minify';
 export type {
   GenericProofNode,
   MinifyOptions,
   MinifyResult,
   MinifyRule,
-} from './runtime/proof-minify';
+} from './proof-systems/proof-minify';
 
 // Coq exporter
 export { exportToCoq, exportProofToCoq } from './exporters/coq';
@@ -158,7 +158,7 @@ import type { Semantics as ArgumentationSemanticsType } from './reasoning/argume
 export type Semantics = ArgumentationSemanticsType;
 
 // FOL prover
-export { proveFOL, unify, skolemize, toCNF } from './fol-prover';
+export { proveFOL, unify, skolemize, toCNF } from './proof-systems/fol-prover';
 
 // TPTP parser/emitter + bridge a fol-prover
 export {
@@ -181,8 +181,8 @@ export type {
 } from './tptp';
 
 // Proof exchange
-export { canonicalize, hashProof, signProof, verifyProof, generateKeyPair } from './proof-exchange';
-export type { ProofPackage } from './proof-exchange';
+export { canonicalize, hashProof, signProof, verifyProof, generateKeyPair } from './proof-systems/proof-exchange';
+export type { ProofPackage } from './proof-systems/proof-exchange';
 
 // Time-travel
 export { captureSnapshot, SnapshotStore } from './time-travel';
@@ -317,14 +317,14 @@ export {
 export type { Profile, GenericFormula, Translation } from './profile-bridge';
 
 // tableau-framework — probador semántico por tableau
-export { TableauProver, createPropositionalProver } from './tableau-framework';
+export { TableauProver, createPropositionalProver } from './proof-systems/tableau-framework';
 export type {
   TableauNode,
   TableauBranch,
   Tableau,
   Rule,
   ClosureCondition,
-} from './tableau-framework';
+} from './proof-systems/tableau-framework';
 
 // game-semantics — juegos dialógicos IPC (Lorenzen-Felscher)
 export {
@@ -380,8 +380,8 @@ export {
   isHigherOrderPattern,
   unifyPattern as hoUnifyPattern,
   applyHOSubst,
-} from './higher-order-unify';
-export type { HOTerm, HOSubst } from './higher-order-unify';
+} from './proof-systems/higher-order-unify';
+export type { HOTerm, HOSubst } from './proof-systems/higher-order-unify';
 
 // hindley-milner — Algorithm W (Damas-Milner) con let-polimorfismo
 export {

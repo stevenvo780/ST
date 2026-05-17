@@ -6,13 +6,13 @@ import { describe, it, expect } from 'vitest';
 import {
   TableauProver,
   createPropositionalProver,
-} from '../../tableau-framework';
+} from '../../../proof-systems/tableau-framework';
 import type {
   PropFormula,
   TableauBranch,
   TableauNode,
   Rule,
-} from '../../tableau-framework';
+} from '../../../proof-systems/tableau-framework';
 
 // ── Formula helpers ───────────────────────────────────────────
 

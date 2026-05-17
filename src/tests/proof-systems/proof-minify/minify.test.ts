@@ -8,7 +8,7 @@ import {
   compactModusPonensChain,
   removeUnusedSubproofs,
   type GenericProofNode,
-} from '../../runtime/proof-minify';
+} from '../../../proof-systems/proof-minify';
 
 // ── Helpers de construcción ──────────────────────────────────
 
