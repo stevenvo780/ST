@@ -1,0 +1,48 @@
+{
+  "name": "@stevenvo780/st-cli",
+  "version": "0.1.0",
+  "description": "ST — proof assistant CLI powered by @stevenvo780/st-lang. Commands: check, derive, countermodel, formalize, export, repl.",
+  "type": "commonjs",
+  "bin": {
+    "st": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc && node -e \"const fs=require('fs'); const p='dist/index.js'; const c=fs.readFileSync(p,'utf-8'); if(!c.startsWith('#!/usr/bin/env node')) fs.writeFileSync(p,'#!/usr/bin/env node\\n'+c); require('fs').chmodSync(p,'755');\"",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm test",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "logic",
+    "formal",
+    "proof",
+    "assistant",
+    "cli",
+    "repl",
+    "st-lang",
+    "education"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stevenvo780/ST.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@stevenvo780/st-lang": "^4.14.0",
+    "commander": "^12.1.0",
+    "chalk": "^4.1.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^2.1.0",
+    "@types/node": "^22.0.0"
+  }
+}

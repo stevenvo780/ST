@@ -1,0 +1,9 @@
+src/
+tests/
+tsconfig.json
+*.tsbuildinfo
+node_modules/
+coverage/
+.env
+*.test.js
+*.test.d.ts
