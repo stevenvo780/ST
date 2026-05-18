@@ -45,8 +45,12 @@ function compile(M: KripkeStructure): CompiledModel {
     if (!succ.has(to)) {
       throw new Error(`CTL: transición hacia estado desconocido "${to}"`);
     }
-    succ.get(from)!.add(to);
-    pred.get(to)!.add(from);
+    const fromSuccs = succ.get(from);
+    if (fromSuccs === undefined) throw new Error(`CTL compile: estado "${from}" sin succ-set`);
+    fromSuccs.add(to);
+    const toPreds = pred.get(to);
+    if (toPreds === undefined) throw new Error(`CTL compile: estado "${to}" sin pred-set`);
+    toPreds.add(from);
   }
   for (const init of M.initial) {
     if (!labelsByState.has(init)) {
@@ -71,7 +75,7 @@ function fullSat(model: CompiledModel): SatMap {
 function labelAtom(model: CompiledModel, name: string): SatMap {
   const sat = emptySat(model);
   for (const id of model.stateIds) {
-    if (model.labelsByState.get(id)!.has(name)) sat.set(id, true);
+    if (model.labelsByState.get(id)?.has(name)) sat.set(id, true);
   }
   return sat;
 }
@@ -115,7 +119,7 @@ function labelOr(model: CompiledModel, subs: SatMap[]): SatMap {
 function labelEX(model: CompiledModel, sub: SatMap): SatMap {
   const out = emptySat(model);
   for (const id of model.stateIds) {
-    for (const s of model.succ.get(id)!) {
+    for (const s of model.succ.get(id) ?? []) {
       if (sub.get(s)) {
         out.set(id, true);
         break;
@@ -128,7 +132,7 @@ function labelEX(model: CompiledModel, sub: SatMap): SatMap {
 function labelAX(model: CompiledModel, sub: SatMap): SatMap {
   const out = emptySat(model);
   for (const id of model.stateIds) {
-    const succs = model.succ.get(id)!;
+    const succs = model.succ.get(id) ?? new Set<string>();
     let ok = true;
     for (const s of succs) {
       if (!sub.get(s)) {
@@ -149,8 +153,9 @@ function labelEF(model: CompiledModel, sub: SatMap): SatMap {
   const queue: string[] = [];
   for (const id of model.stateIds) if (z.get(id)) queue.push(id);
   while (queue.length > 0) {
-    const cur = queue.shift()!;
-    for (const p of model.pred.get(cur)!) {
+    const cur = queue.shift();
+    if (cur === undefined) break;
+    for (const p of model.pred.get(cur) ?? []) {
       if (!z.get(p)) {
         z.set(p, true);
         queue.push(p);
@@ -169,7 +174,7 @@ function labelAF(model: CompiledModel, sub: SatMap): SatMap {
     changed = false;
     for (const id of model.stateIds) {
       if (z.get(id)) continue;
-      const succs = model.succ.get(id)!;
+      const succs = model.succ.get(id) ?? new Set<string>();
       if (succs.size === 0) continue; // deadlock sin φ: nunca llegará a φ
       let all = true;
       for (const s of succs) {
@@ -196,7 +201,7 @@ function labelEG(model: CompiledModel, sub: SatMap): SatMap {
     changed = false;
     for (const id of model.stateIds) {
       if (!z.get(id)) continue;
-      const succs = model.succ.get(id)!;
+      const succs = model.succ.get(id) ?? new Set<string>();
       let hasSucc = false;
       for (const s of succs) {
         if (z.get(s)) {
@@ -222,7 +227,7 @@ function labelAG(model: CompiledModel, sub: SatMap): SatMap {
     changed = false;
     for (const id of model.stateIds) {
       if (!z.get(id)) continue;
-      const succs = model.succ.get(id)!;
+      const succs = model.succ.get(id) ?? new Set<string>();
       let allOk = true;
       for (const s of succs) {
         if (!z.get(s)) {
@@ -247,8 +252,9 @@ function labelEU(model: CompiledModel, subA: SatMap, subB: SatMap): SatMap {
   const queue: string[] = [];
   for (const id of model.stateIds) if (z.get(id)) queue.push(id);
   while (queue.length > 0) {
-    const cur = queue.shift()!;
-    for (const p of model.pred.get(cur)!) {
+    const cur = queue.shift();
+    if (cur === undefined) break;
+    for (const p of model.pred.get(cur) ?? []) {
       if (z.get(p)) continue;
       if (subA.get(p)) {
         z.set(p, true);
@@ -272,7 +278,7 @@ function labelAU(model: CompiledModel, subA: SatMap, subB: SatMap): SatMap {
     for (const id of model.stateIds) {
       if (z.get(id)) continue;
       if (!subA.get(id)) continue;
-      const succs = model.succ.get(id)!;
+      const succs = model.succ.get(id) ?? new Set<string>();
       if (succs.size === 0) continue;
       let allOk = true;
       for (const s of succs) {

@@ -296,7 +296,7 @@ export class TypeChecker extends BaseASTVisitor<TypeError[]> {
 
     // TC006: Duplicado
     if (this.axiomNames.has(node.name)) {
-      const prev = this.axiomNames.get(node.name)!;
+      const prev = this.axiomNames.get(node.name) ?? { line: 0, column: 0 };
       errors.push(
         this.err(
           'TC006',
@@ -322,7 +322,7 @@ export class TypeChecker extends BaseASTVisitor<TypeError[]> {
 
     // TC006: Duplicado
     if (this.theoremNames.has(node.name)) {
-      const prev = this.theoremNames.get(node.name)!;
+      const prev = this.theoremNames.get(node.name) ?? { line: 0, column: 0 };
       errors.push(
         this.err(
           'TC006',

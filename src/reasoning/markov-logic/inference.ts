@@ -375,7 +375,7 @@ export function mapInference(
       let chosen: string;
       if (rng() < noise) {
         // random walk
-        chosen = candidates[Math.floor(rng() * candidates.length)]!;
+        chosen = candidates[Math.floor(rng() * candidates.length)] ?? candidates[0] ?? '';
       } else {
         // greedy: elige el flip que maximiza el score
         let bestFlipScore = Number.NEGATIVE_INFINITY;

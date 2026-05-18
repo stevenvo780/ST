@@ -44,7 +44,9 @@ function compile(K: KripkeStructure): CompiledModel {
     if (!universe.has(to)) {
       throw new Error(`μ-calculus: transición hacia estado desconocido "${to}"`);
     }
-    succ.get(from)!.add(to);
+    const fromSet = succ.get(from);
+    if (fromSet === undefined) throw new Error(`μ-calculus: estado origen desconocido "${from}"`);
+    fromSet.add(to);
   }
   return { states, universe, labels, succ };
 }
@@ -56,7 +58,7 @@ function evalFormula(model: CompiledModel, phi: MuFormula, env: Env): Set<string
     case 'atom': {
       const out = new Set<string>();
       for (const s of model.states) {
-        if (model.labels.get(s)!.has(phi.name)) out.add(s);
+        if (model.labels.get(s)?.has(phi.name)) out.add(s);
       }
       return out;
     }
@@ -92,7 +94,7 @@ function evalFormula(model: CompiledModel, phi: MuFormula, env: Env): Set<string
       const sub = evalFormula(model, phi.arg, env);
       const out = new Set<string>();
       for (const s of model.states) {
-        const succs = model.succ.get(s)!;
+        const succs = model.succ.get(s) ?? new Set<string>();
         let allOk = true;
         for (const t of succs) {
           if (!sub.has(t)) {
@@ -109,7 +111,7 @@ function evalFormula(model: CompiledModel, phi: MuFormula, env: Env): Set<string
       const sub = evalFormula(model, phi.arg, env);
       const out = new Set<string>();
       for (const s of model.states) {
-        for (const t of model.succ.get(s)!) {
+        for (const t of model.succ.get(s) ?? []) {
           if (sub.has(t)) {
             out.add(s);
             break;

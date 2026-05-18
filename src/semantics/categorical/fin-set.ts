@@ -116,8 +116,10 @@ export function FinSet(
     const tgt = getObj(g.tgt);
     const fn = new Map<string, string>();
     for (const x of src.elements) {
-      const fx = f.fn.get(x)!;
-      const gfx = g.fn.get(fx)!;
+      const fx = f.fn.get(x);
+      if (fx === undefined) throw new Error(`FinSet compose: missing image for ${x} under ${f.id}`);
+      const gfx = g.fn.get(fx);
+      if (gfx === undefined) throw new Error(`FinSet compose: missing image for ${fx} under ${g.id}`);
       fn.set(x, gfx);
     }
     // El nombre canónico de la composición es g∘f. Si ese morfismo
@@ -159,7 +161,9 @@ export function FinSet(
   }
 
   function identity(obj: FinSetObj): FinSetMor {
-    return morphisms.get(`${obj.name}→${obj.name}:id`)!;
+    const idMor = morphisms.get(`${obj.name}→${obj.name}:id`);
+    if (idMor === undefined) throw new Error(`FinSet: missing identity for ${obj.name}`);
+    return idMor;
   }
 
   function compose(g: FinSetMor, f: FinSetMor): FinSetMor {

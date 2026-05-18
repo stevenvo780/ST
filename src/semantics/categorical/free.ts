@@ -42,7 +42,9 @@ export function Free(
     if (edgesByName.has(name)) throw new Error(`Free: duplicate edge name ${name}`);
     edgesByName.set(name, { from, to });
     if (!edgesByFrom.has(from)) edgesByFrom.set(from, []);
-    edgesByFrom.get(from)!.push({ name, to });
+    const fromEdges = edgesByFrom.get(from);
+    if (fromEdges === undefined) throw new Error(`Free: missing edge list for vertex ${from}`);
+    fromEdges.push({ name, to });
   }
 
   const morphisms = new Map<MorId, FreeMor>();
@@ -85,7 +87,9 @@ export function Free(
   }
 
   function identity(obj: string): FreeMor {
-    return morphisms.get(pathId(obj, obj, []))!;
+    const idMor = morphisms.get(pathId(obj, obj, []));
+    if (idMor === undefined) throw new Error(`Free: missing identity for ${obj}`);
+    return idMor;
   }
   function compose(g: FreeMor, f: FreeMor): FreeMor {
     if (f.tgt !== g.src) {

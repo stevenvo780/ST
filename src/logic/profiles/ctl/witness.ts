@@ -43,7 +43,8 @@ function bfsTo(
   const parent = new Map<string, string>();
   const queue: string[] = [start];
   while (queue.length > 0) {
-    const cur = queue.shift()!;
+    const cur = queue.shift();
+    if (cur === undefined) break;
     for (const s of model.succ.get(cur) ?? []) {
       if (visited.has(s)) continue;
       visited.add(s);

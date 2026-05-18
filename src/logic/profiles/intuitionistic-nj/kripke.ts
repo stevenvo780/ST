@@ -59,13 +59,15 @@ function forces(model: InternalModel, w: number, f: IntuitFormula): boolean {
 function reflexiveTransitiveClosure(access: Map<number, Set<number>>, worlds: number[]): void {
   for (const w of worlds) {
     if (!access.has(w)) access.set(w, new Set());
-    access.get(w)!.add(w);
+    const wSet = access.get(w);
+    if (wSet === undefined) throw new Error(`kripke: missing access set for world ${w}`);
+    wSet.add(w);
   }
   let changed = true;
   while (changed) {
     changed = false;
     for (const w of worlds) {
-      const acc = access.get(w)!;
+      const acc = access.get(w) ?? new Set<number>();
       const additions: number[] = [];
       for (const v of acc) {
         for (const u of access.get(v) ?? []) {
@@ -128,13 +130,13 @@ function* generatePreorders(size: number): Generator<Map<number, Set<number>>> {
     for (let b = 0; b < pairs.length; b++) {
       if (mask & (1 << b)) {
         const [from, to] = pairs[b];
-        access.get(from)!.add(to);
+        (access.get(from) ?? new Set<number>()).add(to);
       }
     }
     reflexiveTransitiveClosure(access, worlds);
     let hash = '';
     for (const w of worlds) {
-      hash += `${w}:${[...access.get(w)!].sort((a, b) => a - b).join(',')};`;
+      hash += `${w}:${[...(access.get(w) ?? [])].sort((a, b) => a - b).join(',')};`;
     }
     if (seen.has(hash)) continue;
     seen.add(hash);
@@ -158,7 +160,7 @@ function* generateModels(atoms: string[], maxWorlds: number): Generator<Internal
           const setIdx = idx % upwards.length;
           idx = Math.floor(idx / upwards.length);
           for (const w of upwards[setIdx]) {
-            val.get(w)!.add(atoms[a]);
+            val.get(w)?.add(atoms[a] ?? '');
           }
         }
         yield { worlds, access, val };

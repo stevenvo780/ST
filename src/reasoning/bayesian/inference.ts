@@ -115,7 +115,7 @@ function eliminationOrder(toEliminate: string[], factors: Factor[]): string[] {
       for (const v of f.variables) {
         if (v === best) continue;
         mergedVars.add(v);
-        mergedDomains[v] = f.domains[v]!;
+        mergedDomains[v] = f.domains[v] ?? [];
       }
     }
     const fakeFactor: Factor = {
@@ -140,7 +140,9 @@ export function variableElimination(
   assertEvidenceValid(net, evidence);
   if (queryVar in evidence) {
     // Si la query está observada, el posterior es degenerado.
-    const qDomain = net.variables.find((v) => v.name === queryVar)!.values;
+    const qVar = net.variables.find((v) => v.name === queryVar);
+    if (qVar === undefined) throw new Error(`variableElimination: variable "${queryVar}" no encontrada`);
+    const qDomain = qVar.values;
     const dist: Record<string, string> | Record<string, number> = {};
     const out: Record<string, number> = {};
     for (const val of qDomain) out[val] = val === evidence[queryVar] ? 1 : 0;
@@ -180,7 +182,9 @@ export function variableElimination(
   const normalized = normalizeFactor(result);
   // 6. Extraer la distribución sobre la query.
   const distribution: Record<string, number> = {};
-  const qDomain = net.variables.find((v) => v.name === queryVar)!.values;
+  const qVarDef = net.variables.find((v) => v.name === queryVar);
+  if (qVarDef === undefined) throw new Error(`variableElimination: variable "${queryVar}" no encontrada`);
+  const qDomain = qVarDef.values;
   for (const val of qDomain) {
     const key = assignmentKey([queryVar], { [queryVar]: val });
     distribution[val] = normalized.values.get(key) ?? 0;
@@ -241,7 +245,7 @@ export function mostProbableExplanation(
     for (const [key, val] of product.values) {
       const assign = parseAssignmentKey(key);
       const ctx: Record<string, string> = {};
-      for (const c of contextVars) ctx[c] = assign[c]!;
+      for (const c of contextVars) ctx[c] = assign[c] ?? '';
       const ctxKey = assignmentKey(contextVars, ctx);
       const prev = best.get(ctxKey);
       if (prev === undefined || val > prev) {
@@ -276,7 +280,7 @@ export function mostProbableExplanation(
     } else {
       // Fallback: primer valor del dominio. Solo posible con CPT degenerada.
       const dom = domains[step.variable];
-      if (dom && dom.length > 0) assignment[step.variable] = dom[0]!;
+      if (dom && dom.length > 0) assignment[step.variable] = dom[0] ?? '';
     }
   }
   return assignment;

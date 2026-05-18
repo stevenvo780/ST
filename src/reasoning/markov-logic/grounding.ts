@@ -185,7 +185,7 @@ function cartesian(
     if (i === vars.length) {
       const sub: Record<string, string> = {};
       for (let j = 0; j < vars.length; j++) {
-        sub[vars[j]] = buf[j]!;
+        sub[vars[j]] = buf[j] ?? '';
       }
       out.push(sub);
       return;

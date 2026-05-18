@@ -362,7 +362,8 @@ export function findTranslationPath(from: Profile, to: Profile): Profile[] | nul
   const queue: Profile[][] = [[from]];
 
   while (queue.length > 0) {
-    const path = queue.shift()!;
+    const path = queue.shift();
+    if (path === undefined) break;
     const current = path[path.length - 1];
 
     for (const next of neighbours(current)) {

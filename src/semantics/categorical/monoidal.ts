@@ -66,16 +66,17 @@ export function FinSetMonoidal(
 
   function tensorMor(f: FinSetMor, g: FinSetMor): FinSetMor {
     // f×g : A×B → A'×B', (a,b) ↦ (f(a), g(b))
-    const aObj = Array.from(baseCat.objects).find((o) => o.name === f.src)!;
-    const bObj = Array.from(baseCat.objects).find((o) => o.name === g.src)!;
-    const aTgt = Array.from(baseCat.objects).find((o) => o.name === f.tgt)!;
-    const bTgt = Array.from(baseCat.objects).find((o) => o.name === g.tgt)!;
+    const aObj = Array.from(baseCat.objects).find((o) => o.name === f.src);
+    const bObj = Array.from(baseCat.objects).find((o) => o.name === g.src);
+    const aTgt = Array.from(baseCat.objects).find((o) => o.name === f.tgt);
+    const bTgt = Array.from(baseCat.objects).find((o) => o.name === g.tgt);
+    if (!aObj || !bObj || !aTgt || !bTgt) throw new Error(`FinSetMonoidal tensorMor: unknown object in ${f.id} or ${g.id}`);
     const prodSrc = productObj(aObj, bObj);
     const prodTgt = productObj(aTgt, bTgt);
     const table: Record<string, string> = {};
     for (const x of aObj.elements) {
       for (const y of bObj.elements) {
-        table[`${x}∥${y}`] = `${f.fn.get(x)!}∥${g.fn.get(y)!}`;
+        table[`${x}∥${y}`] = `${f.fn.get(x) ?? ''}∥${g.fn.get(y) ?? ''}`;
       }
     }
     // Asegurar que los objetos producto existan en la categoría base.

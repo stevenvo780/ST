@@ -56,15 +56,22 @@ function structurallyValid(net: ProofNet): boolean {
     if (link.kind === 'axiom' || link.kind === 'cut') {
       if (link.ports.length !== 2) return false;
       const [a, b] = link.ports as [number, number];
-      const fa = idx.get(a)!.formula;
-      const fb = idx.get(b)!.formula;
+      const nodeA = idx.get(a);
+      const nodeB = idx.get(b);
+      if (!nodeA || !nodeB) return false;
+      const fa = nodeA.formula;
+      const fb = nodeB.formula;
       if (!formulaEquals(fa, dual(fb))) return false;
     } else {
       if (link.ports.length !== 3) return false;
       const [l, r, c] = link.ports as [number, number, number];
-      const fc = idx.get(c)!.formula;
-      const fl = idx.get(l)!.formula;
-      const fr = idx.get(r)!.formula;
+      const nodeC = idx.get(c);
+      const nodeL = idx.get(l);
+      const nodeR = idx.get(r);
+      if (!nodeC || !nodeL || !nodeR) return false;
+      const fc = nodeC.formula;
+      const fl = nodeL.formula;
+      const fr = nodeR.formula;
       if (fc.kind !== link.kind) return false;
       if (!formulaEquals(fc.left, fl) || !formulaEquals(fc.right, fr)) return false;
     }
@@ -141,12 +148,14 @@ class UnionFind {
     }
   }
   find(x: number): number {
-    let p = this.parent.get(x)!;
-    if (p !== x) {
-      p = this.find(p);
-      this.parent.set(x, p);
+    const pVal = this.parent.get(x);
+    if (pVal === undefined) throw new Error(`UnionFind: nodo desconocido ${x}`);
+    if (pVal !== x) {
+      const root = this.find(pVal);
+      this.parent.set(x, root);
+      return root;
     }
-    return p;
+    return pVal;
   }
   // Devuelve `false` si los nodos ya estaban en la misma componente
   // (=> añadir la arista crearía un ciclo).
@@ -154,8 +163,8 @@ class UnionFind {
     const rx = this.find(x);
     const ry = this.find(y);
     if (rx === ry) return false;
-    const rkx = this.rank.get(rx)!;
-    const rky = this.rank.get(ry)!;
+    const rkx = this.rank.get(rx) ?? 0;
+    const rky = this.rank.get(ry) ?? 0;
     if (rkx < rky) this.parent.set(rx, ry);
     else if (rkx > rky) this.parent.set(ry, rx);
     else {

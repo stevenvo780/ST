@@ -61,7 +61,8 @@ export function isLimit<O, M>(
         let ok = true;
         for (const [v, leg] of cone.legs) {
           const composed = cat.compose(leg, u);
-          const expected = cand.legs.get(v)!;
+          const expected = cand.legs.get(v);
+          if (expected === undefined) { ok = false; break; }
           if (!cat.eqMor(composed, expected)) {
             ok = false;
             break;
@@ -80,7 +81,8 @@ function enumerateCones<O, M>(cat: Category<O, M>, diagram: Diagram<O, M>, apex:
   const vNames = Array.from(diagram.vertices.keys());
   // Para cada vértice, lista de posibles legs apex→vertice.
   const optionsPerVertex: Array<Array<{ vName: string; leg: M }>> = vNames.map((v) => {
-    const obj = diagram.vertices.get(v)!;
+    const obj = diagram.vertices.get(v);
+    if (obj === undefined) return [];
     return cat.hom(apex, obj).map((leg) => ({ vName: v, leg }));
   });
   // Producto cartesiano. Para diagramas pequeños es manejable.
@@ -226,8 +228,8 @@ export function coequalizer(
   const parent = new Map<string, string>();
   for (const y of bObj.elements) parent.set(y, y);
   function find(x: string): string {
-    let p = parent.get(x)!;
-    while (p !== parent.get(p)!) p = parent.get(p)!;
+    let p = parent.get(x) ?? x;
+    while (parent.get(p) !== undefined && p !== parent.get(p)) p = parent.get(p) ?? p;
     parent.set(x, p);
     return p;
   }
@@ -237,7 +239,9 @@ export function coequalizer(
     if (px !== py) parent.set(px, py);
   }
   for (const z of aObj.elements) {
-    union(f.fn.get(z)!, g.fn.get(z)!);
+    const fz = f.fn.get(z);
+    const gz = g.fn.get(z);
+    if (fz !== undefined && gz !== undefined) union(fz, gz);
   }
   // Clases canónicas
   const reps = new Set<string>();

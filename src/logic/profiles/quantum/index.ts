@@ -446,7 +446,9 @@ function buildRayGroups(vectors: Vector[]): Map<number, number> {
   vectors.forEach((v, i) => {
     const key = rayKey(v);
     if (!ray.has(key)) ray.set(key, ray.size);
-    out.set(i, ray.get(key)!);
+    const rayId = ray.get(key);
+    if (rayId === undefined) throw new Error(`quantum: rayo no encontrado para clave ${key}`);
+    out.set(i, rayId);
   });
   return out;
 }
@@ -560,11 +562,11 @@ export function isKSColorable(config: KSConfiguration): boolean {
     const snapshot = color.slice();
     const p = propagate();
     if (p === 'fail') {
-      for (let i = 0; i < color.length; i++) color[i] = snapshot[i]!;
+      for (let i = 0; i < color.length; i++) color[i] = snapshot[i] ?? -1;
       return false;
     }
     if (check() === 'fail') {
-      for (let i = 0; i < color.length; i++) color[i] = snapshot[i]!;
+      for (let i = 0; i < color.length; i++) color[i] = snapshot[i] ?? -1;
       return false;
     }
     const r = pickUnassigned();
@@ -573,7 +575,7 @@ export function isKSColorable(config: KSConfiguration): boolean {
       for (const [a, b, c] of tripleRays) {
         const ones = [color[a], color[b], color[c]].filter((v) => v === 1).length;
         if (ones !== 1) {
-          for (let i = 0; i < color.length; i++) color[i] = snapshot[i]!;
+          for (let i = 0; i < color.length; i++) color[i] = snapshot[i] ?? -1;
           return false;
         }
       }
@@ -583,7 +585,7 @@ export function isKSColorable(config: KSConfiguration): boolean {
       color[r] = val;
       if (solve()) return true;
       // restaurar
-      for (let i = 0; i < color.length; i++) color[i] = snapshot[i]!;
+      for (let i = 0; i < color.length; i++) color[i] = snapshot[i] ?? -1;
       color[r] = -1; // por las dudas
     }
     return false;
@@ -786,7 +788,7 @@ export function isKSColorableContexts(vectors: Vector[], contexts: number[][]): 
   function solve(): boolean {
     const snapshot = color.slice();
     if (propagate() === 'fail') {
-      for (let i = 0; i < color.length; i++) color[i] = snapshot[i]!;
+      for (let i = 0; i < color.length; i++) color[i] = snapshot[i] ?? -1;
       return false;
     }
     const r = pickUnassigned();
@@ -795,7 +797,7 @@ export function isKSColorableContexts(vectors: Vector[], contexts: number[][]): 
       for (const ctx of ctxRays) {
         const ones = ctx.map((rr) => color[rr]).filter((v) => v === 1).length;
         if (ones !== 1) {
-          for (let i = 0; i < color.length; i++) color[i] = snapshot[i]!;
+          for (let i = 0; i < color.length; i++) color[i] = snapshot[i] ?? -1;
           return false;
         }
       }
@@ -805,7 +807,7 @@ export function isKSColorableContexts(vectors: Vector[], contexts: number[][]): 
       const inner = color.slice();
       color[r] = val;
       if (solve()) return true;
-      for (let i = 0; i < color.length; i++) color[i] = inner[i]!;
+      for (let i = 0; i < color.length; i++) color[i] = inner[i] ?? -1;
     }
     return false;
   }

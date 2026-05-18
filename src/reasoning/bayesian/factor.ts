@@ -71,7 +71,7 @@ export function* iterateAssignments(
     for (let i = 0; i < variables.length; i++) {
       const v = variables[i];
       const dom = domains[v];
-      a[v] = dom[idx[i]]!;
+      a[v] = dom[idx[i] ?? 0] ?? '';
     }
     yield a;
     // incrementar como contador
@@ -118,7 +118,7 @@ export function restrictFactor(factor: Factor, evidence: Evidence): Factor {
   if (evVars.length === 0) return factor;
   const newVars = factor.variables.filter((v) => !(v in evidence));
   const newDomains: Record<string, string[]> = {};
-  for (const v of newVars) newDomains[v] = factor.domains[v]!;
+  for (const v of newVars) newDomains[v] = factor.domains[v] ?? [];
   const values = new Map<string, number>();
   for (const [key, val] of factor.values) {
     const assign = parseAssignmentKey(key);
@@ -131,7 +131,7 @@ export function restrictFactor(factor: Factor, evidence: Evidence): Factor {
     }
     if (!consistent) continue;
     const projected: Record<string, string> = {};
-    for (const v of newVars) projected[v] = assign[v]!;
+    for (const v of newVars) projected[v] = assign[v] ?? '';
     values.set(assignmentKey(newVars, projected), val);
   }
   return { variables: newVars, domains: newDomains, values };
@@ -170,7 +170,7 @@ export function multiplyFactors(a: Factor, b: Factor): Factor {
 
 function projectAssignment(assign: Record<string, string>, vars: string[]): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const v of vars) out[v] = assign[v]!;
+  for (const v of vars) out[v] = assign[v] ?? '';
   return out;
 }
 
@@ -180,12 +180,12 @@ export function sumOut(factor: Factor, variable: string): Factor {
   if (!factor.variables.includes(variable)) return factor;
   const newVars = factor.variables.filter((v) => v !== variable);
   const newDomains: Record<string, string[]> = {};
-  for (const v of newVars) newDomains[v] = factor.domains[v]!;
+  for (const v of newVars) newDomains[v] = factor.domains[v] ?? [];
   const values = new Map<string, number>();
   for (const [key, val] of factor.values) {
     const assign = parseAssignmentKey(key);
     const projected: Record<string, string> = {};
-    for (const v of newVars) projected[v] = assign[v]!;
+    for (const v of newVars) projected[v] = assign[v] ?? '';
     const pKey = assignmentKey(newVars, projected);
     values.set(pKey, (values.get(pKey) ?? 0) + val);
   }
@@ -207,13 +207,13 @@ export function maxOut(
   }
   const newVars = factor.variables.filter((v) => v !== variable);
   const newDomains: Record<string, string[]> = {};
-  for (const v of newVars) newDomains[v] = factor.domains[v]!;
+  for (const v of newVars) newDomains[v] = factor.domains[v] ?? [];
   const values = new Map<string, number>();
   const backpointer = new Map<string, string>();
   for (const [key, val] of factor.values) {
     const assign = parseAssignmentKey(key);
     const projected: Record<string, string> = {};
-    for (const v of newVars) projected[v] = assign[v]!;
+    for (const v of newVars) projected[v] = assign[v] ?? '';
     const pKey = assignmentKey(newVars, projected);
     const prev = values.get(pKey);
     if (prev === undefined || val > prev) {
