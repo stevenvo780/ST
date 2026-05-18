@@ -4,6 +4,7 @@
 
 // --- Resultado lógico ---
 
+/** Resultado de una operación lógica sobre una fórmula o argumento. */
 export type LogicStatus =
   | 'valid'
   | 'invalid'
@@ -16,10 +17,12 @@ export type LogicStatus =
 
 // --- Severidad de diagnósticos ---
 
+/** Severidad de un diagnóstico emitido por el linter o el motor de ST. */
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
 // --- Diagnóstico ---
 
+/** Diagnóstico emitido durante el parseo, análisis o ejecución de un programa ST. */
 export interface Diagnostic {
   severity: Severity;
   message: string;
@@ -34,6 +37,7 @@ export interface Diagnostic {
 
 // --- Fórmula (AST de fórmulas lógicas) ---
 
+/** Discriminante del nodo AST de una fórmula lógica de ST. */
 export type FormulaKind =
   | 'atom'
   | 'list'
@@ -103,6 +107,7 @@ const FORMULA_KIND_SET: ReadonlySet<FormulaKind> = new Set<FormulaKind>([
   'fn_call',
 ]);
 
+/** Nodo del AST de una fórmula lógica. Cubre lógica proposicional, modal, temporal, aritmética y FO. */
 export interface Formula {
   kind: FormulaKind;
   name?: string; // para átomos y predicados
@@ -121,6 +126,7 @@ export function isFormula(value: unknown): value is Formula {
   return FORMULA_KIND_SET.has(candidate.kind);
 }
 
+/** Posición en el archivo fuente (1-based). Usada en diagnósticos, nodos AST y el LSP. */
 export interface SourceLocation {
   file?: string;
   line: number;
@@ -131,6 +137,7 @@ export interface SourceLocation {
 
 // --- Text Layer State ---
 
+/** Estado del Text Layer en un momento de ejecución: passages, formalizaciones, asertos y más. */
 export interface TextLayerState {
   passages: Map<string, Passage>;
   formalizations: Map<string, Formalization>;
@@ -148,6 +155,7 @@ export interface TextLayerState {
 
 // --- v3: Definitions ---
 
+/** Entrada del mapa de definiciones (v3): abreviaciones de fórmulas parametrizadas. */
 export interface DefinitionEntry {
   name: string;
   params?: string[];
@@ -157,6 +165,7 @@ export interface DefinitionEntry {
 
 // --- v3: Sources ---
 
+/** Metadatos bibliográficos de una fuente declarada con `source { ... }`. */
 export interface SourceInfo {
   id: string;
   author?: string;
@@ -169,6 +178,7 @@ export interface SourceInfo {
 
 // --- v3: Interpretations ---
 
+/** Entrada de interpretación (v3): vínculo entre texto en lenguaje natural y una fórmula. */
 export interface InterpretationEntry {
   text: string;
   passageRef?: string;
@@ -177,10 +187,12 @@ export interface InterpretationEntry {
 
 // --- Valuación ---
 
+/** Mapa de variables proposicionales a valores booleanos: `{ P: true, Q: false }`. */
 export type Valuation = Record<string, boolean>;
 
 // --- Modelo ---
 
+/** Modelo semántico que satisface (o refuta) una fórmula. El tipo determina qué campos aplican. */
 export interface Model {
   type: 'propositional' | 'first_order' | 'modal' | 'belnap';
   valuation?: Valuation;
@@ -190,6 +202,7 @@ export interface Model {
   designation?: string;
 }
 
+/** Mundo posible en un modelo modal de Kripke: valuación local y relación de accesibilidad. */
 export interface World {
   name: string;
   valuation: Valuation;
@@ -198,6 +211,7 @@ export interface World {
 
 // --- Juicio ---
 
+/** Juicio lógico: una fórmula nombrada con su status tras ser evaluada por el motor. */
 export interface Judgment {
   name: string;
   formula: Formula;
@@ -208,6 +222,7 @@ export interface Judgment {
 
 // --- Teoría ---
 
+/** Teoría activa en el intérprete: axiomas, teoremas y juicios acumulados durante la ejecución. */
 export interface Theory {
   profile: string;
   axioms: Map<string, Formula>;
@@ -218,8 +233,10 @@ export interface Theory {
 
 // --- Prueba ---
 
+/** Origen estructural de un paso de prueba: cómo se justificó ese paso. */
 export type ProofStepSource = 'premise' | 'assumption' | 'rule' | 'semantic' | 'subproof' | 'goal';
 
+/** Paso individual en una prueba formal: fórmula, justificación y referencias a pasos anteriores. */
 export interface ProofStep {
   stepNumber: number;
   formula: Formula;
@@ -230,13 +247,16 @@ export interface ProofStep {
   source?: ProofStepSource;
 }
 
+/** Método de prueba empleado por el motor: deducción natural, tableau, semántico o SAT. */
 export type ProofMethod = 'natural_deduction' | 'tableau' | 'semantic' | 'sat';
 
+/** Referencia a una premisa nombrada (axioma o teorema) usada en una prueba. */
 export interface PremiseRef {
   name: string;
   location?: SourceLocation;
 }
 
+/** Metadatos de diagnóstico de una prueba: conteos de pasos, derivaciones alternativas, etc. */
 export interface ProofMetadata {
   createdAt?: string;
   profile?: string;
@@ -248,18 +268,21 @@ export interface ProofMetadata {
   semanticFallback?: boolean;
 }
 
+/** Variante alternativa de un paso de derivación (mismo resultado, diferente regla/justificación). */
 export interface AlternativeDerivationVariant {
   justification: string;
   premises: number[];
   source?: ProofStepSource;
 }
 
+/** Muestra de derivaciones alternativas detectadas para una fórmula dentro de una prueba. */
 export interface AlternativeDerivationSample {
   formula: string;
   primaryStep: number;
   variants: AlternativeDerivationVariant[];
 }
 
+/** Prueba formal completa o parcial con su goal, pasos y status. */
 export interface Proof {
   goal: Formula;
   steps: ProofStep[];
@@ -273,6 +296,7 @@ export interface Proof {
 
 // --- Resultado de ejecución ---
 
+/** Entrada de traza del algoritmo tableau para depuración y visualización paso a paso. */
 export interface TableauTraceEntry {
   message: string;
   branchId?: string;
@@ -296,6 +320,7 @@ export interface TableauTraceEntry {
   parentNodeId?: string;
 }
 
+/** Resultado completo de ejecutar un comando ST: status, prueba, modelo, tabla de verdad y más. */
 export interface RunResult {
   status: LogicStatus;
   output?: string;
@@ -328,6 +353,7 @@ export interface RunResult {
   paradoxWarning?: string;
 }
 
+/** Resultado de una operación `truth_table`: filas, tautología/contradicción y sub-fórmulas. */
 export interface TruthTableResult {
   variables: string[];
   rows: TruthTableRow[];
@@ -340,6 +366,7 @@ export interface TruthTableResult {
   totalCount?: number;
 }
 
+/** Fila de una tabla de verdad: valuación de variables y valor resultante (boolean o Belnap). */
 export interface TruthTableRow {
   valuation: Valuation;
   result: boolean | string;
@@ -347,6 +374,7 @@ export interface TruthTableRow {
 
 // --- Perfil lógico ---
 
+/** Interfaz que implementa cada uno de los 11 perfiles lógicos de ST (clásico, modal, temporal, etc.). */
 export interface LogicProfile {
   name: string;
   description: string;
@@ -369,12 +397,14 @@ export interface LogicProfile {
 
 // --- Text Layer ---
 
+/** Ancla dentro de un documento externo: apunta a un bloque, párrafo o rango específico. */
 export interface Anchor {
   path: string;
   fragment?: string; // heading, bloque, rango
   type: 'block' | 'paragraph' | 'heading' | 'range';
 }
 
+/** Pasaje textual vinculado desde el Text Layer: fragmento de un documento externo con ancla. */
 export interface Passage {
   name: string;
   anchor: Anchor;
@@ -382,6 +412,7 @@ export interface Passage {
   source?: SourceLocation;
 }
 
+/** Formalización: vinculación entre un pasaje textual y su representación en lógica formal. */
 export interface Formalization {
   name: string;
   passage: string; // nombre del passage
@@ -389,6 +420,7 @@ export interface Formalization {
   source?: SourceLocation;
 }
 
+/** Aserto del Text Layer: afirmación con fórmula opcional, soporte bibliográfico y confianza. */
 export interface Claim {
   name: string;
   formula?: Formula;
@@ -399,16 +431,19 @@ export interface Claim {
   source?: SourceLocation;
 }
 
+/** Vínculo de soporte entre un aserto y una fuente bibliográfica. */
 export interface Support {
   claimName: string;
   sourceName: string;
 }
 
+/** Nivel de confianza numérico (0-1) asignado a un aserto del Text Layer. */
 export interface Confidence {
   claimName: string;
   value: number;
 }
 
+/** Contexto textual adicional asociado a un aserto del Text Layer. */
 export interface Context {
   claimName: string;
   text: string;
@@ -416,6 +451,7 @@ export interface Context {
 
 // --- Editor Protocol ---
 
+/** Métodos del protocolo editor de ST (JSON-RPC sobre stdio o socket). */
 export type ProtocolMethod =
   | 'parse'
   | 'check'
@@ -426,12 +462,14 @@ export type ProtocolMethod =
   | 'goto_definition'
   | 'completion';
 
+/** Solicitud al servidor de protocolo del editor de ST. */
 export interface ProtocolRequest {
   id: number;
   method: ProtocolMethod;
   params: Record<string, unknown>;
 }
 
+/** Respuesta del servidor de protocolo del editor de ST. */
 export interface ProtocolResponse {
   id: number;
   result?: unknown;
@@ -439,6 +477,7 @@ export interface ProtocolResponse {
   diagnostics?: Diagnostic[];
 }
 
+/** Información de un símbolo del workspace para completado y hover en el editor. */
 export interface SymbolInfo {
   name: string;
   kind:
@@ -457,11 +496,13 @@ export interface SymbolInfo {
   location: SourceLocation;
 }
 
+/** Información de hover: texto enriquecido y rango de la entidad bajo el cursor. */
 export interface HoverInfo {
   content: string;
   range?: SourceLocation;
 }
 
+/** Ítem de completado de código sugerido por el servidor de protocolo. */
 export interface CompletionItem {
   label: string;
   kind: string;
@@ -472,6 +513,7 @@ export interface CompletionItem {
 
 // --- Canales de ejecución ---
 
+/** Salida combinada de la ejecución de un programa ST: stdout, stderr, diagnostics y resultados. */
 export interface ExecutionOutput {
   stdout: string;
   stderr: string;

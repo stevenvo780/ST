@@ -1,0 +1,3 @@
+# `type-theory/mltt/index.ts`
+
+============================================================ MLTT — Martin-Löf Type Theory (núcleo público) ============================================================ Cálculo λ con tipos dependientes:   - Π (x : A). B(x)          funciones dependientes   - Σ (x : A). B(x)          pares dependientes   - Id(A, a, b) + refl       tipo identidad propositional   - Type i jerárquico        universos   - Nat / zero / succ        naturales como tipo base inferType / checkType / normalize / alphaBetaEq son la API mínima para construir lenguajes tipo Coq/Agda didácticos encima.

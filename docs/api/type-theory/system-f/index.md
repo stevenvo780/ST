@@ -1,0 +1,3 @@
+# `type-theory/system-f/index.ts`
+
+============================================================ System F — Punto de entrada público ============================================================ λ² (System F) extiende STLC con cuantificación universal sobre tipos. Curry-Howard: corresponde a la lógica proposicional intuicionista de segundo orden. Constructores y operaciones:   - Tipos: atom, arrow, forall.   - Términos: var, abs, app, tabs (Λ), tapp (t [T]).   - typeOf: type-checking con contexto (term + type).   - reduceBeta / normalize: β + type-β (call-by-name).   - isWellFormed: chequea que tipos no tengan variables libres     no declaradas.   - alphaEqType: igualdad de tipos módulo α.

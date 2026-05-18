@@ -1,0 +1,3 @@
+# `logic/profiles/description-logic/index.ts`
+
+============================================================ ST Description Logic — Public API (ALC profile) ============================================================ Perfil ALC: el fragmento base de OWL/DL. Provee un decisor completo y terminante para satisfacibilidad de conceptos, subsumption, instance checking y clasificación. Procedimiento: tableau con subset blocking. Termina sobre KBs cíclicas. NO se inscribe en el ProfileRegistry (esto es un módulo de razonamiento independiente, no un perfil sentencial textual). ============================================================

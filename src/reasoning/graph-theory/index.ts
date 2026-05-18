@@ -35,18 +35,21 @@
 // Tipos
 // ------------------------------------------------------------
 
+/** Arista de grafo con peso opcional (default 1 en algoritmos). */
 export interface Edge<V> {
   from: V;
   to: V;
   weight?: number;
 }
 
+/** Arista con peso obligatorio, usada en resultados de algoritmos como MST y caminos mínimos. */
 export interface WeightedEdge<V> {
   from: V;
   to: V;
   weight: number;
 }
 
+/** Grafo finito genérico sobre vértices de tipo `V`. Puede ser dirigido o no dirigido. */
 export interface Graph<V> {
   vertices: Set<V>;
   edges: Array<Edge<V>>;
@@ -57,6 +60,7 @@ export interface Graph<V> {
 // Construcción
 // ------------------------------------------------------------
 
+/** Crea un grafo vacío (dirigido o no según el flag). */
 export function makeGraph<V>(directed = false): Graph<V> {
   return {
     vertices: new Set<V>(),

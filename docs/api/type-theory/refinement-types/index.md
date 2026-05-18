@@ -1,0 +1,3 @@
+# `type-theory/refinement-types/index.ts`
+
+============================================================ Refinement types — Punto de entrada público ============================================================ Tipos refinados al estilo Liquid Haskell didáctico:   { x : Int | P(x) } Capacidades:   - typeCheck : sintetiza o chequea tipos refinados con VC                 generation y descarga acotada.   - isSubtype : subtipado por implicación, contravarianza en                 parámetros de arrow.   - generateVC: extrae los predicados que deben mantenerse.   - checkVC   : solver acotado SAT-like sobre enteros + booleanos.

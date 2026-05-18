@@ -1,0 +1,3 @@
+# `reasoning/probabilistic/index.ts`
+
+============================================================ ST Probabilistic Programming — Barrel ============================================================ PPL minimal: define un `PProgram<T>` como `(sampler) => T`, donde `sampler` ofrece `sample(dist)`, `observe(condition)` y `factor(logWeight)`. Cuatro motores de inferencia:   - `enumerate`           Exacto, soporta solo discreto finito.   - `rejectionSample`     Muestreo del prior + rechazo por observe.   - `importanceSample`    Muestreo del prior + log-weights.   - `metropolisHastings`  Single-site MCMC (proposal = prior). Más distribuciones (`sampleFrom`, `logPdf`, `enumerateSupport`) y programas de ejemplo (`coinExample`, `bayesianLinearRegression`, `gaussianMeanModel`).

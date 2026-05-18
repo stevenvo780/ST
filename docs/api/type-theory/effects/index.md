@@ -1,0 +1,3 @@
+# `type-theory/effects/index.ts`
+
+============================================================ Algebraic effects + free monads — Punto de entrada público ============================================================ API:   - Núcleo: pure / perform / bind / map / sequence / handle / run   - Estados: getState / putState / modify / runState / handleState   - Reader:  ask / asks / runReader / handleReader   - Writer:  tell / runWriter / handleWriter (+ monoides: listMonoid,                                                stringMonoid, sumMonoid)   - Exception: throw_ / runException / handleException

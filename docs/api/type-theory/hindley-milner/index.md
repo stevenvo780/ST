@@ -1,0 +1,3 @@
+# `type-theory/hindley-milner/index.ts`
+
+============================================================ Hindley-Milner — Punto de entrada público ============================================================ Sistema de tipos let-polimórfico (Damas-Milner). Provee:   - Sintaxis: Type, TypeScheme, Expr, TypeEnv.   - Constructores breves: tVar, tConst, tArrow, tApp, eLam, eApp,     eLet, eLetRec, eIf, eLit, eVar.   - Algoritmo W: algorithmW / infer / inferScheme.   - Unificación y sustituciones: unify, applySubst, composeSubsts,     freshTypeVar, generalize, instantiate.   - Entorno inicial con primitivos (+, ==, pair, cons, ...).   - normalizeScheme: renombra tvars ligadas a a, b, c, ... para     comparación estable en tests.

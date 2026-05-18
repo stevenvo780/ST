@@ -1,0 +1,3 @@
+# `type-theory/lambda-cube/index.ts`
+
+============================================================ Lambda Cube (Barendregt) — API pública ============================================================ Implementación uniforme de los 8 vértices del cubo λ como un Pure Type System (PTS) parametrizado por el conjunto de reglas de formación. Permite:   - inferType / checkType en cualquier vértice (λ→, λ2, λω, λC, ...).   - normalize por β-reducción (call-by-name).   - erase a λ-cálculo no tipado.   - Construcciones canónicas: identity polimórfico, Church numerals,     id-type operator, dependent list schema, etc.

@@ -23,6 +23,7 @@
 // implementa (eso requiere modelos cúbicos); la consistencia
 // sintáctica sí.
 
+/** Término del lenguaje HoTT: cubre MLTT (Π, Σ, Nat), tipos identidad como espacios de caminos, HITs pedagógicos (S¹, Σ) y el axioma de univalencia. */
 export type HoTTTerm =
   // ── MLTT base ────────────────────────────────────────────
   | { kind: 'var'; name: string }
@@ -59,54 +60,73 @@ export type HoTTTerm =
 
 // ── Constructores convenientes ──────────────────────────────
 
+/** Constructor de variable HoTT referenciada por nombre. */
 export const hVar = (name: string): HoTTTerm => ({ kind: 'var', name });
+/** Constructor del universo jerárquico Typeₙ (default: Type₀). */
 export const hUniverse = (level = 0): HoTTTerm => ({ kind: 'universe', level });
+/** Constructor del tipo Π (función dependiente): `Π(bind : domain). codomain`. */
 export const hPi = (bind: string, domain: HoTTTerm, codomain: HoTTTerm): HoTTTerm => ({
   kind: 'pi',
   bind,
   domain,
   codomain,
 });
+/** Constructor de lambda con dominio anotado: `λ(bind : domain). body`. */
 export const hLam = (bind: string, domain: HoTTTerm, body: HoTTTerm): HoTTTerm => ({
   kind: 'lam',
   bind,
   domain,
   body,
 });
+/** Constructor de aplicación de función: `fn arg`. */
 export const hApp = (fn: HoTTTerm, arg: HoTTTerm): HoTTTerm => ({ kind: 'app', fn, arg });
+/** Constructor del tipo Σ (par dependiente): `Σ(bind : first). second`. */
 export const hSigma = (bind: string, first: HoTTTerm, second: HoTTTerm): HoTTTerm => ({
   kind: 'sigma',
   bind,
   first,
   second,
 });
+/** Constructor de par dependiente: `⟨fst, snd⟩`. */
 export const hPair = (fst: HoTTTerm, snd: HoTTTerm): HoTTTerm => ({ kind: 'pair', fst, snd });
+/** Proyección de la primera componente de un par dependiente. */
 export const hFst = (pair: HoTTTerm): HoTTTerm => ({ kind: 'fst', pair });
+/** Proyección de la segunda componente de un par dependiente. */
 export const hSnd = (pair: HoTTTerm): HoTTTerm => ({ kind: 'snd', pair });
+/** Tipo de los números naturales en HoTT (tipo inductivo). */
 export const hNat = (): HoTTTerm => ({ kind: 'nat' });
+/** Constante cero del tipo Nat en HoTT. */
 export const hZero = (): HoTTTerm => ({ kind: 'zero' });
+/** Constructor sucesor del tipo Nat en HoTT. */
 export const hSucc = (arg: HoTTTerm): HoTTTerm => ({ kind: 'succ', arg });
 
+/** Constructor del tipo de caminos: `Path type left right` (espacio de caminos entre `left` y `right`). */
 export const hPath = (type: HoTTTerm, left: HoTTTerm, right: HoTTTerm): HoTTTerm => ({
   kind: 'path',
   type,
   left,
   right,
 });
+/** Camino reflexivo (constante): `refl(term) : Path A term term`. */
 export const hRefl = (term: HoTTTerm): HoTTTerm => ({ kind: 'refl', term });
+/** Transporte a lo largo de un camino: mueve `term` de la fibra `family left` a `family right`. */
 export const hTransport = (family: HoTTTerm, path: HoTTTerm, term: HoTTTerm): HoTTTerm => ({
   kind: 'transport',
   family,
   path,
   term,
 });
+/** Inversión de camino: dado `p : Path A x y` produce `p⁻¹ : Path A y x`. */
 export const hPathSym = (path: HoTTTerm): HoTTTerm => ({ kind: 'pathSym', path });
+/** Concatenación de caminos: `p · q : Path A x z` dado `p : Path A x y` y `q : Path A y z`. */
 export const hPathConcat = (left: HoTTTerm, right: HoTTTerm): HoTTTerm => ({
   kind: 'pathConcat',
   left,
   right,
 });
+/** Functorialidad: `ap f p : Path B (f x) (f y)` dado `f : A → B` y `p : Path A x y`. */
 export const hAp = (fn: HoTTTerm, path: HoTTTerm): HoTTTerm => ({ kind: 'ap', fn, path });
+/** Eliminador J: principio inductivo del tipo identidad en HoTT. */
 export const hJElim = (motive: HoTTTerm, baseCase: HoTTTerm, path: HoTTTerm): HoTTTerm => ({
   kind: 'jElim',
   motive,
@@ -114,25 +134,34 @@ export const hJElim = (motive: HoTTTerm, baseCase: HoTTTerm, path: HoTTTerm): Ho
   path,
 });
 
+/** HIT S¹: el círculo, tipo inductivo superior con un punto base y un loop. */
 export const hCircle = (): HoTTTerm => ({ kind: 'circle' });
+/** Punto base de S¹: `base : S¹`. */
 export const hBaseOfCircle = (): HoTTTerm => ({ kind: 'baseOfCircle' });
+/** Generador del loop de S¹: `loop : Path S¹ base base`. */
 export const hLoopOfCircle = (): HoTTTerm => ({ kind: 'loopOfCircle' });
+/** Tipo suspensión ΣA (HIT): colapsa `A` añadiendo dos polos y meridianos. */
 export const hSuspension = (type: HoTTTerm): HoTTTerm => ({ kind: 'suspension', type });
+/** Polo norte de la suspensión de `type`. */
 export const hNorth = (type: HoTTTerm): HoTTTerm => ({ kind: 'north', type });
+/** Polo sur de la suspensión de `type`. */
 export const hSouth = (type: HoTTTerm): HoTTTerm => ({ kind: 'south', type });
+/** Meridiano de la suspensión: `meridian a : Path north south` para cada `a : type`. */
 export const hMeridian = (type: HoTTTerm, point: HoTTTerm): HoTTTerm => ({
   kind: 'meridian',
   type,
   point,
 });
 
+/** Axioma de univalencia: `ua(equiv) : Path U A B` dada una equivalencia `equiv : A ≃ B`. */
 export const hUa = (equiv: HoTTTerm): HoTTTerm => ({ kind: 'ua', equiv });
 
-// Arrow no-dependiente
+/** Tipo flecha no-dependiente: `from → to` (azúcar sobre Π con bind ignorado). */
 export const hArrow = (from: HoTTTerm, to: HoTTTerm): HoTTTerm => hPi('_', from, to);
 
 // ── Inspección estructural ───────────────────────────────────
 
+/** Comprueba si la variable `name` ocurre libre en el término HoTT `term`. */
 export function occursFreeHoTT(name: string, term: HoTTTerm): boolean {
   switch (term.kind) {
     case 'var':
@@ -202,6 +231,7 @@ export function occursFreeHoTT(name: string, term: HoTTTerm): boolean {
   }
 }
 
+/** Recolecta el conjunto de variables libres del término HoTT dado. */
 export function freeVarsHoTT(term: HoTTTerm, acc: Set<string> = new Set()): Set<string> {
   switch (term.kind) {
     case 'var':
@@ -293,6 +323,7 @@ export function freeVarsHoTT(term: HoTTTerm, acc: Set<string> = new Set()): Set<
 
 // ── Serialización ────────────────────────────────────────────
 
+/** Serializa un término HoTT a una cadena legible usando notación matemática estándar. */
 export function termToStringHoTT(t: HoTTTerm): string {
   switch (t.kind) {
     case 'var':

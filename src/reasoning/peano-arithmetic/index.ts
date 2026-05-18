@@ -26,6 +26,7 @@
 
 // ── Sintaxis ─────────────────────────────────────────────────
 
+/** Término de la aritmética de Peano: cero, sucesor, variables, suma y multiplicación. */
 export type PeanoTerm =
   | { kind: 'zero' }
   | { kind: 'succ'; arg: PeanoTerm }
@@ -33,6 +34,7 @@ export type PeanoTerm =
   | { kind: 'add'; left: PeanoTerm; right: PeanoTerm }
   | { kind: 'mul'; left: PeanoTerm; right: PeanoTerm };
 
+/** Fórmula de primer orden sobre términos de Peano: ecuaciones, desigualdades y conectivas lógicas. */
 export type PeanoFormula =
   | { kind: 'eq'; left: PeanoTerm; right: PeanoTerm }
   | { kind: 'lt'; left: PeanoTerm; right: PeanoTerm }
@@ -46,51 +48,65 @@ export type PeanoFormula =
 
 // ── Constructores de conveniencia ────────────────────────────
 
+/** Constante 0 de la aritmética de Peano. */
 export const zero: PeanoTerm = { kind: 'zero' };
+/** Constructor sucesor: `succ(t)` representa t+1. */
 export const succ = (arg: PeanoTerm): PeanoTerm => ({ kind: 'succ', arg });
+/** Variable de término de Peano referenciada por nombre. */
 export const vt = (name: string): PeanoTerm => ({ kind: 'var', name });
+/** Constructor de suma de términos de Peano. */
 export const add = (left: PeanoTerm, right: PeanoTerm): PeanoTerm => ({
   kind: 'add',
   left,
   right,
 });
+/** Constructor de multiplicación de términos de Peano. */
 export const mul = (left: PeanoTerm, right: PeanoTerm): PeanoTerm => ({
   kind: 'mul',
   left,
   right,
 });
 
+/** Constructor de la fórmula de igualdad: `left = right`. */
 export const eq = (left: PeanoTerm, right: PeanoTerm): PeanoFormula => ({
   kind: 'eq',
   left,
   right,
 });
+/** Constructor de la fórmula de orden estricto: `left < right`. */
 export const lt = (left: PeanoTerm, right: PeanoTerm): PeanoFormula => ({
   kind: 'lt',
   left,
   right,
 });
+/** Constructor de la fórmula de orden no estricto: `left ≤ right`. */
 export const le = (left: PeanoTerm, right: PeanoTerm): PeanoFormula => ({
   kind: 'le',
   left,
   right,
 });
+/** Constructor de la negación de una fórmula de Peano. */
 export const notF = (arg: PeanoFormula): PeanoFormula => ({ kind: 'not', arg });
+/** Constructor de conjunción (n-aria) de fórmulas de Peano. */
 export const andF = (...args: PeanoFormula[]): PeanoFormula => ({
   kind: 'and',
   args,
 });
+/** Constructor de disyunción (n-aria) de fórmulas de Peano. */
 export const orF = (...args: PeanoFormula[]): PeanoFormula => ({ kind: 'or', args });
+/** Constructor de implicación: `left → right`. */
 export const implies = (left: PeanoFormula, right: PeanoFormula): PeanoFormula => ({
   kind: 'implies',
   left,
   right,
 });
+/** Constructor del cuantificador universal: `∀bind. body`. */
 export const forall = (bind: string, body: PeanoFormula): PeanoFormula => ({
   kind: 'forall',
   bind,
   body,
 });
+/** Constructor del cuantificador existencial: `∃bind. body`. */
 export const exists = (bind: string, body: PeanoFormula): PeanoFormula => ({
   kind: 'exists',
   bind,
@@ -112,32 +128,39 @@ export function numeral(n: number): PeanoTerm {
 // ── Axiomas de Peano (sin el esquema de inducción) ──────────
 
 // P1: ∀x. ¬(succ(x) = 0)
+/** P1: ∀x. ¬(succ(x) = 0) — el cero no es sucesor de ningún número. */
 export const AXIOM_P1: PeanoFormula = forall('x', notF(eq(succ(vt('x')), zero)));
 
 // P2: ∀x,y. succ(x) = succ(y) → x = y
+/** P2: ∀x,y. succ(x) = succ(y) → x = y — inyectividad del sucesor. */
 export const AXIOM_P2: PeanoFormula = forall(
   'x',
   forall('y', implies(eq(succ(vt('x')), succ(vt('y'))), eq(vt('x'), vt('y')))),
 );
 
 // P3: ∀x. x + 0 = x
+/** P3: ∀x. x + 0 = x — neutro derecho de la suma. */
 export const AXIOM_P3: PeanoFormula = forall('x', eq(add(vt('x'), zero), vt('x')));
 
 // P4: ∀x,y. x + succ(y) = succ(x + y)
+/** P4: ∀x,y. x + succ(y) = succ(x + y) — recursión de la suma. */
 export const AXIOM_P4: PeanoFormula = forall(
   'x',
   forall('y', eq(add(vt('x'), succ(vt('y'))), succ(add(vt('x'), vt('y'))))),
 );
 
 // P5: ∀x. x · 0 = 0
+/** P5: ∀x. x · 0 = 0 — absorción del cero en la multiplicación. */
 export const AXIOM_P5: PeanoFormula = forall('x', eq(mul(vt('x'), zero), zero));
 
 // P6: ∀x,y. x · succ(y) = (x · y) + x
+/** P6: ∀x,y. x · succ(y) = (x · y) + x — recursión de la multiplicación. */
 export const AXIOM_P6: PeanoFormula = forall(
   'x',
   forall('y', eq(mul(vt('x'), succ(vt('y'))), add(mul(vt('x'), vt('y')), vt('x')))),
 );
 
+/** Los seis axiomas no-inductivos de la aritmética de Peano (P1–P6). */
 export const PEANO_AXIOMS: readonly PeanoFormula[] = [
   AXIOM_P1,
   AXIOM_P2,
@@ -161,6 +184,7 @@ function freshVar(): string {
   return `ix_${inductionVarCounter}`;
 }
 
+/** Genera el esquema de inducción para un predicado P: (P(0) ∧ ∀x.(P(x) → P(succ(x)))) → ∀x.P(x). */
 export function inductionSchema(P: (n: PeanoTerm) => PeanoFormula): PeanoFormula {
   const x = freshVar();
   const base = P(zero);
@@ -176,6 +200,7 @@ export function inductionSchema(P: (n: PeanoTerm) => PeanoFormula): PeanoFormula
 // regular; si el caller espera valores muy grandes debería usar
 // `numeralFromBigInt` + un evaluador BigInt (no incluido aquí).
 
+/** Evalúa un término de Peano en el modelo estándar ℕ con el entorno dado. Devuelve `null` si hay variables libres sin valor. */
 export function evalNat(term: PeanoTerm, env: Record<string, number> = {}): number | null {
   switch (term.kind) {
     case 'zero':

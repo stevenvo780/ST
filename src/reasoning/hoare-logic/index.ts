@@ -29,6 +29,7 @@
 
 // ── Tipos del lenguaje IMP ───────────────────────────────────
 
+/** Operadores binarios del lenguaje IMP: aritméticos, relacionales y lógicos. */
 export type ImpBinop =
   | '+'
   | '-'
@@ -44,6 +45,7 @@ export type ImpBinop =
   | '&&'
   | '||';
 
+/** Expresión del lenguaje IMP: constante, booleano, variable o aplicación de operador. */
 export type ImpExpr =
   | { kind: 'const'; value: number }
   | { kind: 'bool'; value: boolean }
@@ -51,6 +53,7 @@ export type ImpExpr =
   | { kind: 'binop'; op: ImpBinop; left: ImpExpr; right: ImpExpr }
   | { kind: 'not'; arg: ImpExpr };
 
+/** Sentencia del lenguaje IMP: skip, asignación, secuencia, condicional y bucle while con invariante opcional. */
 export type ImpStmt =
   | { kind: 'skip' }
   | { kind: 'assign'; var: string; expr: ImpExpr }
@@ -58,6 +61,7 @@ export type ImpStmt =
   | { kind: 'if'; cond: ImpExpr; then: ImpStmt; else: ImpStmt }
   | { kind: 'while'; cond: ImpExpr; invariant?: ImpExpr; body: ImpStmt };
 
+/** Tripleta de Hoare {P} stmt {Q}: precondición, comando y postcondición. */
 export interface HoareTriple {
   pre: ImpExpr;
   stmt: ImpStmt;
@@ -66,17 +70,24 @@ export interface HoareTriple {
 
 // ── Constructores de conveniencia ────────────────────────────
 
+/** Constructor de literal numérico IMP. */
 export const num = (n: number): ImpExpr => ({ kind: 'const', value: n });
+/** Constructor de literal booleano IMP. */
 export const bool = (b: boolean): ImpExpr => ({ kind: 'bool', value: b });
+/** Constructor de referencia a variable IMP por nombre. */
 export const v = (name: string): ImpExpr => ({ kind: 'var', name });
+/** Constructor de operación binaria IMP. */
 export const binop = (op: ImpBinop, left: ImpExpr, right: ImpExpr): ImpExpr => ({
   kind: 'binop',
   op,
   left,
   right,
 });
+/** Constructor de negación de expresión IMP. */
 export const not = (arg: ImpExpr): ImpExpr => ({ kind: 'not', arg });
+/** Constructor de conjunción lógica IMP: `left && right`. */
 export const and = (left: ImpExpr, right: ImpExpr): ImpExpr => binop('&&', left, right);
+/** Constructor de disyunción lógica IMP: `left || right`. */
 export const or = (left: ImpExpr, right: ImpExpr): ImpExpr => binop('||', left, right);
 export const eq = (left: ImpExpr, right: ImpExpr): ImpExpr => binop('==', left, right);
 export const lt = (left: ImpExpr, right: ImpExpr): ImpExpr => binop('<', left, right);

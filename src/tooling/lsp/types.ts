@@ -7,35 +7,42 @@
 // 0-based (linea y character), mientras que el parser de ST emite
 // posiciones 1-based — la conversion se hace explicitamente en server.ts.
 
+/** Mensaje base JSON-RPC 2.0. */
 export interface JsonRpcMessage {
   jsonrpc: '2.0';
 }
 
+/** Identificador de una petición JSON-RPC: número, string o null (para notificaciones). */
 export type JsonRpcId = number | string | null;
 
+/** Petición JSON-RPC 2.0 con id, método y parámetros opcionales. */
 export interface JsonRpcRequest extends JsonRpcMessage {
   id: JsonRpcId;
   method: string;
   params?: unknown;
 }
 
+/** Notificación JSON-RPC 2.0 (sin id, no requiere respuesta). */
 export interface JsonRpcNotification extends JsonRpcMessage {
   method: string;
   params?: unknown;
 }
 
+/** Respuesta JSON-RPC 2.0: resultado exitoso o error. */
 export interface JsonRpcResponse extends JsonRpcMessage {
   id: JsonRpcId;
   result?: unknown;
   error?: JsonRpcResponseError;
 }
 
+/** Error en una respuesta JSON-RPC 2.0: código numérico, mensaje y datos opcionales. */
 export interface JsonRpcResponseError {
   code: number;
   message: string;
   data?: unknown;
 }
 
+/** Códigos de error estándar JSON-RPC 2.0 y extensiones LSP (RequestCancelled). */
 export const JSON_RPC_ERROR_CODES = {
   ParseError: -32700,
   InvalidRequest: -32600,
@@ -48,29 +55,35 @@ export const JSON_RPC_ERROR_CODES = {
 
 // ── LSP basicos ──────────────────────────────────────────────
 
+/** Posición LSP (0-based): línea y carácter dentro de un documento de texto. */
 export interface Position {
   line: number;
   character: number;
 }
 
+/** Rango LSP: par de posiciones inicio/fin que delimitan una región del texto. */
 export interface Range {
   start: Position;
   end: Position;
 }
 
+/** Ubicación LSP: URI del documento y rango dentro de él. */
 export interface Location {
   uri: string;
   range: Range;
 }
 
+/** Identificador de documento de texto LSP: solo su URI. */
 export interface TextDocumentIdentifier {
   uri: string;
 }
 
+/** Identificador de documento con número de versión para sincronización incremental. */
 export interface VersionedTextDocumentIdentifier extends TextDocumentIdentifier {
   version: number;
 }
 
+/** Ítem de documento de texto LSP: URI, languageId, versión y contenido completo. */
 export interface TextDocumentItem {
   uri: string;
   languageId: string;

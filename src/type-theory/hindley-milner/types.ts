@@ -22,17 +22,20 @@
 //   - arrow asocia a la derecha; con paréntesis si el dominio es
 //     a su vez arrow o tapp con args.
 
+/** Monotipo del sistema Hindley-Milner: variable, constante, función o constructor aplicado. */
 export type Type =
   | { kind: 'tvar'; name: string }
   | { kind: 'tconst'; name: string }
   | { kind: 'arrow'; from: Type; to: Type }
   | { kind: 'tapp'; fn: string; args: Type[] };
 
+/** Esquema de tipo polimórfico: cuantificación universal sobre variables de tipo (rank-1). */
 export interface TypeScheme {
   forall: string[];
   body: Type;
 }
 
+/** Expresión del cálculo λ let-polimórfico: variable, literal, aplicación, lambda, let, letRec e if. */
 export type Expr =
   | { kind: 'var'; name: string }
   | { kind: 'lit'; value: number | boolean | string }
@@ -43,29 +46,42 @@ export type Expr =
   | { kind: 'if'; cond: Expr; then: Expr; else: Expr };
 
 // ---------- Constructores convenientes ----------
+/** Constructor de variable de tipo (e.g. `α`). */
 export const tVar = (name: string): Type => ({ kind: 'tvar', name });
+/** Constructor de constante de tipo (e.g. `Int`, `Bool`). */
 export const tConst = (name: string): Type => ({ kind: 'tconst', name });
+/** Constructor de tipo flecha: `from → to`. */
 export const tArrow = (from: Type, to: Type): Type => ({ kind: 'arrow', from, to });
+/** Constructor de aplicación de constructor de tipo: `fn args...` (e.g. `List Int`). */
 export const tApp = (fn: string, ...args: Type[]): Type => ({ kind: 'tapp', fn, args });
 
+/** Crea un esquema polimórfico cuantificando las variables de `forall` sobre `body`. */
 export const scheme = (forall: string[], body: Type): TypeScheme => ({ forall, body });
+/** Envuelve un monotipo como esquema sin variables cuantificadas. */
 export const mono = (body: Type): TypeScheme => ({ forall: [], body });
 
+/** Constructor de variable de expresión. */
 export const eVar = (name: string): Expr => ({ kind: 'var', name });
+/** Constructor de literal (número, booleano o string). */
 export const eLit = (value: number | boolean | string): Expr => ({ kind: 'lit', value });
+/** Constructor de aplicación de función: `fn arg`. */
 export const eApp = (fn: Expr, arg: Expr): Expr => ({ kind: 'app', fn, arg });
+/** Constructor de lambda: `λparam. body`. */
 export const eLam = (param: string, body: Expr): Expr => ({ kind: 'lam', param, body });
+/** Constructor de `let bind = value in body` (introduce polimorfismo). */
 export const eLet = (bind: string, value: Expr, body: Expr): Expr => ({
   kind: 'let',
   bind,
   value,
   body,
 });
+/** Constructor de `let rec { defs } in body`: definiciones mutuamente recursivas. */
 export const eLetRec = (defs: Array<{ name: string; body: Expr }>, body: Expr): Expr => ({
   kind: 'letRec',
   defs,
   body,
 });
+/** Constructor de `if cond then then_ else else_`. */
 export const eIf = (cond: Expr, then_: Expr, else_: Expr): Expr => ({
   kind: 'if',
   cond,
@@ -73,15 +89,18 @@ export const eIf = (cond: Expr, then_: Expr, else_: Expr): Expr => ({
   else: else_,
 });
 
-// Azúcar: aplicaciones múltiples a izquierda.
+/** Aplica `fn` a múltiples argumentos de izquierda a derecha: `fn a b c` ≡ `eApp(eApp(fn,a),b,c)`. */
 export const eAppN = (fn: Expr, ...args: Expr[]): Expr => args.reduce(eApp, fn);
 
-// Constantes base de los tipos primitivos.
+/** Tipo primitivo `Int`. */
 export const TInt = tConst('Int');
+/** Tipo primitivo `Bool`. */
 export const TBool = tConst('Bool');
+/** Tipo primitivo `String`. */
 export const TStr = tConst('String');
 
 // ---------- Variables libres de un Type / TypeScheme ----------
+/** Recolecta las variables de tipo libres (no vinculadas) en `t`. */
 export function typeFreeVars(t: Type, acc: Set<string> = new Set()): Set<string> {
   switch (t.kind) {
     case 'tvar':
@@ -99,6 +118,7 @@ export function typeFreeVars(t: Type, acc: Set<string> = new Set()): Set<string>
   }
 }
 
+/** Recolecta las variables de tipo libres en el cuerpo del esquema excluyendo las cuantificadas. */
 export function schemeFreeVars(s: TypeScheme): Set<string> {
   const fv = typeFreeVars(s.body);
   for (const b of s.forall) fv.delete(b);
@@ -106,6 +126,7 @@ export function schemeFreeVars(s: TypeScheme): Set<string> {
 }
 
 // ---------- Impresión legible ----------
+/** Serializa un tipo a una cadena legible con precedencias correctas para flechas y constructores. */
 export function typeToString(t: Type): string {
   switch (t.kind) {
     case 'tvar':
@@ -132,6 +153,7 @@ export function typeToString(t: Type): string {
   }
 }
 
+/** Serializa un esquema de tipo a su representación `forall α. T` o simplemente `T` si es mono. */
 export function schemeToString(s: TypeScheme): string {
   if (s.forall.length === 0) return typeToString(s.body);
   return `forall ${s.forall.join(' ')}. ${typeToString(s.body)}`;
@@ -141,6 +163,7 @@ export function schemeToString(s: TypeScheme): string {
 // Inmutable: extend() devuelve un nuevo TypeEnv que comparte estructura
 // con el anterior. El test de `freeVars()` recorre todos los schemes
 // para soportar generalización correcta.
+/** Entorno de tipos inmutable. Mapea nombres de variables a sus esquemas polimórficos. */
 export class TypeEnv {
   readonly bindings: Map<string, TypeScheme>;
 

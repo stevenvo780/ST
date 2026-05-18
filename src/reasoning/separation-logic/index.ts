@@ -20,23 +20,28 @@
 
 // ── Valores de heap ──────────────────────────────────────────
 
+/** Valor que puede almacenarse en el heap de separación: entero, dirección o null. */
 export type SLValue =
   | { kind: 'int'; value: number }
   | { kind: 'addr'; loc: number }
   | { kind: 'null' };
 
+/** Constructor de valor entero del heap de separación. */
 export function intVal(value: number): SLValue {
   return { kind: 'int', value };
 }
 
+/** Constructor de valor dirección del heap de separación. */
 export function addrVal(loc: number): SLValue {
   return { kind: 'addr', loc };
 }
 
+/** Singleton null del heap de separación (puntero nulo). */
 export function nullVal(): SLValue {
   return { kind: 'null' };
 }
 
+/** Igualdad estructural entre dos valores del heap de separación. */
 export function valueEquals(a: SLValue, b: SLValue): boolean {
   if (a.kind !== b.kind) return false;
   if (a.kind === 'int' && b.kind === 'int') return a.value === b.value;

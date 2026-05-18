@@ -1,4 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/** Matriz densa de números reales representada como array de filas. */
 export type Matrix = number[][];
+/** Vector de números reales representado como array plano. */
 export type Vector = number[];
 
 const DEFAULT_EPS = 1e-10;
@@ -58,6 +61,7 @@ function getVec(v: Vector, i: number): number {
   return x;
 }
 
+/** Crea una matriz `rows × cols` rellena con `fill` (default 0). */
 export function mat(rows: number, cols: number, fill = 0): Matrix {
   if (rows < 0 || cols < 0 || !Number.isInteger(rows) || !Number.isInteger(cols)) {
     throw new Error('mat: rows and cols must be non-negative integers');
@@ -69,14 +73,17 @@ export function mat(rows: number, cols: number, fill = 0): Matrix {
   return M;
 }
 
+/** Crea una matriz de ceros de dimensión `rows × cols`. */
 export function zeros(rows: number, cols: number): Matrix {
   return mat(rows, cols, 0);
 }
 
+/** Crea una matriz de unos de dimensión `rows × cols`. */
 export function ones(rows: number, cols: number): Matrix {
   return mat(rows, cols, 1);
 }
 
+/** Crea la matriz identidad `n × n`. */
 export function identity(n: number): Matrix {
   const I = zeros(n, n);
   for (let i = 0; i < n; i++) {
@@ -85,6 +92,7 @@ export function identity(n: number): Matrix {
   return I;
 }
 
+/** Crea una matriz diagonal con `entries` en la diagonal principal. */
 export function diagonal(entries: number[]): Matrix {
   const n = entries.length;
   const D = zeros(n, n);
@@ -94,6 +102,7 @@ export function diagonal(entries: number[]): Matrix {
   return D;
 }
 
+/** Devuelve una copia profunda de la matriz `M`. */
 export function clone(M: Matrix): Matrix {
   const { rows, cols } = ensureRect(M, 'clone');
   const out = zeros(rows, cols);
@@ -105,6 +114,7 @@ export function clone(M: Matrix): Matrix {
   return out;
 }
 
+/** Devuelve la transpuesta de la matriz `M`. */
 export function transpose(M: Matrix): Matrix {
   const { rows, cols } = ensureRect(M, 'transpose');
   const T = zeros(cols, rows);
@@ -125,6 +135,7 @@ function sameShape(a: Matrix, b: Matrix, label: string): { rows: number; cols: n
   return A;
 }
 
+/** Suma elemento a elemento de dos matrices con la misma forma. */
 export function add(a: Matrix, b: Matrix): Matrix {
   const { rows, cols } = sameShape(a, b, 'add');
   const out = zeros(rows, cols);
@@ -136,6 +147,7 @@ export function add(a: Matrix, b: Matrix): Matrix {
   return out;
 }
 
+/** Resta elemento a elemento de dos matrices con la misma forma. */
 export function sub(a: Matrix, b: Matrix): Matrix {
   const { rows, cols } = sameShape(a, b, 'sub');
   const out = zeros(rows, cols);
@@ -147,6 +159,7 @@ export function sub(a: Matrix, b: Matrix): Matrix {
   return out;
 }
 
+/** Multiplica todos los elementos de `M` por el escalar `c`. */
 export function scalarMul(c: number, M: Matrix): Matrix {
   const { rows, cols } = ensureRect(M, 'scalarMul');
   const out = zeros(rows, cols);
@@ -158,6 +171,7 @@ export function scalarMul(c: number, M: Matrix): Matrix {
   return out;
 }
 
+/** Producto matricial estándar `a × b`. Lanza si las dimensiones son incompatibles. */
 export function multiply(a: Matrix, b: Matrix): Matrix {
   const A = ensureRect(a, 'multiply/a');
   const B = ensureRect(b, 'multiply/b');
@@ -179,6 +193,7 @@ export function multiply(a: Matrix, b: Matrix): Matrix {
   return out;
 }
 
+/** Multiplica la matriz `M` por el vector `v` (M·v). */
 export function matVec(M: Matrix, v: Vector): Vector {
   const { rows, cols } = ensureRect(M, 'matVec');
   if (cols !== v.length) {
@@ -195,6 +210,7 @@ export function matVec(M: Matrix, v: Vector): Vector {
   return out;
 }
 
+/** Producto punto (escalar) de dos vectores de igual longitud. */
 export function dot(a: Vector, b: Vector): number {
   if (a.length !== b.length) {
     throw new Error(`dot: length mismatch (${a.length} vs ${b.length})`);
@@ -206,6 +222,7 @@ export function dot(a: Vector, b: Vector): number {
   return s;
 }
 
+/** Norma euclidiana (L2) del vector `v`. */
 export function norm(v: Vector): number {
   let s = 0;
   for (let i = 0; i < v.length; i++) {
@@ -215,6 +232,7 @@ export function norm(v: Vector): number {
   return Math.sqrt(s);
 }
 
+/** Devuelve el vector `v` escalado a norma unitaria. Lanza si `v` es el vector cero. */
 export function normalize(v: Vector): Vector {
   const n = norm(v);
   if (n < DEFAULT_EPS) {
@@ -227,6 +245,7 @@ export function normalize(v: Vector): Vector {
   return out;
 }
 
+/** Producto vectorial de `a` × `b` en R³. Lanza si alguno no tiene exactamente 3 componentes. */
 export function cross(a: Vector, b: Vector): Vector {
   if (a.length !== 3 || b.length !== 3) {
     throw new Error('cross: only defined for R^3 vectors');
@@ -244,6 +263,7 @@ export function cross(a: Vector, b: Vector): Vector {
   ];
 }
 
+/** Reduce la matriz a forma escalonada reducida (RREF) por Gauss-Jordan. Devuelve la matriz reducida, el rango y las columnas pivot. */
 export function rref(M: Matrix): { reduced: Matrix; rank: number; pivotCols: number[] } {
   const { rows, cols } = ensureRect(M, 'rref');
   const R = clone(M);
@@ -296,10 +316,12 @@ export function rref(M: Matrix): { reduced: Matrix; rank: number; pivotCols: num
   return { reduced: R, rank: pivotCols.length, pivotCols };
 }
 
+/** Calcula el rango de la matriz `M` mediante RREF. */
 export function rank(M: Matrix): number {
   return rref(M).rank;
 }
 
+/** Calcula el determinante de la matriz cuadrada `M` por eliminación de Gauss con pivoteo parcial. */
 export function determinant(M: Matrix): number {
   const { rows, cols } = ensureRect(M, 'determinant');
   if (rows !== cols) {
@@ -345,6 +367,7 @@ export function determinant(M: Matrix): number {
   return det;
 }
 
+/** Devuelve la inversa de la matriz cuadrada `M`, o `null` si es singular. */
 export function inverse(M: Matrix): Matrix | null {
   const { rows, cols } = ensureRect(M, 'inverse');
   if (rows !== cols) {
@@ -376,6 +399,7 @@ export function inverse(M: Matrix): Matrix | null {
   return inv;
 }
 
+/** Resuelve el sistema lineal Ax = b. Devuelve `null` si no tiene solución única (sistema indeterminado o incompatible). */
 export function solve(A: Matrix, b: Vector): Vector | null {
   const { rows, cols } = ensureRect(A, 'solve');
   if (rows !== b.length) {
@@ -405,6 +429,7 @@ export function solve(A: Matrix, b: Vector): Vector | null {
   return x;
 }
 
+/** Calcula la solución de mínimos cuadrados de Ax ≈ b vía ecuaciones normales (AᵀAx = Aᵀb). */
 export function leastSquares(A: Matrix, b: Vector): Vector {
   const { rows, cols } = ensureRect(A, 'leastSquares');
   if (rows !== b.length) {
@@ -423,12 +448,14 @@ export function leastSquares(A: Matrix, b: Vector): Vector {
   return x;
 }
 
+/** Resultado de una descomposición LU con pivoteo parcial: L, U y la permutación P. */
 export interface LU {
   L: Matrix;
   U: Matrix;
   P: number[];
 }
 
+/** Descomposición LU con pivoteo parcial de la matriz cuadrada `M`. Devuelve `null` si es singular. */
 export function decomposeLU(M: Matrix): LU | null {
   const { rows, cols } = ensureRect(M, 'decomposeLU');
   if (rows !== cols) {
@@ -479,6 +506,7 @@ export function decomposeLU(M: Matrix): LU | null {
   return { L, U, P };
 }
 
+/** Construye la matriz de permutación correspondiente al vector de permutación `P`. */
 export function permutationMatrix(P: number[]): Matrix {
   const n = P.length;
   const M = zeros(n, n);
@@ -488,11 +516,13 @@ export function permutationMatrix(P: number[]): Matrix {
   return M;
 }
 
+/** Resultado de una descomposición QR: Q ortogonal y R triangular superior. */
 export interface QR {
   Q: Matrix;
   R: Matrix;
 }
 
+/** Descomposición QR por Gram-Schmidt para matrices con `rows >= cols`. */
 export function decomposeQR(M: Matrix): QR {
   const { rows, cols } = ensureRect(M, 'decomposeQR');
   if (rows < cols) {
@@ -531,6 +561,7 @@ export function decomposeQR(M: Matrix): QR {
   return { Q, R };
 }
 
+/** Resultado de una descomposición SVD: matrices U, V y valores singulares S. */
 export interface SVD {
   U: Matrix;
   S: number[];
@@ -601,6 +632,7 @@ function symmetricEigen(S: Matrix, maxIter: number, eps: number): { values: numb
   return { values, vectors: V };
 }
 
+/** Descomposición SVD de `M` vía eigendescomposición de AᵀA con el algoritmo de Jacobi. */
 export function decomposeSVD(M: Matrix, maxIter = 200): SVD {
   const { rows, cols } = ensureRect(M, 'decomposeSVD');
   const At = transpose(M);
@@ -642,6 +674,7 @@ export function decomposeSVD(M: Matrix, maxIter = 200): SVD {
   return { U, S: sigma, V: Vsorted };
 }
 
+/** Calcula el autovalor dominante y su autovector por el método de la potencia. */
 export function powerIteration(
   M: Matrix,
   opts: { maxIter?: number; eps?: number } = {}
@@ -703,6 +736,7 @@ function isSymmetric(M: Matrix, eps = 1e-9): boolean {
   return true;
 }
 
+/** Calcula los autovalores reales de la matriz cuadrada `M` (QR iterativo para asimétricas, Jacobi para simétricas). */
 export function eigenvalues(
   M: Matrix,
   opts: { maxIter?: number; eps?: number } = {}
@@ -757,6 +791,7 @@ export function eigenvalues(
   return out.sort((a, b) => b - a);
 }
 
+/** Calcula autovalores y autovectores de la matriz simétrica `M` por el algoritmo de Jacobi. */
 export function eigenvectors(
   M: Matrix,
   opts: { maxIter?: number; eps?: number } = {}
@@ -789,6 +824,7 @@ export function eigenvectors(
   return { values: sortedVals, vectors: sortedVecs };
 }
 
+/** Devuelve una base del espacio nulo (kernel) de `M` usando RREF. */
 export function nullSpace(M: Matrix): Vector[] {
   const { cols } = ensureRect(M, 'nullSpace');
   const { reduced, pivotCols } = rref(M);
@@ -816,6 +852,7 @@ export function nullSpace(M: Matrix): Vector[] {
   return basis;
 }
 
+/** Devuelve una base del espacio columna (imagen) de `M` como las columnas pivot del original. */
 export function columnSpace(M: Matrix): Vector[] {
   const { rows } = ensureRect(M, 'columnSpace');
   const { pivotCols } = rref(M);
@@ -830,6 +867,7 @@ export function columnSpace(M: Matrix): Vector[] {
   return basis;
 }
 
+/** Ortogonaliza y normaliza la lista de vectores mediante el proceso de Gram-Schmidt. Descarta vectores linealmente dependientes. */
 export function gramSchmidt(vectors: Vector[]): Vector[] {
   if (vectors.length === 0) {
     return [];
@@ -864,6 +902,7 @@ export function gramSchmidt(vectors: Vector[]): Vector[] {
   return out;
 }
 
+/** Comprueba si la lista de vectores es linealmente independiente verificando que el rango de la matriz columna sea igual a su cantidad. */
 export function isLinearlyIndependent(vectors: Vector[]): boolean {
   if (vectors.length === 0) {
     return true;

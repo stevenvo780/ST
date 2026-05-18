@@ -1,0 +1,3 @@
+# `type-theory/cubical/index.ts`
+
+============================================================ CTT-Lite — Cubical Type Theory (núcleo público) ============================================================ Extiende MLTT con:   - Intervalo I con conexiones (∧, ∨) e involución (~)   - PathP A x y como caminos dependientes en I   - λi. t y p @ r (path-abstracción y aplicación)   - Reducciones computacionales del intervalo   - glue como precursor sintáctico de la computación de ua La diferencia central con HoTT (en /hott/) es que aquí univalence es computacional: transport sobre un path generado por glue puede reducir (en una versión completa de CTT). En este subset se sienta la base sintáctica que permite esa reducción.
