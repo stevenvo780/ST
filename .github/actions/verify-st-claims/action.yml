@@ -1,0 +1,31 @@
+name: 'Verify ST Claims'
+description: 'Verifies that all .st files in the PR validate in their declared profile'
+author: 'stevenvo780'
+
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  paths:
+    description: 'Glob para archivos .st a verificar (default: **/*.st)'
+    required: false
+    default: '**/*.st'
+  default-profile:
+    description: 'Perfil por defecto si el archivo no declara header ";; profile: <slug>"'
+    required: false
+    default: 'classical.propositional'
+  fail-on-warning:
+    description: 'Falla si hay warnings además de errors'
+    required: false
+    default: 'false'
+
+outputs:
+  verified-count:
+    description: 'Cantidad de archivos verificados'
+  failed-count:
+    description: 'Cantidad de archivos que fallaron'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'

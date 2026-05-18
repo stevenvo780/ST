@@ -1,0 +1,333 @@
+{
+  "Logic Profile": {
+    "prefix": ["logic", "logica"],
+    "body": ["logic ${1|classical.propositional,classical.first_order,modal.k,paraconsistent.belnap,deontic.standard,epistemic.s5,intuitionistic.propositional,temporal.ltl,aristotelian.syllogistic,probabilistic.basic,arithmetic|}"],
+    "description": "Declarar el perfil lógico del script"
+  },
+  "Axiom": {
+    "prefix": ["axiom", "axioma"],
+    "body": ["axiom ${1:nombre} : ${2:P -> Q}"],
+    "description": "Declarar un axioma con fórmula"
+  },
+  "Axiom with Description": {
+    "prefix": ["axiomd", "axiomad"],
+    "body": ["let ${1:nombre} = \"${2:descripción}\"", "axiom ${1:nombre} : ${3:P -> Q}"],
+    "description": "Declarar un axioma con descripción y fórmula"
+  },
+  "Theorem": {
+    "prefix": ["theorem", "teorema"],
+    "body": ["theorem ${1:nombre} : ${2:P -> P}"],
+    "description": "Declarar un teorema"
+  },
+  "Let Description": {
+    "prefix": ["letd", "letdesc"],
+    "body": ["let ${1:nombre} = \"${2:descripción}\""],
+    "description": "Declarar un alias con descripción"
+  },
+  "Let Formula": {
+    "prefix": ["letf", "letform"],
+    "body": ["let ${1:nombre} = ${2:P & Q}"],
+    "description": "Declarar un alias de fórmula"
+  },
+  "Derive": {
+    "prefix": ["derive", "derivar"],
+    "body": ["derive ${1:conclusión} from {${2:premisa1, premisa2}}"],
+    "description": "Derivar una conclusión a partir de premisas"
+  },
+  "Check Valid": {
+    "prefix": ["checkv", "check valid"],
+    "body": ["check valid ${1:fórmula}"],
+    "description": "Verificar si una fórmula es válida"
+  },
+  "Check Satisfiable": {
+    "prefix": ["checks", "check sat"],
+    "body": ["check satisfiable ${1:fórmula}"],
+    "description": "Verificar si una fórmula es satisfacible"
+  },
+  "Truth Table": {
+    "prefix": ["truth_table", "tabla_verdad"],
+    "body": ["truth_table ${1:P -> Q}"],
+    "description": "Generar tabla de verdad"
+  },
+  "Countermodel": {
+    "prefix": ["countermodel", "contramodelo"],
+    "body": ["countermodel ${1:fórmula}"],
+    "description": "Buscar un contramodelo"
+  },
+  "Prove": {
+    "prefix": ["prove", "probar"],
+    "body": ["prove ${1:objetivo} from {${2:premisas}}"],
+    "description": "Demostrar formalmente un objetivo"
+  },
+  "Theory Block": {
+    "prefix": ["theory", "teoria"],
+    "body": [
+      "theory ${1:Nombre} {",
+      "  axiom ${2:ax1} : ${3:P}",
+      "  theorem ${4:th1} : ${5:Q}",
+      "}"
+    ],
+    "description": "Bloque de teoría con axiomas y teoremas"
+  },
+  "Theory with Extends": {
+    "prefix": ["theorye", "teoriae"],
+    "body": [
+      "theory ${1:Hija} extends ${2:Padre} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Teoría que hereda de otra"
+  },
+  "Theory Singleton": {
+    "prefix": ["theorys", "teorias"],
+    "body": [
+      "theory ${1:Config} {",
+      "  let ${2:prop} = \"${3:valor}\"",
+      "}"
+    ],
+    "description": "Teoría singleton con propiedades"
+  },
+  "Function Declaration": {
+    "prefix": ["fn", "funcion"],
+    "body": [
+      "fn ${1:nombre}(${2:param}) {",
+      "  ${3:// cuerpo}",
+      "  return ${4:resultado}",
+      "}"
+    ],
+    "description": "Declarar una función"
+  },
+  "If Block": {
+    "prefix": ["if", "si"],
+    "body": [
+      "if ${1|valid,satisfiable,equivalent|} ${2:fórmula} {",
+      "  ${3:// bloque verdadero}",
+      "}"
+    ],
+    "description": "Bloque condicional"
+  },
+  "If-Else Block": {
+    "prefix": ["ife", "sinosino"],
+    "body": [
+      "if ${1|valid,satisfiable|} ${2:fórmula} {",
+      "  ${3:// verdadero}",
+      "} else {",
+      "  ${4:// falso}",
+      "}"
+    ],
+    "description": "Bloque condicional con else"
+  },
+  "For Loop": {
+    "prefix": ["for", "para"],
+    "body": [
+      "for ${1:x} in ${2:colección} {",
+      "  ${3:print x}",
+      "}"
+    ],
+    "description": "Bucle for"
+  },
+  "While Loop": {
+    "prefix": ["while", "mientras"],
+    "body": [
+      "while ${1:condición} {",
+      "  ${2:// cuerpo}",
+      "}"
+    ],
+    "description": "Bucle while"
+  },
+  "Print": {
+    "prefix": ["print", "imprimir"],
+    "body": ["print ${1:\"mensaje\"}"],
+    "description": "Imprimir texto o valor"
+  },
+  "Import": {
+    "prefix": ["import", "importar"],
+    "body": ["import \"${1:ruta/archivo.st}\""],
+    "description": "Importar otro archivo ST"
+  },
+  "Export": {
+    "prefix": ["export", "exportar"],
+    "body": ["export ${1:axiom ${2:nombre} : ${3:fórmula}}"],
+    "description": "Exportar una declaración"
+  },
+  "Proof Block": {
+    "prefix": ["proof", "prueba"],
+    "body": [
+      "proof ${1:nombre} {",
+      "  assume ${2:hipótesis}",
+      "  ${3:// pasos}",
+      "  qed",
+      "}"
+    ],
+    "description": "Bloque de demostración formal"
+  },
+  "Text Block": {
+    "prefix": ["text", "texto"],
+    "body": [
+      "text {",
+      "  ${1:Contenido narrativo con [[anclas]] y fórmulas.}",
+      "}"
+    ],
+    "description": "Bloque de texto narrativo"
+  },
+  "Passage Anchor": {
+    "prefix": ["passage", "pasaje"],
+    "body": ["let ${1:nombre} = passage([[${2:ruta.al.ancla}]])"],
+    "description": "Declarar un pasaje con ancla"
+  },
+  "Classical Propositional Template": {
+    "prefix": "st:classical",
+    "body": [
+      "logic classical.propositional",
+      "",
+      "let ${1:P} = \"${2:proposición P}\"",
+      "let ${3:Q} = \"${4:proposición Q}\"",
+      "",
+      "axiom ${5:ax1} : ${1:P} -> ${3:Q}",
+      "axiom ${6:ax2} : ${1:P}",
+      "",
+      "derive ${3:Q} from {${5:ax1}, ${6:ax2}}",
+      "truth_table ${1:P} -> ${3:Q}"
+    ],
+    "description": "Plantilla completa de lógica proposicional clásica"
+  },
+  "Arithmetic Template": {
+    "prefix": "st:arithmetic",
+    "body": [
+      "logic arithmetic",
+      "",
+      "let ${1:x} = ${2:10}",
+      "let ${3:y} = ${4:20}",
+      "",
+      "print ${1:x} + ${3:y}",
+      "",
+      "if ${1:x} < ${3:y} {",
+      "  print \"${1:x} es menor que ${3:y}\"",
+      "}"
+    ],
+    "description": "Plantilla de script aritmético"
+  },
+  "Modal Logic Template": {
+    "prefix": "st:modal",
+    "body": [
+      "logic modal.k",
+      "",
+      "axiom ${1:necesidad} : []${2:P}",
+      "axiom ${3:posibilidad} : <>${4:Q}",
+      "",
+      "check valid []${2:P} -> ${2:P}",
+      "check valid ${2:P} -> <>${2:P}"
+    ],
+    "description": "Plantilla de lógica modal K"
+  },
+  "Explain": {
+    "prefix": ["explain", "explicar"],
+    "body": ["explain ${1|profile,formula|} ${2:argumento}"],
+    "description": "Explicar perfil o fórmula"
+  },
+  "Analyze": {
+    "prefix": ["analyze", "analizar"],
+    "body": ["analyze {${1:premisas}} |- ${2:conclusión}"],
+    "description": "Analizar estructura inferencial"
+  },
+  "Epistemic Template (K/B aliases)": {
+    "prefix": "st:epistemic",
+    "body": [
+      "logic epistemic.s5",
+      "",
+      "// K(φ) = □φ (conocimiento), B(φ) = ◇φ (creencia)",
+      "axiom ${1:know} : K(${2:P})",
+      "",
+      "check valid K(${2:P}) -> ${2:P}",
+      "check valid K(${2:P}) -> K(K(${2:P}))",
+      "check valid K(${2:P}) -> B(${2:P})"
+    ],
+    "description": "Plantilla de lógica epistémica S5 con aliases K/B"
+  },
+  "Deontic Template (O/P/F aliases)": {
+    "prefix": "st:deontic",
+    "body": [
+      "logic deontic.standard",
+      "",
+      "// O(φ) = obligación, P(φ) = permisión, F(φ) = prohibición",
+      "axiom ${1:obligacion} : O(${2:P})",
+      "",
+      "check valid O(${2:P}) -> P(${2:P})",
+      "check valid O(${2:P}) -> ~F(${2:P})"
+    ],
+    "description": "Plantilla de lógica deóntica con aliases O/P/F"
+  },
+  "Temporal Template (G/F aliases)": {
+    "prefix": "st:temporal",
+    "body": [
+      "logic temporal.ltl",
+      "",
+      "// G(φ) = □φ (siempre), F(φ) = ◇φ (eventualmente)",
+      "axiom ${1:siempre} : G(${2:P})",
+      "",
+      "check valid G(${2:P}) -> ${2:P}",
+      "check valid G(${2:P}) -> F(${2:P})"
+    ],
+    "description": "Plantilla de lógica temporal LTL con aliases G/F"
+  },
+  "Belnap Template (4-valued)": {
+    "prefix": "st:belnap",
+    "body": [
+      "logic paraconsistent.belnap",
+      "",
+      "// 4 valores: T (verdadero), F (falso), B (ambos), N (ninguno)",
+      "// Designados: {T, B}",
+      "truth_table ${1:P -> Q}",
+      "countermodel ${2:P & ~P}"
+    ],
+    "description": "Plantilla de lógica paraconsistente Belnap 4-valores"
+  },
+  "FOL Template (first order)": {
+    "prefix": "st:fol",
+    "body": [
+      "logic classical.first_order",
+      "",
+      "axiom ${1:ax1} : forall x (${2:P(x)} -> ${3:Q(x)})",
+      "axiom ${4:ax2} : ${2:P(a)}",
+      "",
+      "derive ${3:Q(a)} from {${1:ax1}, ${4:ax2}}"
+    ],
+    "description": "Plantilla de lógica de primer orden"
+  },
+  "Intuitionistic Template": {
+    "prefix": "st:intuitionistic",
+    "body": [
+      "logic intuitionistic.propositional",
+      "",
+      "// Sin tercero excluido: p ∨ ¬p NO es válido",
+      "check valid ${1:P -> (Q -> P)}",
+      "check valid ${2:P | ~P}  // esperado: inválido"
+    ],
+    "description": "Plantilla de lógica intuicionista"
+  },
+  "Refute": {
+    "prefix": ["refute", "refutar"],
+    "body": ["refute ${1:fórmula}"],
+    "description": "Refutar fórmula (buscar contramodelo)"
+  },
+  "Knowledge Alias K()": {
+    "prefix": "K(",
+    "body": ["K(${1:fórmula})"],
+    "description": "K(φ) — Conocimiento (epistemic.s5) ≡ □φ"
+  },
+  "Obligation Alias O()": {
+    "prefix": "O(",
+    "body": ["O(${1:fórmula})"],
+    "description": "O(φ) — Obligación (deontic.standard) ≡ □φ"
+  },
+  "Globally Alias G()": {
+    "prefix": "G(",
+    "body": ["G(${1:fórmula})"],
+    "description": "G(φ) — Siempre (temporal.ltl) ≡ □φ"
+  },
+  "Eventually Alias F()": {
+    "prefix": "F(",
+    "body": ["F(${1:fórmula})"],
+    "description": "F(φ) — Eventualmente (temporal.ltl) ≡ ◇φ"
+  }
+}

@@ -1,0 +1,245 @@
+{
+  "name": "vscode-st",
+  "displayName": "ST Language",
+  "description": "Full IDE support for ST (Symbolic Theory Language) — diagnostics, hover, completions, go-to-definition, syntax highlighting, LSP, command palette.",
+  "version": "0.1.0",
+  "publisher": "stevenvo780",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stevenvo780/ST.git"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Education",
+    "Snippets"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:st"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "st",
+        "aliases": ["ST", "Symbolic Theory", "st"],
+        "extensions": [".st"],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/st-light.svg",
+          "dark": "./icons/st-dark.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "st",
+        "scopeName": "source.st",
+        "path": "./syntaxes/st.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "st.check",
+        "title": "ST: Check formula",
+        "category": "ST",
+        "icon": "$(pass)"
+      },
+      {
+        "command": "st.derive",
+        "title": "ST: Try derivation",
+        "category": "ST",
+        "icon": "$(play)"
+      },
+      {
+        "command": "st.countermodel",
+        "title": "ST: Show countermodel",
+        "category": "ST",
+        "icon": "$(search)"
+      },
+      {
+        "command": "st.switchProfile",
+        "title": "ST: Switch logical profile",
+        "category": "ST",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "st.runFile",
+        "title": "ST: Run file",
+        "category": "ST",
+        "icon": "$(play-circle)"
+      },
+      {
+        "command": "st.runSelection",
+        "title": "ST: Run selection",
+        "category": "ST",
+        "icon": "$(play)"
+      },
+      {
+        "command": "st.render",
+        "title": "ST: Render to Markdown",
+        "category": "ST",
+        "icon": "$(markdown)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "st.runFile",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorLangId == st"
+      },
+      {
+        "command": "st.runSelection",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
+        "when": "editorLangId == st"
+      },
+      {
+        "command": "st.check",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k",
+        "when": "editorLangId == st"
+      },
+      {
+        "command": "st.render",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m",
+        "when": "editorLangId == st"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "st.runFile",
+          "when": "editorLangId == st",
+          "group": "navigation@1"
+        },
+        {
+          "command": "st.check",
+          "when": "editorLangId == st",
+          "group": "navigation@2"
+        },
+        {
+          "command": "st.render",
+          "when": "editorLangId == st",
+          "group": "navigation@3"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "st.check",
+          "when": "editorLangId == st",
+          "group": "st@1"
+        },
+        {
+          "command": "st.derive",
+          "when": "editorLangId == st",
+          "group": "st@2"
+        },
+        {
+          "command": "st.countermodel",
+          "when": "editorLangId == st",
+          "group": "st@3"
+        },
+        {
+          "command": "st.runSelection",
+          "when": "editorLangId == st",
+          "group": "st@4"
+        },
+        {
+          "command": "st.runFile",
+          "when": "editorLangId == st",
+          "group": "st@5"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "ST",
+      "properties": {
+        "st.profile": {
+          "type": "string",
+          "default": "classical.propositional",
+          "enum": [
+            "classical.propositional",
+            "classical.first_order",
+            "modal.k",
+            "modal.s4",
+            "modal.s5",
+            "intuitionistic.propositional",
+            "paraconsistent.belnap",
+            "deontic.standard",
+            "epistemic.s5",
+            "temporal.ltl",
+            "arithmetic"
+          ],
+          "enumDescriptions": [
+            "Classical propositional logic",
+            "Classical first-order logic (FOL)",
+            "Modal logic K",
+            "Modal logic S4",
+            "Modal logic S5",
+            "Intuitionistic propositional logic",
+            "Belnap 4-valued paraconsistent logic",
+            "Deontic standard logic",
+            "Epistemic logic S5",
+            "Linear temporal logic (LTL)",
+            "Arithmetic"
+          ],
+          "description": "Default logical profile for new ST files"
+        },
+        "st.maxIterations": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 10,
+          "maximum": 100000,
+          "description": "Maximum derivation iterations"
+        },
+        "st.diagnostics.enableRuntime": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable runtime diagnostics (evaluates file to detect runtime errors)"
+        },
+        "st.diagnostics.enableParseDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable parse diagnostics (syntax errors)"
+        },
+        "st.completion.showKeywordsInSpanish": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include Spanish keyword aliases in completions (axioma, teorema, etc.)"
+        }
+      }
+    },
+    "snippets": [
+      {
+        "language": "st",
+        "path": "./snippets/st.json"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile",
+    "package": "npx @vscode/vsce package --no-dependencies",
+    "publish": "npx @vscode/vsce publish"
+  },
+  "dependencies": {
+    "@stevenvo780/st-lang": "^4.14.0",
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.11"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^3.0.0",
+    "typescript": "^5.4.0"
+  }
+}

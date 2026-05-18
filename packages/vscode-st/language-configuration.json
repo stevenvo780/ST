@@ -1,0 +1,57 @@
+{
+  "comments": {
+    "lineComment": "//",
+    "blockComment": ["/*", "*/"]
+  },
+  "brackets": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"]
+  ],
+  "autoClosingPairs": [
+    { "open": "{", "close": "}" },
+    { "open": "[", "close": "]" },
+    { "open": "(", "close": ")" },
+    { "open": "\"", "close": "\"", "notIn": ["string"] },
+    { "open": "[[", "close": "]]" },
+    { "open": "/*", "close": " */", "notIn": ["string"] }
+  ],
+  "surroundingPairs": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"],
+    ["\"", "\""],
+    ["[[", "]]"]
+  ],
+  "wordPattern": "[a-zA-Z_\\u00C0-\\u024F][a-zA-Z0-9_.\\u00C0-\\u024F]*",
+  "indentationRules": {
+    "increaseIndentPattern": "^\\s*(theory|teoria|proof|prueba|text|fn|funcion|if|si|else|sino|for|para|while|mientras)\\b.*\\{\\s*$|^.*\\{\\s*$",
+    "decreaseIndentPattern": "^\\s*\\}"
+  },
+  "folding": {
+    "markers": {
+      "start": "^\\s*(theory|teoria|proof|prueba|text|fn|funcion)\\b|^\\s*/\\*",
+      "end": "^\\s*\\}|^\\s*\\*/"
+    }
+  },
+  "onEnterRules": [
+    {
+      "beforeText": "^\\s*(theory|teoria|proof|prueba|text|fn|funcion|if|si|else|sino|for|para|while|mientras)\\b.*\\{\\s*$",
+      "afterText": "^\\s*\\}",
+      "action": { "indent": "indentOutdent" }
+    },
+    {
+      "beforeText": "^\\s*(theory|teoria|proof|prueba|text|fn|funcion|if|si|else|sino|for|para|while|mientras)\\b.*\\{\\s*$",
+      "action": { "indent": "indent" }
+    },
+    {
+      "beforeText": "^\\s*\\*[^/]",
+      "action": { "indent": "none", "appendText": "* " }
+    },
+    {
+      "beforeText": "^\\s*/\\*\\*(?!/)([^\\*]|\\*(?!/))*$",
+      "afterText": "^\\s*\\*/$",
+      "action": { "indent": "indentOutdent", "appendText": " * " }
+    }
+  ]
+}

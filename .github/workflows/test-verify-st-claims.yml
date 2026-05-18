@@ -1,0 +1,92 @@
+name: Test verify-st-claims action
+
+on:
+  pull_request:
+    paths:
+      - '.github/actions/verify-st-claims/**'
+      - '.github/workflows/test-verify-st-claims.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/actions/verify-st-claims/**'
+      - '.github/workflows/test-verify-st-claims.yml'
+  workflow_dispatch:
+
+jobs:
+  test-valid-fixture:
+    name: Valid fixture must pass
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run action on valid.st only
+        id: verify-valid
+        uses: ./.github/actions/verify-st-claims
+        with:
+          paths: '.github/actions/verify-st-claims/examples/valid.st'
+          default-profile: 'classical.propositional'
+
+      - name: Assert verified-count is 1
+        run: |
+          if [ "${{ steps.verify-valid.outputs.verified-count }}" != "1" ]; then
+            echo "Expected verified-count=1, got ${{ steps.verify-valid.outputs.verified-count }}"
+            exit 1
+          fi
+          if [ "${{ steps.verify-valid.outputs.failed-count }}" != "0" ]; then
+            echo "Expected failed-count=0, got ${{ steps.verify-valid.outputs.failed-count }}"
+            exit 1
+          fi
+          echo "valid.st: verified-count=1, failed-count=0 — OK"
+
+  test-invalid-fixture:
+    name: Invalid fixture must fail (expected failure)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run action on invalid.st (expected to exit 1)
+        id: verify-invalid
+        uses: ./.github/actions/verify-st-claims
+        with:
+          paths: '.github/actions/verify-st-claims/examples/invalid.st'
+          default-profile: 'classical.propositional'
+        # Allow this step to fail — we assert on the outputs below
+        continue-on-error: true
+
+      - name: Assert failed-count is 1
+        run: |
+          if [ "${{ steps.verify-invalid.outputs.failed-count }}" != "1" ]; then
+            echo "Expected failed-count=1, got ${{ steps.verify-invalid.outputs.failed-count }}"
+            exit 1
+          fi
+          if [ "${{ steps.verify-invalid.outputs.verified-count }}" != "0" ]; then
+            echo "Expected verified-count=0, got ${{ steps.verify-invalid.outputs.verified-count }}"
+            exit 1
+          fi
+          echo "invalid.st: failed-count=1, verified-count=0 — OK"
+
+  test-both-fixtures:
+    name: Both fixtures — 1 pass 1 fail
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run action on both fixtures (expected to exit 1)
+        id: verify-both
+        uses: ./.github/actions/verify-st-claims
+        with:
+          paths: '.github/actions/verify-st-claims/examples/*.st'
+          default-profile: 'classical.propositional'
+        continue-on-error: true
+
+      - name: Assert verified-count=1 and failed-count=1
+        run: |
+          VERIFIED="${{ steps.verify-both.outputs.verified-count }}"
+          FAILED="${{ steps.verify-both.outputs.failed-count }}"
+          echo "verified-count=${VERIFIED}, failed-count=${FAILED}"
+          if [ "${VERIFIED}" != "1" ] || [ "${FAILED}" != "1" ]; then
+            echo "Expected verified=1 failed=1, got verified=${VERIFIED} failed=${FAILED}"
+            exit 1
+          fi
+          echo "Both fixtures: verified=1, failed=1 — OK"
