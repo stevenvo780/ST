@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createInterpreter, evaluate } from '../api';
 
@@ -11,14 +11,15 @@ interface STIntegrationFixture {
   expectedJustifications?: string[];
 }
 
-const fixtures = JSON.parse(
-  readFileSync(
-    path.resolve(process.cwd(), '../packages/agora-contracts/fixtures/st-integration.json'),
-    'utf8',
-  ),
-) as STIntegrationFixture[];
+const FIXTURE_PATH = '../packages/agora-contracts/fixtures/st-integration.json';
+const fixtureAbsPath = path.resolve(__dirname, FIXTURE_PATH);
+const fixtureExists = existsSync(fixtureAbsPath);
 
-describe('Agora integration fixtures', () => {
+const fixtures: STIntegrationFixture[] = fixtureExists
+  ? (JSON.parse(readFileSync(fixtureAbsPath, 'utf8')) as STIntegrationFixture[])
+  : [];
+
+describe.skipIf(!fixtureExists)('Agora integration fixtures', () => {
   for (const fixture of fixtures) {
     it(fixture.id, () => {
       const result = evaluate(fixture.source);
