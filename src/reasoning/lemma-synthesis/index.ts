@@ -22,6 +22,11 @@
 
 // ── Signatura y términos ────────────────────────────────────
 
+/**
+ * Algebraic signature for lemma synthesis: declares sorts, constants,
+ * functions (with argument and result sorts) and predicates.
+ * The synthesizer enumerates terms and conjectures equalities based on this.
+ */
 export interface Signature {
   sorts: string[];
   constants: Array<{ name: string; sort: string }>;
@@ -38,6 +43,10 @@ export type Term =
   | { kind: 'const'; name: string; sort: string }
   | { kind: 'app'; name: string; args: Term[]; sort: string };
 
+/**
+ * A synthesized equality conjecture `∀vars. termLeft = termRight`.
+ * `confidence = 1` means all random tests passed; smaller values indicate partial evidence.
+ */
 export interface Conjecture {
   variables: Array<{ name: string; sort: string }>;
   formula: string;
@@ -46,9 +55,13 @@ export interface Conjecture {
   termRight?: Term;
 }
 
+/** Options controlling synthesis depth, test count, and randomness. */
 export interface SynthesisOptions {
+  /** Maximum term depth for enumeration (default 2). */
   maxDepth?: number;
+  /** Number of random valuations to test each conjecture (default 100). */
   numTests?: number;
+  /** Maximum number of conjectures to return (default 200). */
   maxConjectures?: number;
   /** Generador de valuaciones aleatorias por sort */
   randomValue?: (sort: string, rng: () => number) => unknown;
@@ -60,6 +73,7 @@ export interface SynthesisOptions {
 
 // ── Helpers de impresión ────────────────────────────────────
 
+/** Serializes a term to a human-readable string, using infix notation for binary operators. */
 export function termToString(t: Term): string {
   switch (t.kind) {
     case 'var':
@@ -233,6 +247,11 @@ function defaultVariables(sig: Signature): Array<{ name: string; sort: string }>
 
 // ── Evaluación y síntesis ───────────────────────────────────
 
+/**
+ * Evaluates a term under a variable environment.
+ * Should throw when the term is ill-typed or outside the evaluator's domain;
+ * the synthesizer will skip conjectures whose terms cannot be evaluated.
+ */
 export type Evaluator = (term: Term, env: Record<string, unknown>) => unknown;
 
 function defaultRandomValue(sort: string, rng: () => number): unknown {
@@ -529,13 +548,24 @@ function applySubst(t: Term, subst: Map<string, Term>): Term {
 
 // ── Verificación opcional via prover ────────────────────────
 
+/**
+ * An optional external prover that attempts to prove or disprove a conjecture.
+ * Returns `{ proven: true }` on success, `{ proven: false, counter }` on refutation,
+ * or `{ proven: false }` when the result is unknown.
+ */
 export type Prover = (conjecture: Conjecture) => { proven: boolean; counter?: unknown };
 
+/** A conjecture annotated with its verification status after calling a {@link Prover}. */
 export interface VerifiedConjecture extends Conjecture {
   status: 'verified' | 'counter' | 'unknown';
   counter?: unknown;
 }
 
+/**
+ * Runs each conjecture through `prover`, annotating it with
+ * `'verified'`, `'counter'` (with a counterexample), or `'unknown'`.
+ * Prover exceptions are silently caught and treated as `'unknown'`.
+ */
 export function verifyConjectures(conjectures: Conjecture[], prover: Prover): VerifiedConjecture[] {
   return conjectures.map((c) => {
     let r: { proven: boolean; counter?: unknown };
@@ -552,6 +582,7 @@ export function verifyConjectures(conjectures: Conjecture[], prover: Prover): Ve
 
 // ── Signaturas de ejemplo ───────────────────────────────────
 
+/** Returns a {@link Signature} for the natural numbers (0, S, +, *). */
 export function naturalNumbersSignature(): Signature {
   return {
     sorts: ['Nat'],
@@ -565,6 +596,7 @@ export function naturalNumbersSignature(): Signature {
   };
 }
 
+/** Returns a {@link Signature} for booleans (T, F, ¬, ∧, ∨). */
 export function booleansSignature(): Signature {
   return {
     sorts: ['Bool'],
@@ -581,6 +613,7 @@ export function booleansSignature(): Signature {
   };
 }
 
+/** Returns a {@link Signature} for lists over Nat (nil, cons, ++, length). */
 export function listsSignature(): Signature {
   return {
     sorts: ['List', 'Nat'],
@@ -600,6 +633,7 @@ export function listsSignature(): Signature {
 
 // ── Evaluadores de ejemplo (útiles para tests y demos) ──────
 
+/** Sample {@link Evaluator} for the natural numbers signature. */
 export const naturalsEvaluator: Evaluator = (term, env) => {
   const evalT = (t: Term): number => {
     if (t.kind === 'var') {
@@ -621,6 +655,7 @@ export const naturalsEvaluator: Evaluator = (term, env) => {
   return evalT(term);
 };
 
+/** Sample {@link Evaluator} for the booleans signature. */
 export const booleansEvaluator: Evaluator = (term, env) => {
   const evalT = (t: Term): boolean => {
     if (t.kind === 'var') {
@@ -642,6 +677,7 @@ export const booleansEvaluator: Evaluator = (term, env) => {
   return evalT(term);
 };
 
+/** Sample {@link Evaluator} for the lists-over-Nat signature. */
 export const listsEvaluator: Evaluator = (term, env) => {
   const evalT = (t: Term): unknown => {
     if (t.kind === 'var') {

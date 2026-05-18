@@ -18,6 +18,11 @@
 //     prs cuando `modulus` está ausente.
 // ============================================================
 
+/**
+ * Dense polynomial over Z or Z/pZ.
+ * `coefficients[i]` is the coefficient of x^i (little-endian).
+ * When `modulus` is defined, all coefficients are kept reduced mod p.
+ */
 export interface Polynomial {
   coefficients: bigint[];
   modulus?: bigint;
@@ -94,12 +99,22 @@ function sameModulus(a: Polynomial, b: Polynomial): bigint | undefined {
 
 // --- API base ----------------------------------------------------------
 
+/**
+ * Constructs a normalized {@link Polynomial} from a coefficient array.
+ * `coefficients[0]` is the constant term; accepts `number[]` for convenience.
+ * @param coefficients - Little-endian coefficient array (index = power of x).
+ * @param modulus - Optional prime modulus p; all coefficients are reduced mod p.
+ */
 export function poly(coefficients: bigint[] | number[], modulus?: bigint): Polynomial {
   const asBig: bigint[] = coefficients.map((c) => (typeof c === 'bigint' ? c : BigInt(c)));
   if (asBig.length === 0) asBig.push(0n);
   return makePoly(asBig, modulus);
 }
 
+/**
+ * Returns the degree of `p`. Returns -1 for the zero polynomial (a finite
+ * sentinel, since `number` cannot represent -∞ cleanly in strict TS).
+ */
 export function degree(p: Polynomial): number {
   // polinomio cero: degree -1 por convención (algunos usan -Infinity, elegimos -1
   // para que sea un número finito en TS strict).
@@ -107,18 +122,21 @@ export function degree(p: Polynomial): number {
   return p.coefficients.length - 1;
 }
 
+/** Returns the coefficient of the highest-degree term, or `0n` for the zero polynomial. */
 export function leadingCoefficient(p: Polynomial): bigint {
   const d = degree(p);
   if (d < 0) return 0n;
   return p.coefficients[d];
 }
 
+/** Returns `true` when `p` is the zero polynomial (degree -1). */
 export function isZero(p: Polynomial): boolean {
   return degree(p) < 0;
 }
 
 // --- aritmética --------------------------------------------------------
 
+/** Returns `a + b`. Reduces coefficients mod p when both share a modulus. */
 export function add(a: Polynomial, b: Polynomial): Polynomial {
   const m = sameModulus(a, b);
   const len = Math.max(a.coefficients.length, b.coefficients.length);
@@ -131,6 +149,7 @@ export function add(a: Polynomial, b: Polynomial): Polynomial {
   return makePoly(out, m);
 }
 
+/** Returns `a - b`. */
 export function sub(a: Polynomial, b: Polynomial): Polynomial {
   const m = sameModulus(a, b);
   const len = Math.max(a.coefficients.length, b.coefficients.length);
@@ -143,6 +162,7 @@ export function sub(a: Polynomial, b: Polynomial): Polynomial {
   return makePoly(out, m);
 }
 
+/** Returns `a * b` via schoolbook convolution, O(deg(a)·deg(b)). */
 export function multiply(a: Polynomial, b: Polynomial): Polynomial {
   const m = sameModulus(a, b);
   if (isZero(a) || isZero(b)) return makePoly([0n], m);
@@ -172,6 +192,12 @@ function scalarMul(p: Polynomial, k: bigint): Polynomial {
 // Sobre Z/pZ es exacta (campo). Sobre Z, sólo lo hacemos si el divisor
 // es monic (líder ±1) o si la división resulta exacta sobre Z.
 
+/**
+ * Euclidean division of `a` by `b`, returning `{ quotient, remainder }`.
+ * Over Z/pZ the result is exact. Over Z, requires `b` to be monic (lead ±1)
+ * or uses pseudo-division when the leading coefficient does not divide.
+ * @throws When `b` is the zero polynomial.
+ */
 export function divmod(
   a: Polynomial,
   b: Polynomial,
@@ -302,6 +328,11 @@ function primitivePart(p: Polynomial): Polynomial {
   return makePoly(p.coefficients.map((x) => (x / c) * sign));
 }
 
+/**
+ * Greatest common divisor of `a` and `b`.
+ * Over Z/pZ uses Euclides in the field and returns a monic result.
+ * Over Z uses subresultant PRS and returns the primitive part with positive leading coefficient.
+ */
 export function gcd(a: Polynomial, b: Polynomial): Polynomial {
   const m = sameModulus(a, b);
   if (m !== undefined) {
@@ -341,6 +372,7 @@ export function gcd(a: Polynomial, b: Polynomial): Polynomial {
 
 // --- derivada, evaluación, composición --------------------------------
 
+/** Returns the formal derivative d/dx of `p`. Constant polynomials map to zero. */
 export function derivative(p: Polynomial): Polynomial {
   if (degree(p) <= 0) return makePoly([0n], p.modulus);
   const out: bigint[] = Array.from({ length: p.coefficients.length - 1 }, () => 0n);
@@ -350,6 +382,10 @@ export function derivative(p: Polynomial): Polynomial {
   return makePoly(out, p.modulus);
 }
 
+/**
+ * Evaluates `p` at integer point `x` via Horner's rule.
+ * When `p` has a modulus, the result is reduced mod p.
+ */
 export function evaluate(p: Polynomial, x: bigint): bigint {
   // Horner.
   let result = 0n;
@@ -360,6 +396,10 @@ export function evaluate(p: Polynomial, x: bigint): bigint {
   return result;
 }
 
+/**
+ * Returns the composition `a(b(x))` via Horner evaluation of `a` over `b`.
+ * Both polynomials must share the same modulus (or both be over Z).
+ */
 export function compose(a: Polynomial, b: Polynomial): Polynomial {
   // a(b(x)) via Horner sobre b.
   const m = sameModulus(a, b);
@@ -402,6 +442,11 @@ function reduceFraction(num: bigint, den: bigint): { num: bigint; den: bigint } 
   return { num: n, den: d };
 }
 
+/**
+ * Returns all rational roots of `p ∈ Z[x]` as reduced fractions `{ num, den }`.
+ * Uses the rational root theorem: roots have the form ±(divisors of a₀) / (divisors of aₙ).
+ * @throws When `p` has a modulus (rational roots do not apply in Z/pZ).
+ */
 export function rationalRoots(p: Polynomial): Array<{ num: bigint; den: bigint }> {
   if (p.modulus !== undefined) {
     throw new Error('rationalRoots: no aplica con módulo definido');
@@ -470,6 +515,11 @@ export function rationalRoots(p: Polynomial): Array<{ num: bigint; den: bigint }
   return out;
 }
 
+/**
+ * Returns the square-free part of `p`: `p / gcd(p, p')`.
+ * Over Z/pZ: divides out the gcd with the formal derivative.
+ * Over Z: uses primitive-part arithmetic to avoid coefficient blow-up.
+ */
 export function squareFree(p: Polynomial): Polynomial {
   if (p.modulus !== undefined) {
     // Sobre Z/p: squarefree = p / gcd(p, p').
@@ -532,6 +582,13 @@ function exactDivideZ(a: Polynomial, b: Polynomial): Polynomial {
   return makePoly(quotient);
 }
 
+/**
+ * Factors `p ∈ Z[x]` into irreducible factors over Q.
+ * Extracts integer content, linear factors via rational root theorem,
+ * and returns the remaining primitive part as a single factor when no
+ * further rational roots are found.
+ * @throws When `p` has a modulus — use {@link factorInZp} instead.
+ */
 export function factor(p: Polynomial): Polynomial[] {
   if (p.modulus !== undefined) {
     throw new Error('factor: usa factorInZp para módulos primos');
@@ -607,6 +664,12 @@ function evaluateRational(p: Polynomial, num: bigint, den: bigint): bigint {
   return acc;
 }
 
+/**
+ * Tests whether `p` is irreducible over Q (when no modulus) or over Z/pZ (when modulus is set).
+ * Over Q: degree ≤ 3 uses rational root test; degree ≥ 4 delegates to {@link factor}.
+ * Over Z/pZ: delegates to {@link factorInZp} and checks for a single factor.
+ * @param samples - Unused (kept for API compatibility).
+ */
 export function isIrreducible(p: Polynomial, samples = 30): boolean {
   if (p.modulus !== undefined) {
     // Sobre Z/pZ: irreducible ⇔ factorInZp da un sólo factor (lineal-monic).
@@ -639,6 +702,13 @@ export function isIrreducible(p: Polynomial, samples = 30): boolean {
 // restante se hace una búsqueda por factores de grado 2 (suficiente para
 // los casos de test). Es una versión "lite" de Berlekamp.
 
+/**
+ * Factors `p` in Z/pZ (the field with `prime` elements).
+ * Uses root-finding for linear factors, then exhaustive search for
+ * irreducible quadratic factors (lite Berlekamp for small p).
+ * @param prime - A prime modulus > 1.
+ * @throws When `prime` ≤ 1.
+ */
 export function factorInZp(p: Polynomial, prime: bigint): Polynomial[] {
   if (prime <= 1n) throw new Error('factorInZp: prime debe ser > 1');
   let working: Polynomial = makePoly(p.coefficients.slice(), prime);
@@ -712,6 +782,11 @@ export function factorInZp(p: Polynomial, prime: bigint): Polynomial[] {
 
 // --- resultante y discriminante ---------------------------------------
 
+/**
+ * Computes the resultant of `a` and `b` in Z[x] via the Sylvester matrix determinant.
+ * Returns 0 when either polynomial is zero.
+ * @throws When either polynomial has a modulus.
+ */
 export function resultant(a: Polynomial, b: Polynomial): bigint {
   if (a.modulus !== undefined || b.modulus !== undefined) {
     throw new Error('resultant: implementación sólo Z');
@@ -777,6 +852,11 @@ function bigDeterminant(M: bigint[][]): bigint {
   return sign * A[n - 1][n - 1];
 }
 
+/**
+ * Returns the discriminant of `p ∈ Z[x]`:
+ * `disc(p) = (-1)^{n(n-1)/2} · res(p, p') / lead(p)`.
+ * @throws When `p` has a modulus.
+ */
 export function discriminant(p: Polynomial): bigint {
   if (p.modulus !== undefined) {
     throw new Error('discriminant: implementación sólo Z');

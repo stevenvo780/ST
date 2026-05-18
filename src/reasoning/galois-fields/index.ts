@@ -14,12 +14,20 @@
 //  - Todas las operaciones devuelven un nuevo GFElement (inmutable).
 // ============================================================
 
+/**
+ * An element of GF(p^n) represented as a polynomial of degree < n
+ * with coefficients in Z/p (little-endian: `coefficients[i]` = coef of x^i).
+ */
 export interface GFElement {
   coefficients: number[]; // little-endian, length = n
   prime: number;
   degree: number; // n
 }
 
+/**
+ * A finite field GF(p^n) defined by a monic irreducible polynomial of degree n over Z/p.
+ * Elements are polynomials mod `irreducible`; arithmetic is done in Z/p[x] / (irreducible).
+ */
 export interface GaloisField {
   prime: number; // p
   degree: number; // n
@@ -245,6 +253,14 @@ function isIrreducibleOverZp(f: number[], p: number): boolean {
   return polyTrim(target).length === 0;
 }
 
+/**
+ * Finds the first monic irreducible polynomial of degree `n` over Z/p
+ * by enumerating all monic polys and applying Rabin's irreducibility test.
+ * @param p - A prime number.
+ * @param n - Degree >= 1.
+ * @returns Coefficient array (little-endian), or `null` if none found (should not happen for valid inputs).
+ * @throws When `p` is not prime or `n` < 1.
+ */
 export function findIrreducibleOverZp(p: number, n: number): number[] | null {
   if (!isPrimeSmall(p)) {
     throw new RangeError(`findIrreducibleOverZp: p=${p} no es primo`);
@@ -273,6 +289,14 @@ function normalizeElement(coefficients: number[], p: number, n: number): number[
   return out;
 }
 
+/**
+ * Constructs the finite field GF(p^n).
+ * If `irreducible` is not provided, one is found automatically via {@link findIrreducibleOverZp}.
+ * @param p - A prime number.
+ * @param n - Extension degree >= 1. `n = 1` gives the prime field GF(p).
+ * @param irreducible - Optional monic irreducible polynomial of degree `n` over Z/p.
+ * @throws When `p` is not prime, `n` < 1, or the provided polynomial is reducible.
+ */
 export function makeGaloisField(p: number, n: number, irreducible?: number[]): GaloisField {
   if (!isPrimeSmall(p)) {
     throw new RangeError(`makeGaloisField: p=${p} no es primo`);
@@ -309,6 +333,7 @@ export function makeGaloisField(p: number, n: number, irreducible?: number[]): G
   };
 }
 
+/** Returns the additive identity 0 of the field `F`. */
 export function gfZero(F: GaloisField): GFElement {
   return {
     coefficients: zeros(F.degree),
@@ -317,12 +342,17 @@ export function gfZero(F: GaloisField): GFElement {
   };
 }
 
+/** Returns the multiplicative identity 1 of the field `F`. */
 export function gfOne(F: GaloisField): GFElement {
   const c = zeros(F.degree);
   c[0] = 1;
   return { coefficients: c, prime: F.prime, degree: F.degree };
 }
 
+/**
+ * Constructs an element of `F` from a coefficient array, reducing each coefficient mod p
+ * and padding/truncating to length `F.degree`.
+ */
 export function gfElement(F: GaloisField, coefficients: number[]): GFElement {
   return {
     coefficients: normalizeElement(coefficients, F.prime, F.degree),
@@ -340,18 +370,21 @@ function assertCompatible(F: GaloisField, a: GFElement, b?: GFElement): void {
   }
 }
 
+/** Returns `a + b` in `F`. */
 export function gfAdd(F: GaloisField, a: GFElement, b: GFElement): GFElement {
   assertCompatible(F, a, b);
   const out = polyAddP(a.coefficients, b.coefficients, F.prime);
   return gfElement(F, out);
 }
 
+/** Returns `a - b` in `F`. */
 export function gfSub(F: GaloisField, a: GFElement, b: GFElement): GFElement {
   assertCompatible(F, a, b);
   const out = polySubP(a.coefficients, b.coefficients, F.prime);
   return gfElement(F, out);
 }
 
+/** Returns `a * b` in `F` (polynomial product reduced mod the irreducible). */
 export function gfMul(F: GaloisField, a: GFElement, b: GFElement): GFElement {
   assertCompatible(F, a, b);
   const product = polyMulP(a.coefficients, b.coefficients, F.prime);
@@ -359,6 +392,7 @@ export function gfMul(F: GaloisField, a: GFElement, b: GFElement): GFElement {
   return gfElement(F, reduced);
 }
 
+/** Returns `true` when `a` and `b` represent the same field element (coefficient-wise). */
 export function gfEq(a: GFElement, b: GFElement): boolean {
   if (a.prime !== b.prime || a.degree !== b.degree) return false;
   for (let i = 0; i < a.degree; i++) {
@@ -374,7 +408,10 @@ function isZero(a: GFElement): boolean {
   return true;
 }
 
-// Inverso vía extended Euclidean polinomial: a·u + irr·v = 1 (mod p).
+/**
+ * Returns the multiplicative inverse of `a` in `F` via the extended Euclidean algorithm,
+ * or `null` when `a` is the zero element.
+ */
 export function gfInverse(F: GaloisField, a: GFElement): GFElement | null {
   assertCompatible(F, a);
   if (isZero(a)) return null;
@@ -402,6 +439,7 @@ export function gfInverse(F: GaloisField, a: GFElement): GFElement | null {
   return gfElement(F, reduced);
 }
 
+/** Returns `a / b` in `F`, or `null` when `b` is zero (not invertible). */
 export function gfDiv(F: GaloisField, a: GFElement, b: GFElement): GFElement | null {
   assertCompatible(F, a, b);
   const inv = gfInverse(F, b);
@@ -409,6 +447,11 @@ export function gfDiv(F: GaloisField, a: GFElement, b: GFElement): GFElement | n
   return gfMul(F, a, inv);
 }
 
+/**
+ * Returns `a^exp` in `F` via square-and-multiply.
+ * Negative exponents compute the inverse first.
+ * @throws When `exp` < 0 and `a` is the zero element.
+ */
 export function gfPow(F: GaloisField, a: GFElement, exp: bigint): GFElement {
   assertCompatible(F, a);
   if (exp < 0n) {
@@ -435,8 +478,11 @@ export function gfPow(F: GaloisField, a: GFElement, exp: bigint): GFElement {
   return result;
 }
 
-// Orden multiplicativo de a: el mínimo k >= 1 tal que a^k = 1.
-// Solo definido para a != 0. Devuelve un divisor de p^n − 1.
+/**
+ * Returns the multiplicative order of `a` in `F`: the minimum k >= 1 such that `a^k = 1`.
+ * The result always divides `F.order - 1` (by Lagrange's theorem).
+ * @throws When `a` is the zero element.
+ */
 export function order(F: GaloisField, a: GFElement): number {
   assertCompatible(F, a);
   if (isZero(a)) {
@@ -461,7 +507,11 @@ export function order(F: GaloisField, a: GFElement): number {
   return k;
 }
 
-// Busca un elemento primitivo (generador del grupo multiplicativo) iterando.
+/**
+ * Finds a primitive element (generator of the multiplicative group) of `F`
+ * by iterating over non-zero elements and checking multiplicative order.
+ * @throws When no generator is found (should not happen for well-formed `F`).
+ */
 export function findPrimitive(F: GaloisField): GFElement {
   const groupOrder = F.order - 1;
   // Iteramos por todos los no-cero hasta encontrar uno de orden p^n − 1.
@@ -482,8 +532,10 @@ export function findPrimitive(F: GaloisField): GFElement {
   throw new Error(`findPrimitive: no se encontró generador en GF(${F.prime}^${F.degree})`);
 }
 
-// Logaritmo discreto por baby-step / búsqueda lineal (toy, p^n pequeño).
-// Devuelve k tal que base^k = target, o null si no existe.
+/**
+ * Computes the discrete logarithm `k` such that `base^k = target` in `F`,
+ * or `null` when no such `k` exists. Uses linear search — intended for small fields.
+ */
 export function discreteLog(F: GaloisField, base: GFElement, target: GFElement): number | null {
   assertCompatible(F, base, target);
   if (isZero(base) || isZero(target)) return null;
@@ -502,6 +554,12 @@ export function discreteLog(F: GaloisField, base: GFElement, target: GFElement):
 // Para que sea útil como RS clásico, `n` debería ser <= F.order − 1 y los
 // puntos de evaluación deberían ser las potencias de un primitivo, pero
 // aquí simplemente usamos 1, g, g^2, ..., g^(n-1).
+/**
+ * Reed-Solomon-style encoding: evaluates the polynomial with coefficients `message`
+ * at `n` points `{g^0, g^1, …, g^(n-1)}`, where `g` is a primitive element of `F`.
+ * @param n - Number of evaluation points; must be <= `F.order - 1`.
+ * @throws When `n` is out of range or `message` elements do not belong to `F`.
+ */
 export function rsEncode(F: GaloisField, message: GFElement[], n: number): GFElement[] {
   if (!Number.isInteger(n) || n < 1) {
     throw new RangeError(`rsEncode: n=${n} debe ser entero >= 1`);

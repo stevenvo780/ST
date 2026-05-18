@@ -34,21 +34,33 @@
 //   sale del lado conservador (upper_p, lower_q) y viceversa.
 // ============================================================
 
+/**
+ * A first-order hyperreal number `standard + infinitesimal · ε`,
+ * where ε is a formal infinitesimal (ε² ≈ 0).
+ */
 export interface Hyperreal {
   readonly standard: number;
   readonly infinitesimal: number;
 }
 
+/**
+ * Constructs a {@link Hyperreal} from its standard and optional infinitesimal parts.
+ * `hr(x)` produces the standard real `x + 0ε`.
+ */
 export function hr(standard: number, infinitesimal: number = 0): Hyperreal {
   return { standard, infinitesimal };
 }
 
+/** The hyperreal zero: 0 + 0ε. */
 export const HR_ZERO: Hyperreal = { standard: 0, infinitesimal: 0 };
+/** The hyperreal one: 1 + 0ε. */
 export const HR_ONE: Hyperreal = { standard: 1, infinitesimal: 0 };
+/** The formal infinitesimal ε: 0 + 1ε. */
 export const HR_EPSILON: Hyperreal = { standard: 0, infinitesimal: 1 };
 
 // ── Aritmética ──────────────────────────────────────────────
 
+/** Returns `a + b` (component-wise addition). */
 export function add(a: Hyperreal, b: Hyperreal): Hyperreal {
   return {
     standard: a.standard + b.standard,
@@ -56,6 +68,7 @@ export function add(a: Hyperreal, b: Hyperreal): Hyperreal {
   };
 }
 
+/** Returns `a - b` (component-wise subtraction). */
 export function sub(a: Hyperreal, b: Hyperreal): Hyperreal {
   return {
     standard: a.standard - b.standard,
@@ -63,6 +76,10 @@ export function sub(a: Hyperreal, b: Hyperreal): Hyperreal {
   };
 }
 
+/**
+ * Returns `a * b`, discarding O(ε²) terms:
+ * `(a.s + a.i ε)(b.s + b.i ε) = a.s·b.s + (a.s·b.i + a.i·b.s)·ε`.
+ */
 export function mul(a: Hyperreal, b: Hyperreal): Hyperreal {
   // (a.s + a.i ε)(b.s + b.i ε) = a.s·b.s + (a.s·b.i + a.i·b.s)·ε + O(ε²)
   return {
@@ -90,32 +107,39 @@ export function compare(a: Hyperreal, b: Hyperreal): -1 | 0 | 1 {
   return 0;
 }
 
+/** Returns `true` when `a` and `b` are equal under the lexicographic order. */
 export function eq(a: Hyperreal, b: Hyperreal): boolean {
   return compare(a, b) === 0;
 }
 
+/** Returns `true` when `a < b` in the hyperreal order. */
 export function lt(a: Hyperreal, b: Hyperreal): boolean {
   return compare(a, b) < 0;
 }
 
+/** Returns `true` when `a > b` in the hyperreal order. */
 export function gt(a: Hyperreal, b: Hyperreal): boolean {
   return compare(a, b) > 0;
 }
 
 // ── Lógica probabilística hiperreal ─────────────────────────
 
+/** Probabilistic AND: `p ∧ q = p · q`. */
 export function hrAnd(p: Hyperreal, q: Hyperreal): Hyperreal {
   return mul(p, q);
 }
 
+/** Probabilistic OR (inclusion-exclusion): `p ∨ q = p + q − p·q`. */
 export function hrOr(p: Hyperreal, q: Hyperreal): Hyperreal {
   return sub(add(p, q), mul(p, q));
 }
 
+/** Probabilistic NOT: `¬p = 1 − p`. */
 export function hrNot(p: Hyperreal): Hyperreal {
   return sub(HR_ONE, p);
 }
 
+/** Probabilistic implication: `p → q = ¬p ∨ q`. */
 export function hrImplies(p: Hyperreal, q: Hyperreal): Hyperreal {
   // p → q ≡ ¬p ∨ q
   return hrOr(hrNot(p), q);
@@ -123,11 +147,16 @@ export function hrImplies(p: Hyperreal, q: Hyperreal): Hyperreal {
 
 // ── Propagación de incertidumbre ────────────────────────────
 
+/** A closed interval `[lower, upper]` of hyperreal probabilities. */
 export interface UncertaintyBound {
   readonly lower: Hyperreal;
   readonly upper: Hyperreal;
 }
 
+/**
+ * Constructs a validated {@link UncertaintyBound}.
+ * @throws When `lower > upper` in the hyperreal order.
+ */
 export function bound(lower: Hyperreal, upper: Hyperreal): UncertaintyBound {
   if (compare(lower, upper) > 0) {
     throw new Error(
@@ -185,6 +214,7 @@ export function propagate(
 
 // ── Utilidades de depuración ────────────────────────────────
 
+/** Returns a human-readable string like `"0.9 + 3ε"` or `"1"` (when infinitesimal is 0). */
 export function hrToString(x: Hyperreal): string {
   if (x.infinitesimal === 0) return `${x.standard}`;
   const sign = x.infinitesimal >= 0 ? '+' : '-';
