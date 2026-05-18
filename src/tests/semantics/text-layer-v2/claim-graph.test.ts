@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { ClaimGraph, CycleError, type Claim, type ClaimEvaluator } from '../../../semantics/text-layer/v2';
+import {
+  ClaimGraph,
+  CycleError,
+  type Claim,
+  type ClaimEvaluator,
+} from '../../../semantics/text-layer/v2';
 
 const mkClaim = (id: string, dependencies: string[] = [], formula = `F_${id}`): Claim => ({
   id,

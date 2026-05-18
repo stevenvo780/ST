@@ -45,7 +45,7 @@ export const hasFiniteSubcover = (
   if (!(b >= a)) return false;
   const ivs = cover.intervals.map(([loR, hiR]) => ({
     lo: toNumber(loR),
-    hi: toNumber(hiR)
+    hi: toNumber(hiR),
   }));
   let x = a;
   // Ensure start is covered: some interval has lo < a < hi (or a == b edge).

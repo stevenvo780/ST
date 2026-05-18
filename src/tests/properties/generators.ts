@@ -10,7 +10,7 @@ import * as fc from 'fast-check';
 import type { Formula } from '../../types';
 import type { HOTerm } from '../../proof-systems/higher-order-unify';
 import type { Term as LamTerm } from '../../type-theory/lambda-calc/types';
-import type { Term as TRSTerm, RewriteRule } from '../../runtime/term-rewriting/types';
+import type { Term as TRSTerm } from '../../runtime/term-rewriting/types';
 import type { Term as AUTerm } from '../../runtime/anti-unification/types';
 import type { FType, FTerm } from '../../type-theory/system-f/types';
 import type { MLTTTerm } from '../../type-theory/mltt/types';
@@ -24,14 +24,11 @@ import type { LTS } from '../../runtime/bisimulation/types';
 export const atomName = (): fc.Arbitrary<string> =>
   fc.constantFrom('p', 'q', 'r', 's', 't', 'a', 'b', 'c');
 
-export const varName = (): fc.Arbitrary<string> =>
-  fc.constantFrom('x', 'y', 'z', 'u', 'v', 'w');
+export const varName = (): fc.Arbitrary<string> => fc.constantFrom('x', 'y', 'z', 'u', 'v', 'w');
 
-export const funcName = (): fc.Arbitrary<string> =>
-  fc.constantFrom('f', 'g', 'h', 'k');
+export const funcName = (): fc.Arbitrary<string> => fc.constantFrom('f', 'g', 'h', 'k');
 
-export const constName = (): fc.Arbitrary<string> =>
-  fc.constantFrom('A', 'B', 'C', 'D', 'E');
+export const constName = (): fc.Arbitrary<string> => fc.constantFrom('A', 'B', 'C', 'D', 'E');
 
 // ============================================================
 // Fórmulas proposicionales clásicas (AST de `types.ts`)
@@ -46,18 +43,18 @@ export const propFormula = (maxDepth = 3): fc.Arbitrary<Formula> => {
       { maxDepth, depthIdentifier: 'prop' },
       propAtom(),
       tie('formula').map((arg) => ({ kind: 'not', args: [arg as Formula] }) as Formula),
-      fc.tuple(tie('formula'), tie('formula')).map(
-        ([l, r]) => ({ kind: 'and', args: [l as Formula, r as Formula] }) as Formula,
-      ),
-      fc.tuple(tie('formula'), tie('formula')).map(
-        ([l, r]) => ({ kind: 'or', args: [l as Formula, r as Formula] }) as Formula,
-      ),
-      fc.tuple(tie('formula'), tie('formula')).map(
-        ([l, r]) => ({ kind: 'implies', args: [l as Formula, r as Formula] }) as Formula,
-      ),
+      fc
+        .tuple(tie('formula'), tie('formula'))
+        .map(([l, r]) => ({ kind: 'and', args: [l as Formula, r as Formula] }) as Formula),
+      fc
+        .tuple(tie('formula'), tie('formula'))
+        .map(([l, r]) => ({ kind: 'or', args: [l as Formula, r as Formula] }) as Formula),
+      fc
+        .tuple(tie('formula'), tie('formula'))
+        .map(([l, r]) => ({ kind: 'implies', args: [l as Formula, r as Formula] }) as Formula),
     ),
   }));
-  return formula as fc.Arbitrary<Formula>;
+  return formula;
 };
 
 // ============================================================
@@ -71,41 +68,40 @@ export const propFormula = (maxDepth = 3): fc.Arbitrary<Formula> => {
  * ningún literal y su negación coexistan en la misma cláusula —
  * evitamos cláusulas trivialmente true por tautología).
  */
-export const dimacs3SAT = (maxVars = 8, maxRatio = 4): fc.Arbitrary<{
+export const dimacs3SAT = (
+  maxVars = 8,
+  maxRatio = 4,
+): fc.Arbitrary<{
   clauses: Int32Array[];
   numVars: number;
 }> =>
-  fc
-    .integer({ min: 3, max: maxVars })
-    .chain((numVars) =>
+  fc.integer({ min: 3, max: maxVars }).chain((numVars) =>
+    fc.integer({ min: 1, max: Math.max(1, Math.floor(maxRatio * numVars)) }).chain((numClauses) =>
       fc
-        .integer({ min: 1, max: Math.max(1, Math.floor(maxRatio * numVars)) })
-        .chain((numClauses) =>
+        .array(
           fc
-            .array(
-              fc
-                .tuple(
-                  fc.integer({ min: 1, max: numVars }),
-                  fc.boolean(),
-                  fc.integer({ min: 1, max: numVars }),
-                  fc.boolean(),
-                  fc.integer({ min: 1, max: numVars }),
-                  fc.boolean(),
-                )
-                .map(([v1, s1, v2, s2, v3, s3]) => {
-                  const l1 = s1 ? v1 : -v1;
-                  const l2 = s2 ? v2 : -v2;
-                  const l3 = s3 ? v3 : -v3;
-                  // Evitar literal+su-negación en misma cláusula (tautología).
-                  // Si ocurre, forzamos la misma polaridad.
-                  const lits = [l1, l2, l3];
-                  return new Int32Array(lits);
-                }),
-              { minLength: numClauses, maxLength: numClauses },
+            .tuple(
+              fc.integer({ min: 1, max: numVars }),
+              fc.boolean(),
+              fc.integer({ min: 1, max: numVars }),
+              fc.boolean(),
+              fc.integer({ min: 1, max: numVars }),
+              fc.boolean(),
             )
-            .map((clauses) => ({ clauses, numVars })),
-        ),
-    );
+            .map(([v1, s1, v2, s2, v3, s3]) => {
+              const l1 = s1 ? v1 : -v1;
+              const l2 = s2 ? v2 : -v2;
+              const l3 = s3 ? v3 : -v3;
+              // Evitar literal+su-negación en misma cláusula (tautología).
+              // Si ocurre, forzamos la misma polaridad.
+              const lits = [l1, l2, l3];
+              return new Int32Array(lits);
+            }),
+          { minLength: numClauses, maxLength: numClauses },
+        )
+        .map((clauses) => ({ clauses, numVars })),
+    ),
+  );
 
 // ============================================================
 // Términos de primer orden para anti-unification / TRS
@@ -120,13 +116,10 @@ export const auTerm = (maxDepth = 3): fc.Arbitrary<AUTerm> => {
       constName().map((name) => ({ kind: 'const', name }) as AUTerm),
       fc
         .tuple(funcName(), fc.array(tie('term'), { minLength: 1, maxLength: 3 }))
-        .map(
-          ([name, args]) =>
-            ({ kind: 'func', name, args: args as AUTerm[] }) as AUTerm,
-        ),
+        .map(([name, args]) => ({ kind: 'func', name, args: args as AUTerm[] }) as AUTerm),
     ),
   }));
-  return term as fc.Arbitrary<AUTerm>;
+  return term;
 };
 
 /** Term del módulo term-rewriting (sin `const`; usa `func` con []). */
@@ -138,13 +131,10 @@ export const trsTerm = (maxDepth = 3): fc.Arbitrary<TRSTerm> => {
       constName().map((name) => ({ kind: 'func', name, args: [] }) as TRSTerm),
       fc
         .tuple(funcName(), fc.array(tie('term'), { minLength: 1, maxLength: 3 }))
-        .map(
-          ([name, args]) =>
-            ({ kind: 'func', name, args: args as TRSTerm[] }) as TRSTerm,
-        ),
+        .map(([name, args]) => ({ kind: 'func', name, args: args as TRSTerm[] }) as TRSTerm),
     ),
   }));
-  return term as fc.Arbitrary<TRSTerm>;
+  return term;
 };
 
 /** Term sin variables (closed) — útil para que las reglas TRS produzcan
@@ -156,74 +146,64 @@ export const trsClosedTerm = (maxDepth = 3): fc.Arbitrary<TRSTerm> => {
       constName().map((name) => ({ kind: 'func', name, args: [] }) as TRSTerm),
       fc
         .tuple(funcName(), fc.array(tie('term'), { minLength: 1, maxLength: 2 }))
-        .map(
-          ([name, args]) =>
-            ({ kind: 'func', name, args: args as TRSTerm[] }) as TRSTerm,
-        ),
+        .map(([name, args]) => ({ kind: 'func', name, args: args as TRSTerm[] }) as TRSTerm),
     ),
   }));
-  return term as fc.Arbitrary<TRSTerm>;
+  return term;
 };
 
 // ============================================================
 // HO Terms (Miller patterns)
 // ============================================================
 
-const metaName = (): fc.Arbitrary<string> =>
-  fc.constantFrom('M', 'N', 'P', 'Q');
+const metaName = (): fc.Arbitrary<string> => fc.constantFrom('M', 'N', 'P', 'Q');
 
 /**
  * Genera un término HO de la "forma patrón" (Miller): meta-vars
  * aparecen aplicadas únicamente a variables ligadas distintas.
  * Construye términos del tipo λx.λy. M x y, var x, etc.
  */
-export const hoPatternTerm = (maxDepth = 3): fc.Arbitrary<HOTerm> => {
+export const hoPatternTerm = (_maxDepth = 3): fc.Arbitrary<HOTerm> => {
   // Generamos un λ-spine con boundVars distintos, luego el cuerpo:
   // variables ligadas o meta aplicada a un subconjunto de boundVars.
-  return fc
-    .uniqueArray(varName(), { minLength: 0, maxLength: 3 })
-    .chain((bvs) => {
-      const bodyArb: fc.Arbitrary<HOTerm> = fc.oneof(
-        // var libre o ligada
-        varName().map((n) => ({ kind: 'var', name: n }) as HOTerm),
-        // var ligada del scope (si hay)
-        ...(bvs.length > 0
-          ? [
-              fc
-                .constantFrom(...bvs)
-                .map((n) => ({ kind: 'var', name: n }) as HOTerm),
-            ]
-          : []),
-        // meta aplicada a vars ligadas distintas
-        ...(bvs.length > 0
-          ? [
-              fc.tuple(
+  return fc.uniqueArray(varName(), { minLength: 0, maxLength: 3 }).chain((bvs) => {
+    const bodyArb: fc.Arbitrary<HOTerm> = fc.oneof(
+      // var libre o ligada
+      varName().map((n) => ({ kind: 'var', name: n }) as HOTerm),
+      // var ligada del scope (si hay)
+      ...(bvs.length > 0
+        ? [fc.constantFrom(...bvs).map((n) => ({ kind: 'var', name: n }) as HOTerm)]
+        : []),
+      // meta aplicada a vars ligadas distintas
+      ...(bvs.length > 0
+        ? [
+            fc
+              .tuple(
                 metaName(),
                 fc
                   .shuffledSubarray(bvs, { minLength: 1, maxLength: bvs.length })
-                  .map((sub) =>
-                    sub.map((n) => ({ kind: 'var', name: n }) as HOTerm),
-                  ),
-              ).map(
+                  .map((sub) => sub.map((n) => ({ kind: 'var', name: n }) as HOTerm)),
+              )
+              .map(
                 ([m, args]) =>
                   ({
                     kind: 'app',
                     fn: { kind: 'meta', name: m },
-                    args: args as HOTerm[],
+                    args: args,
                   }) as HOTerm,
               ),
-            ]
-          : [metaName().map((m) => ({ kind: 'meta', name: m }) as HOTerm)]),
-      );
-      // Envolvemos en λ-spine.
-      return bodyArb.map((body) => {
-        let t: HOTerm = body;
-        for (let i = bvs.length - 1; i >= 0; i--) {
-          t = { kind: 'abs', param: bvs[i]!, body: t };
-        }
-        return t;
-      });
+          ]
+        : [metaName().map((m) => ({ kind: 'meta', name: m }) as HOTerm)]),
+    );
+    // Envolvemos en λ-spine.
+    return bodyArb.map((body) => {
+      let t: HOTerm = body;
+      for (let i = bvs.length - 1; i >= 0; i--) {
+        t = { kind: 'abs', param: bvs[i], body: t };
+      }
+      return t;
     });
+  });
 };
 
 // ============================================================
@@ -237,19 +217,13 @@ export const lamTerm = (maxDepth = 3): fc.Arbitrary<LamTerm> => {
       varName().map((n) => ({ kind: 'var', name: n }) as LamTerm),
       fc
         .tuple(varName(), tie('term'))
-        .map(
-          ([param, body]) =>
-            ({ kind: 'abs', param, body: body as LamTerm }) as LamTerm,
-        ),
+        .map(([param, body]) => ({ kind: 'abs', param, body: body as LamTerm }) as LamTerm),
       fc
         .tuple(tie('term'), tie('term'))
-        .map(
-          ([fn, arg]) =>
-            ({ kind: 'app', fn: fn as LamTerm, arg: arg as LamTerm }) as LamTerm,
-        ),
+        .map(([fn, arg]) => ({ kind: 'app', fn: fn as LamTerm, arg: arg as LamTerm }) as LamTerm),
     ),
   }));
-  return term as fc.Arbitrary<LamTerm>;
+  return term;
 };
 
 // ============================================================
@@ -310,41 +284,29 @@ export const symExpr = (maxDepth = 3): fc.Arbitrary<Expr> => {
   const { expr } = fc.letrec((tie) => ({
     expr: fc.oneof(
       { maxDepth, depthIdentifier: 'sym' },
-      fc
-        .integer({ min: -5, max: 5 })
-        .map((v) => ({ kind: 'const', value: v }) as Expr),
+      fc.integer({ min: -5, max: 5 }).map((v) => ({ kind: 'const', value: v }) as Expr),
       fc.constantFrom('x', 'y').map((name) => ({ kind: 'var', name }) as Expr),
       fc
         .tuple(tie('expr'), tie('expr'))
-        .map(
-          ([a, b]) =>
-            ({ kind: 'add', args: [a as Expr, b as Expr] }) as Expr,
-        ),
+        .map(([a, b]) => ({ kind: 'add', args: [a as Expr, b as Expr] }) as Expr),
       fc
         .tuple(tie('expr'), tie('expr'))
-        .map(
-          ([a, b]) =>
-            ({ kind: 'mul', args: [a as Expr, b as Expr] }) as Expr,
-        ),
+        .map(([a, b]) => ({ kind: 'mul', args: [a as Expr, b as Expr] }) as Expr),
       fc
         .tuple(tie('expr'), tie('expr'))
-        .map(
-          ([l, r]) => ({ kind: 'sub', left: l as Expr, right: r as Expr }) as Expr,
-        ),
+        .map(([l, r]) => ({ kind: 'sub', left: l as Expr, right: r as Expr }) as Expr),
       // Potencias enteras pequeñas para evitar números absurdos.
-      fc
-        .tuple(tie('expr'), fc.integer({ min: 0, max: 3 }))
-        .map(
-          ([base, n]) =>
-            ({
-              kind: 'pow',
-              base: base as Expr,
-              exp: { kind: 'const', value: n },
-            }) as Expr,
-        ),
+      fc.tuple(tie('expr'), fc.integer({ min: 0, max: 3 })).map(
+        ([base, n]) =>
+          ({
+            kind: 'pow',
+            base: base as Expr,
+            exp: { kind: 'const', value: n },
+          }) as Expr,
+      ),
     ),
   }));
-  return expr as fc.Arbitrary<Expr>;
+  return expr;
 };
 
 /** Versión "segura" (sin div ni log/exp con base inestable) — derivable
@@ -413,32 +375,29 @@ export const tinyBayesNet = (): fc.Arbitrary<{
 // ============================================================
 
 export const tinyLTS = (): fc.Arbitrary<LTS> =>
-  fc
-    .integer({ min: 1, max: 5 })
-    .chain((nStates) =>
-      fc
-        .array(
-          fc
-            .tuple(
-              fc.integer({ min: 0, max: nStates - 1 }),
-              fc.constantFrom('a', 'b', 'c', 'tau'),
-              fc.integer({ min: 0, max: nStates - 1 }),
-            )
-            .map(([i, l, j]) => [`s${i}`, l, `s${j}`] as [string, string, string]),
-          { minLength: 0, maxLength: 12 },
-        )
-        .map((transitions) => ({
-          states: Array.from({ length: nStates }, (_, i) => `s${i}`),
-          transitions,
-        })),
-    );
+  fc.integer({ min: 1, max: 5 }).chain((nStates) =>
+    fc
+      .array(
+        fc
+          .tuple(
+            fc.integer({ min: 0, max: nStates - 1 }),
+            fc.constantFrom('a', 'b', 'c', 'tau'),
+            fc.integer({ min: 0, max: nStates - 1 }),
+          )
+          .map(([i, l, j]) => [`s${i}`, l, `s${j}`] as [string, string, string]),
+        { minLength: 0, maxLength: 12 },
+      )
+      .map((transitions) => ({
+        states: Array.from({ length: nStates }, (_, i) => `s${i}`),
+        transitions,
+      })),
+  );
 
 // ============================================================
 // AGM belief revision: belief set inicial + fórmula
 // ============================================================
 
-const propAtomString = (): fc.Arbitrary<string> =>
-  fc.constantFrom('p', 'q', 'r');
+const propAtomString = (): fc.Arbitrary<string> => fc.constantFrom('p', 'q', 'r');
 
 const propLiteral = (): fc.Arbitrary<string> =>
   fc.tuple(fc.boolean(), propAtomString()).map(([neg, a]) => (neg ? `!${a}` : a));
@@ -448,10 +407,7 @@ export const beliefSetAndFormula = (): fc.Arbitrary<{
   phi: string;
 }> =>
   fc
-    .tuple(
-      fc.array(propLiteral(), { minLength: 0, maxLength: 3 }),
-      propLiteral(),
-    )
+    .tuple(fc.array(propLiteral(), { minLength: 0, maxLength: 3 }), propLiteral())
     .map(([initial, phi]) => ({ initial, phi }));
 
 // ============================================================
@@ -462,29 +418,29 @@ export const tinyAF = (): fc.Arbitrary<{
   arguments: Set<string>;
   attacks: Array<[string, string]>;
 }> =>
-  fc
-    .integer({ min: 1, max: 5 })
-    .chain((n) => {
-      const args = Array.from({ length: n }, (_, i) => `a${i}`);
-      return fc
-        .array(
-          fc
-            .tuple(fc.integer({ min: 0, max: n - 1 }), fc.integer({ min: 0, max: n - 1 }))
-            .map(([i, j]) => [args[i]!, args[j]!] as [string, string]),
-          { minLength: 0, maxLength: 8 },
-        )
-        .map((attacks) => ({ arguments: new Set(args), attacks }));
-    });
+  fc.integer({ min: 1, max: 5 }).chain((n) => {
+    const args = Array.from({ length: n }, (_, i) => `a${i}`);
+    return fc
+      .array(
+        fc
+          .tuple(fc.integer({ min: 0, max: n - 1 }), fc.integer({ min: 0, max: n - 1 }))
+          .map(([i, j]) => [args[i], args[j]] as [string, string]),
+        { minLength: 0, maxLength: 8 },
+      )
+      .map((attacks) => ({ arguments: new Set(args), attacks }));
+  });
 
 // ============================================================
 // Hyperreal random
 // ============================================================
 
 export const hyperrealArb = (): fc.Arbitrary<{ standard: number; infinitesimal: number }> =>
-  fc.tuple(
-    fc.double({ min: -100, max: 100, noNaN: true, noDefaultInfinity: true }),
-    fc.double({ min: -100, max: 100, noNaN: true, noDefaultInfinity: true }),
-  ).map(([s, i]) => ({ standard: s, infinitesimal: i }));
+  fc
+    .tuple(
+      fc.double({ min: -100, max: 100, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: -100, max: 100, noNaN: true, noDefaultInfinity: true }),
+    )
+    .map(([s, i]) => ({ standard: s, infinitesimal: i }));
 
 // ============================================================
 // Refinement types (RefType random simple)

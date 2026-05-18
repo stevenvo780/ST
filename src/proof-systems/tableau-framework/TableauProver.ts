@@ -2,13 +2,7 @@
 // Tableau Framework — TableauProver<F>
 // ============================================================
 
-import type {
-  Tableau,
-  TableauBranch,
-  TableauNode,
-  Rule,
-  ClosureCondition,
-} from './types';
+import type { Tableau, TableauBranch, TableauNode, Rule, ClosureCondition } from './types';
 
 /**
  * Internal branch wrapper that tracks whether this branch is a leaf
@@ -61,7 +55,7 @@ export class TableauProver<F> {
       for (let i = 0; i < branch.nodes.length; i++) {
         const node = branch.nodes[i];
         if (!node) continue;
-        const rule = this.rules.find(r => r.match(node, branch));
+        const rule = this.rules.find((r) => r.match(node, branch));
         if (!rule) continue;
 
         const expansions = rule.apply(node, branch);
@@ -105,11 +99,11 @@ export class TableauProver<F> {
     }
 
     // Collect all branches (for the public API).
-    const allBranches = allEntries.map(e => e.branch);
+    const allBranches = allEntries.map((e) => e.branch);
 
     // Leaf branches: not superseded (true terminal nodes of the tree).
-    const leafEntries = allEntries.filter(e => !e.superseded);
-    const open = leafEntries.filter(e => !e.branch.closed).map(e => e.branch);
+    const leafEntries = allEntries.filter((e) => !e.superseded);
+    const open = leafEntries.filter((e) => !e.branch.closed).map((e) => e.branch);
     const tableClosed = open.length === 0;
 
     return {
@@ -135,7 +129,7 @@ export class TableauProver<F> {
 
 function cloneBranch<F>(branch: TableauBranch<F>): TableauBranch<F> {
   return {
-    nodes: branch.nodes.map(n => ({ ...n })),
+    nodes: branch.nodes.map((n) => ({ ...n })),
     closed: branch.closed,
     reason: branch.reason,
   };

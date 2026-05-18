@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { Formula } from '../../../types';
-import { proveFormula, proveSequent, proofToLatex, ProofTree } from '../../../logic/profiles/sequent-g3';
+import {
+  proveFormula,
+  proveSequent,
+  proofToLatex,
+  ProofTree,
+} from '../../../logic/profiles/sequent-g3';
 
 // --- Helpers de construccion ---
 

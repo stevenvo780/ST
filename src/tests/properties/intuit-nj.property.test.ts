@@ -29,18 +29,14 @@ function intuitFormulaArb(maxDepth = 3): fc.Arbitrary<IntuitFormula> {
       { maxDepth, depthIdentifier: 'i' },
       fc.constantFrom('p', 'q', 'r').map((n) => iatom(n)),
       tie('f').map((arg) => inot(arg as IntuitFormula)),
-      fc.tuple(tie('f'), tie('f')).map(([l, r]) =>
-        iand(l as IntuitFormula, r as IntuitFormula),
-      ),
-      fc.tuple(tie('f'), tie('f')).map(([l, r]) =>
-        ior(l as IntuitFormula, r as IntuitFormula),
-      ),
-      fc.tuple(tie('f'), tie('f')).map(([l, r]) =>
-        iimplies(l as IntuitFormula, r as IntuitFormula),
-      ),
+      fc.tuple(tie('f'), tie('f')).map(([l, r]) => iand(l as IntuitFormula, r as IntuitFormula)),
+      fc.tuple(tie('f'), tie('f')).map(([l, r]) => ior(l as IntuitFormula, r as IntuitFormula)),
+      fc
+        .tuple(tie('f'), tie('f'))
+        .map(([l, r]) => iimplies(l as IntuitFormula, r as IntuitFormula)),
     ),
   }));
-  return f as fc.Arbitrary<IntuitFormula>;
+  return f;
 }
 
 // Convierte IntuitFormula al Formula clásico de `types/index.ts`.
@@ -72,9 +68,7 @@ describe('property: intuitionistic ⊆ classical', () => {
         if (intuitResult === null) return true; // skip — no es intuit-provable
         const classical = proveClassical(intuitToClassical(phi), { budget: 5000 });
         if (!classical.provable) {
-          throw new Error(
-            `intuit-provable pero NO classical: phi=${JSON.stringify(phi)}`,
-          );
+          throw new Error(`intuit-provable pero NO classical: phi=${JSON.stringify(phi)}`);
         }
         return true;
       }),

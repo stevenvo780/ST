@@ -46,7 +46,7 @@ function signed(formula: PropFormula, s: 'T' | 'F', label?: string): PNode {
  */
 const ruleT_Not: Rule<PropFormula> = {
   name: 'T-Not',
-  match: n => n.signed === 'T' && n.formula.kind === 'not',
+  match: (n) => n.signed === 'T' && n.formula.kind === 'not',
   apply: (n) => [[signed(arg0(n.formula), 'F', 'T-Not')]],
 };
 
@@ -55,7 +55,7 @@ const ruleT_Not: Rule<PropFormula> = {
  */
 const ruleF_Not: Rule<PropFormula> = {
   name: 'F-Not',
-  match: n => n.signed === 'F' && n.formula.kind === 'not',
+  match: (n) => n.signed === 'F' && n.formula.kind === 'not',
   apply: (n) => [[signed(arg0(n.formula), 'T', 'F-Not')]],
 };
 
@@ -64,7 +64,7 @@ const ruleF_Not: Rule<PropFormula> = {
  */
 const ruleT_And: Rule<PropFormula> = {
   name: 'T-And',
-  match: n => n.signed === 'T' && n.formula.kind === 'and',
+  match: (n) => n.signed === 'T' && n.formula.kind === 'and',
   apply: (n) => [[signed(arg0(n.formula), 'T', 'T-And'), signed(arg1(n.formula), 'T', 'T-And')]],
 };
 
@@ -73,11 +73,8 @@ const ruleT_And: Rule<PropFormula> = {
  */
 const ruleF_And: Rule<PropFormula> = {
   name: 'F-And',
-  match: n => n.signed === 'F' && n.formula.kind === 'and',
-  apply: (n) => [
-    [signed(arg0(n.formula), 'F', 'F-And')],
-    [signed(arg1(n.formula), 'F', 'F-And')],
-  ],
+  match: (n) => n.signed === 'F' && n.formula.kind === 'and',
+  apply: (n) => [[signed(arg0(n.formula), 'F', 'F-And')], [signed(arg1(n.formula), 'F', 'F-And')]],
 };
 
 /**
@@ -85,11 +82,8 @@ const ruleF_And: Rule<PropFormula> = {
  */
 const ruleT_Or: Rule<PropFormula> = {
   name: 'T-Or',
-  match: n => n.signed === 'T' && n.formula.kind === 'or',
-  apply: (n) => [
-    [signed(arg0(n.formula), 'T', 'T-Or')],
-    [signed(arg1(n.formula), 'T', 'T-Or')],
-  ],
+  match: (n) => n.signed === 'T' && n.formula.kind === 'or',
+  apply: (n) => [[signed(arg0(n.formula), 'T', 'T-Or')], [signed(arg1(n.formula), 'T', 'T-Or')]],
 };
 
 /**
@@ -97,7 +91,7 @@ const ruleT_Or: Rule<PropFormula> = {
  */
 const ruleF_Or: Rule<PropFormula> = {
   name: 'F-Or',
-  match: n => n.signed === 'F' && n.formula.kind === 'or',
+  match: (n) => n.signed === 'F' && n.formula.kind === 'or',
   apply: (n) => [[signed(arg0(n.formula), 'F', 'F-Or'), signed(arg1(n.formula), 'F', 'F-Or')]],
 };
 
@@ -106,7 +100,7 @@ const ruleF_Or: Rule<PropFormula> = {
  */
 const ruleT_Implies: Rule<PropFormula> = {
   name: 'T-Implies',
-  match: n => n.signed === 'T' && n.formula.kind === 'implies',
+  match: (n) => n.signed === 'T' && n.formula.kind === 'implies',
   apply: (n) => [
     [signed(arg0(n.formula), 'F', 'T-Implies')],
     [signed(arg1(n.formula), 'T', 'T-Implies')],
@@ -118,8 +112,10 @@ const ruleT_Implies: Rule<PropFormula> = {
  */
 const ruleF_Implies: Rule<PropFormula> = {
   name: 'F-Implies',
-  match: n => n.signed === 'F' && n.formula.kind === 'implies',
-  apply: (n) => [[signed(arg0(n.formula), 'T', 'F-Implies'), signed(arg1(n.formula), 'F', 'F-Implies')]],
+  match: (n) => n.signed === 'F' && n.formula.kind === 'implies',
+  apply: (n) => [
+    [signed(arg0(n.formula), 'T', 'F-Implies'), signed(arg1(n.formula), 'F', 'F-Implies')],
+  ],
 };
 
 // ── Standard closure condition ────────────────────────────────
@@ -156,10 +152,14 @@ export function createPropositionalProver(): TableauProver<PropFormula> {
   const prover = new TableauProver<PropFormula>();
 
   for (const rule of [
-    ruleT_Not, ruleF_Not,
-    ruleT_And, ruleF_And,
-    ruleT_Or,  ruleF_Or,
-    ruleT_Implies, ruleF_Implies,
+    ruleT_Not,
+    ruleF_Not,
+    ruleT_And,
+    ruleF_And,
+    ruleT_Or,
+    ruleF_Or,
+    ruleT_Implies,
+    ruleF_Implies,
   ]) {
     prover.registerRule(rule);
   }

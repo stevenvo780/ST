@@ -27,7 +27,11 @@ function matchLiterals(remaining: FOLLiteral[], target: FOLLiteral[], sub: Subst
   return false;
 }
 
-function matchLiteral(pattern: FOLLiteral, target: FOLLiteral, sub: Substitution): Substitution | null {
+function matchLiteral(
+  pattern: FOLLiteral,
+  target: FOLLiteral,
+  sub: Substitution,
+): Substitution | null {
   if (pattern.negated !== target.negated) return null;
   if (pattern.predicate !== target.predicate) return null;
   if (pattern.args.length !== target.args.length) return null;

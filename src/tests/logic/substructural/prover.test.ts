@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { LinearFormula, LinearProof, proveLinear, proveAffine } from '../../../logic/profiles/substructural';
+import {
+  LinearFormula,
+  LinearProof,
+  proveLinear,
+  proveAffine,
+} from '../../../logic/profiles/substructural';
 
 // --- Helpers de construccion ---
 

@@ -30,7 +30,7 @@ import {
   multiplyPolynomials,
   generatingFunction,
   binomialGF,
-  inclusionExclusion
+  inclusionExclusion,
 } from '../../../reasoning/combinatorics';
 
 describe('basic counts', () => {
@@ -98,7 +98,7 @@ describe('generators', () => {
       [1, 4],
       [2, 3],
       [2, 4],
-      [3, 4]
+      [3, 4],
     ]);
   });
 

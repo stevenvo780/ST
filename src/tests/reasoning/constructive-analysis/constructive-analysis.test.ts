@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 import {
   type CReal,
-  fromInt,
+  fromInt as _fromInt,
   fromFloat,
   add,
   mul,
@@ -11,7 +11,7 @@ import {
   toNumber,
   approxEq,
   zero,
-  one
+  one,
 } from '../../../reasoning/constructive-reals';
 
 import {
@@ -28,7 +28,7 @@ import {
   hasFiniteSubcover,
   intermediateValueTheorem,
   meanValueConstructive,
-  type ConstructiveContinuous
+  type ConstructiveContinuous,
 } from '../../../reasoning/constructive-analysis';
 
 describe('constructive-reals primitives (smoke)', () => {
@@ -69,7 +69,10 @@ describe('Cauchy sequences', () => {
   });
 
   it('constant sequence is trivially Cauchy and converges to itself', () => {
-    const c = cauchyFrom(() => fromFloat(7), () => 1);
+    const c = cauchyFrom(
+      () => fromFloat(7),
+      () => 1,
+    );
     expect(isCauchy(c, 100)).toBe(true);
     expect(toNumber(limit(c))).toBeCloseTo(7, 6);
   });
@@ -92,7 +95,7 @@ describe('Uniform continuity', () => {
   // So modulus(eps) = ceil(2 * eps) works.
   const xSquared: ConstructiveContinuous = {
     fn: (x) => mul(x, x),
-    modulus: (eps) => Math.max(1, 2 * eps)
+    modulus: (eps) => Math.max(1, 2 * eps),
   };
 
   it('x^2 is uniformly continuous on [0, 1]', () => {
@@ -124,7 +127,7 @@ describe('Uniform continuity', () => {
   it('a wrong modulus is rejected', () => {
     const wrongMod: ConstructiveContinuous = {
       fn: (x) => mul(x, mul(x, x)), // x^3
-      modulus: () => 1 // claims |x-y| < 1 => |f(x)-f(y)| < 1/eps. False.
+      modulus: () => 1, // claims |x-y| < 1 => |f(x)-f(y)| < 1/eps. False.
     };
     expect(isUniformlyContinuousOn(wrongMod, [zero, fromFloat(5)], 10)).toBe(false);
   });
@@ -146,7 +149,7 @@ describe('Bishop integral', () => {
   it('integral of x^2 over [0, 1] is approximately 1/3', () => {
     const xSq: ConstructiveContinuous = {
       fn: (x) => mul(x, x),
-      modulus: (eps) => Math.max(1, 2 * eps)
+      modulus: (eps) => Math.max(1, 2 * eps),
     };
     const I = bishopIntegral(xSq, zero, one, 200);
     expect(toNumber(I, 10_000)).toBeCloseTo(1 / 3, 2);
@@ -167,8 +170,8 @@ describe('Heine-Borel finite subcover', () => {
       intervals: [
         [fromFloat(-0.1), fromFloat(0.5)],
         [fromFloat(0.3), fromFloat(0.8)],
-        [fromFloat(0.7), fromFloat(1.2)]
-      ] as ReadonlyArray<readonly [CReal, CReal]>
+        [fromFloat(0.7), fromFloat(1.2)],
+      ] as ReadonlyArray<readonly [CReal, CReal]>,
     };
     expect(hasFiniteSubcover(cover, [zero, one])).toBe(true);
   });
@@ -177,8 +180,8 @@ describe('Heine-Borel finite subcover', () => {
     const cover = {
       intervals: [
         [fromFloat(-0.1), fromFloat(0.3)],
-        [fromFloat(0.7), fromFloat(1.2)]
-      ] as ReadonlyArray<readonly [CReal, CReal]>
+        [fromFloat(0.7), fromFloat(1.2)],
+      ] as ReadonlyArray<readonly [CReal, CReal]>,
     };
     expect(hasFiniteSubcover(cover, [zero, one])).toBe(false);
   });
@@ -188,7 +191,7 @@ describe('Intermediate Value Theorem (constructive)', () => {
   it('IVT for f(x) = x^2 - 2 on [1, 2] finds c with f(c) ≈ 0', () => {
     const f: ConstructiveContinuous = {
       fn: (x) => sub(mul(x, x), fromFloat(2)),
-      modulus: (eps) => Math.max(1, 4 * eps) // L = 4 on [1, 2]
+      modulus: (eps) => Math.max(1, 4 * eps), // L = 4 on [1, 2]
     };
     const c = intermediateValueTheorem(f, one, fromFloat(2), zero, 200);
     expect(c).not.toBeNull();
@@ -204,7 +207,7 @@ describe('Intermediate Value Theorem (constructive)', () => {
   it('IVT for f(x) = x - 0.5 on [0, 1] hits target 0', () => {
     const f: ConstructiveContinuous = {
       fn: (x) => sub(x, fromFloat(0.5)),
-      modulus: (eps) => Math.max(1, eps)
+      modulus: (eps) => Math.max(1, eps),
     };
     const c = intermediateValueTheorem(f, zero, one, zero, 100);
     expect(c).not.toBeNull();

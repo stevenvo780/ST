@@ -13,7 +13,7 @@ import { solveCDCLv2 } from '../../solver/cdcl-v2';
 
 function clauseSatisfied(clause: Int32Array, model: Record<string, boolean>): boolean {
   for (let i = 0; i < clause.length; i++) {
-    const lit = clause[i]!;
+    const lit = clause[i];
     const v = Math.abs(lit);
     // El solver default usa keys "x1", "x2", ... (sin atomNames).
     const assigned = model[`x${v}`];
@@ -23,10 +23,7 @@ function clauseSatisfied(clause: Int32Array, model: Record<string, boolean>): bo
   return false;
 }
 
-function enumerateAllAssignments(
-  numVars: number,
-  clauses: Int32Array[],
-): boolean {
+function enumerateAllAssignments(numVars: number, clauses: Int32Array[]): boolean {
   // Brute-force: si existe asignación que satisface, retorna true.
   // Solo seguro hasta ~10 vars (2^10 = 1024).
   const total = 1 << numVars;

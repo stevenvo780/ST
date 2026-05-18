@@ -13,14 +13,18 @@ import {
   unify,
   type FOLClause,
   type FOLLiteral,
-  type FOLTerm
+  type FOLTerm,
 } from '../../../proof-systems/fol-prover-advanced';
 
 // Helpers (terse) para no inflar los tests
 const v = (name: string): FOLTerm => ({ kind: 'variable', name });
 const c = (name: string): FOLTerm => ({ kind: 'function', name, args: [] });
 const f = (name: string, ...args: FOLTerm[]): FOLTerm => ({ kind: 'function', name, args });
-const lit = (predicate: string, args: FOLTerm[], negated = false): FOLLiteral => ({ predicate, args, negated });
+const lit = (predicate: string, args: FOLTerm[], negated = false): FOLLiteral => ({
+  predicate,
+  args,
+  negated,
+});
 const clause = (literals: FOLLiteral[], fromGoal = false): FOLClause => ({ literals, fromGoal });
 
 describe('fol-prover-advanced', () => {
@@ -42,13 +46,20 @@ describe('fol-prover-advanced', () => {
 
   describe('KBO ordering', () => {
     it('f(a,b) > a por mayor peso', () => {
-      const weights = new Map([['f', 1], ['a', 1], ['b', 1]]);
+      const weights = new Map([
+        ['f', 1],
+        ['a', 1],
+        ['b', 1],
+      ]);
       expect(kboGreater(f('f', c('a'), c('b')), c('a'), weights)).toBe(true);
       expect(kboGreater(c('a'), f('f', c('a'), c('b')), weights)).toBe(false);
     });
 
     it('rechaza cuando variable de t2 no aparece en t1', () => {
-      const weights = new Map([['f', 1], ['a', 1]]);
+      const weights = new Map([
+        ['f', 1],
+        ['a', 1],
+      ]);
       // f(a) vs x: x aparece 1 vez en t2 y 0 en t1 → no >_KBO.
       expect(kboGreater(f('f', c('a')), v('x'), weights)).toBe(false);
     });
@@ -61,7 +72,11 @@ describe('fol-prover-advanced', () => {
     });
 
     it('f(a) > g(a) si precedence(f) > precedence(g)', () => {
-      const prec = new Map([['f', 5], ['g', 1], ['a', 0]]);
+      const prec = new Map([
+        ['f', 5],
+        ['g', 1],
+        ['a', 0],
+      ]);
       expect(lpoGreater(f('f', c('a')), f('g', c('a')), prec)).toBe(true);
       expect(lpoGreater(f('g', c('a')), f('f', c('a')), prec)).toBe(false);
     });
@@ -81,7 +96,7 @@ describe('fol-prover-advanced', () => {
       const filtered = removeSubsumed([specific, general]);
       // El general subsume al específico → sólo el general sobrevive.
       expect(filtered.length).toBe(1);
-      expect(clausesAlphaEqual(filtered[0]!, general)).toBe(true);
+      expect(clausesAlphaEqual(filtered[0], general)).toBe(true);
     });
   });
 
@@ -91,7 +106,7 @@ describe('fol-prover-advanced', () => {
       const c2 = clause([lit('P', [c('a')], true)]);
       const res = binaryResolve(c1, c2);
       expect(res.length).toBeGreaterThan(0);
-      expect(res[0]!.clause.literals.length).toBe(0);
+      expect(res[0].clause.literals.length).toBe(0);
     });
   });
 
@@ -114,10 +129,10 @@ describe('fol-prover-advanced', () => {
       const res = hyperresolve(electron, nucleus);
       expect(res.length).toBeGreaterThan(0);
       // Quedó Q(a) en el residual
-      const survivor = res[0]!;
+      const survivor = res[0];
       expect(survivor.literals.length).toBe(1);
-      expect(survivor.literals[0]!.predicate).toBe('Q');
-      expect(survivor.literals[0]!.args[0]).toEqual(c('a'));
+      expect(survivor.literals[0].predicate).toBe('Q');
+      expect(survivor.literals[0].args[0]).toEqual(c('a'));
     });
   });
 
@@ -143,7 +158,7 @@ describe('fol-prover-advanced', () => {
         lit('A', [], true),
         lit('B', [], true),
         lit('C', [], true),
-        lit('D', [])
+        lit('D', []),
       ]);
       const goal = clause([lit('D', [])]);
       const result = proveAdvanced([A, B, C, nucleus], goal, { strategy: 'hyperresolution' });
@@ -159,7 +174,7 @@ describe('fol-prover-advanced', () => {
         clause([lit('P2', [], true), lit('P3', [])]),
         clause([lit('P3', [], true), lit('P4', [])]),
         clause([lit('P4', [], true), lit('P5', [])]),
-        clause([lit('P5', [], true), lit('P6', [])])
+        clause([lit('P5', [], true), lit('P6', [])]),
       ];
       const goal = clause([lit('P6', [])]);
       const result = proveAdvanced(facts, goal, { strategy: 'unit-preference' });
@@ -175,7 +190,7 @@ describe('fol-prover-advanced', () => {
       const rule = clause([lit('P', [v('x')], true), lit('Q', [v('x')])]);
       const goal = clause([lit('Q', [c('a')])]);
       const result = proveAdvanced([fact, rule], goal, {
-        strategy: 'set-of-support'
+        strategy: 'set-of-support',
       });
       expect(result.proven).toBe(true);
       // El primer paso del SoS debe involucrar la cláusula del goal
@@ -200,11 +215,15 @@ describe('fol-prover-advanced', () => {
       const A = clause([lit('A', [c('a')])]);
       const rule = clause([lit('A', [v('x')], true), lit('B', [v('x')])]);
       const goal = clause([lit('B', [c('a')])]);
-      const weights = new Map([['A', 2], ['B', 1], ['a', 1]]);
+      const weights = new Map([
+        ['A', 2],
+        ['B', 1],
+        ['a', 1],
+      ]);
       const result = proveAdvanced([A, rule], goal, {
         strategy: 'ordered',
         ordering: 'KBO',
-        kboWeights: weights
+        kboWeights: weights,
       });
       expect(result.proven).toBe(true);
     });
@@ -213,11 +232,15 @@ describe('fol-prover-advanced', () => {
       const A = clause([lit('P', [c('a')])]);
       const rule = clause([lit('P', [v('x')], true), lit('Q', [v('x')])]);
       const goal = clause([lit('Q', [c('a')])]);
-      const precedence = new Map([['P', 5], ['Q', 1], ['a', 0]]);
+      const precedence = new Map([
+        ['P', 5],
+        ['Q', 1],
+        ['a', 0],
+      ]);
       const result = proveAdvanced([A, rule], goal, {
         strategy: 'ordered',
         ordering: 'LPO',
-        precedence
+        precedence,
       });
       expect(result.proven).toBe(true);
     });
@@ -228,15 +251,15 @@ describe('fol-prover-advanced', () => {
       const long = clause([lit('A', []), lit('B', []), lit('C', [])]);
       const unit = clause([lit('A', [])]);
       const sorted = unitPreference([long, unit]);
-      expect(sorted[0]!.literals.length).toBe(1);
-      expect(sorted[1]!.literals.length).toBe(3);
+      expect(sorted[0].literals.length).toBe(1);
+      expect(sorted[1].literals.length).toBe(3);
     });
 
     it('unit-preference resuelve cadena MP más rápido que binary saturado', () => {
       const facts: FOLClause[] = [
         clause([lit('P1', [])]),
         clause([lit('P1', [], true), lit('P2', [])]),
-        clause([lit('P2', [], true), lit('P3', [])])
+        clause([lit('P2', [], true), lit('P3', [])]),
       ];
       const goal = clause([lit('P3', [])]);
       const withUnit = proveAdvanced(facts, goal, { strategy: 'unit-preference' });
@@ -263,7 +286,11 @@ describe('fol-prover-advanced', () => {
       // se queda sin nuevas cláusulas. Forzamos saturación con timeout=1.
       const A = clause([lit('X', [c('a')])]);
       const goal = clause([lit('Y', [c('b')])]); // no derivable
-      const result = proveAdvanced([A], goal, { strategy: 'binary', timeoutMs: 1, maxSteps: 100000 });
+      const result = proveAdvanced([A], goal, {
+        strategy: 'binary',
+        timeoutMs: 1,
+        maxSteps: 100000,
+      });
       expect(result.proven).toBe(false);
       expect(['timeout', 'saturated']).toContain(result.termination);
     });

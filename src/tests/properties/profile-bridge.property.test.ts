@@ -25,23 +25,23 @@ function classicalToIntuit(phi: Formula): IntuitFormula {
     case 'and':
       return {
         kind: 'and',
-        left: classicalToIntuit(phi.args![0]!),
-        right: classicalToIntuit(phi.args![1]!),
+        left: classicalToIntuit(phi.args![0]),
+        right: classicalToIntuit(phi.args![1]),
       };
     case 'or':
       return {
         kind: 'or',
-        left: classicalToIntuit(phi.args![0]!),
-        right: classicalToIntuit(phi.args![1]!),
+        left: classicalToIntuit(phi.args![0]),
+        right: classicalToIntuit(phi.args![1]),
       };
     case 'implies':
       return {
         kind: 'implies',
-        left: classicalToIntuit(phi.args![0]!),
-        right: classicalToIntuit(phi.args![1]!),
+        left: classicalToIntuit(phi.args![0]),
+        right: classicalToIntuit(phi.args![1]),
       };
     case 'not':
-      return { kind: 'not', arg: classicalToIntuit(phi.args![0]!) };
+      return { kind: 'not', arg: classicalToIntuit(phi.args![0]) };
     case 'true':
       // En IntuitFormula no hay 'true' directo; usamos ⊥→⊥.
       return { kind: 'implies', left: { kind: 'bottom' }, right: { kind: 'bottom' } };

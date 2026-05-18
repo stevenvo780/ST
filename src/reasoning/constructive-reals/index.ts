@@ -67,7 +67,7 @@ function pow2(n: number): bigint {
 function shiftRight(x: bigint, k: number): bigint {
   if (k <= 0) return x << BigInt(-k);
   const half = 1n << BigInt(k - 1);
-  return x >= 0n ? (x + half) >> BigInt(k) : -(((-x) + half) >> BigInt(k));
+  return x >= 0n ? (x + half) >> BigInt(k) : -((-x + half) >> BigInt(k));
 }
 
 /**
@@ -134,9 +134,7 @@ function approxBigOf(r: CReal): (n: number) => bigint {
     // Caso general: round(numerator * 2^n / denominator).
     const scaled = numerator * pow2(Math.max(n, 0));
     const half = denominator / 2n;
-    return numerator >= 0n
-      ? (scaled + half) / denominator
-      : -(((-scaled) + half) / denominator);
+    return numerator >= 0n ? (scaled + half) / denominator : -((-scaled + half) / denominator);
   };
 }
 
@@ -172,9 +170,7 @@ export function fromRational(p: number | bigint, q: number | bigint): CReal {
     const p = Math.max(prec, 0);
     const scaled = n0 << BigInt(p);
     const half = d0 >> 1n; // floor(d0/2). suficiente para round-half-to-even? usamos away-from-zero.
-    return n0 >= 0n
-      ? (scaled + half) / d0
-      : -(((-scaled) + half) / d0);
+    return n0 >= 0n ? (scaled + half) / d0 : -((-scaled + half) / d0);
   });
 }
 
@@ -511,9 +507,7 @@ export function log(x: CReal): CReal {
       // por ruido en el probe.
       const refined = xa(prec + 4);
       if (refined <= 1n) {
-        throw new RangeError(
-          `log: x debe ser > 0, aproximación = ${refined}/2^${prec + 4}`,
-        );
+        throw new RangeError(`log: x debe ser > 0, aproximación = ${refined}/2^${prec + 4}`);
       }
     }
     const work = prec + 32;
@@ -562,7 +556,7 @@ function sinSeries(xScaled: bigint, work: number): bigint {
   let sign = -1n;
   const xSq = (xScaled * xScaled) / scale;
   while (term !== 0n) {
-    term = (term * xSq) / scale / ((2n * k) * (2n * k + 1n));
+    term = (term * xSq) / scale / (2n * k * (2n * k + 1n));
     sum += sign * term;
     sign = -sign;
     k += 1n;

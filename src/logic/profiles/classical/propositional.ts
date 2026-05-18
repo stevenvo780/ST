@@ -18,7 +18,13 @@ import {
 import { classifyFormula } from '../../../runtime/formula-classifier';
 import { formulaToUnicode } from '../../../runtime/format';
 import { pickEducationalNote } from '../../../runtime/educational-notes';
-import { memoizeString, memoizeAtoms, memoizeNNF, memoizeCNF, memoizeDNF } from '../../../utils/memo';
+import {
+  memoizeString,
+  memoizeAtoms,
+  memoizeNNF,
+  memoizeCNF,
+  memoizeDNF,
+} from '../../../utils/memo';
 import { dpll } from './dpll';
 
 // --- Utilidades de fórmulas ---

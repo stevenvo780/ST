@@ -14,8 +14,8 @@ export function* generatePermutations<T>(items: T[]): Generator<T[]> {
         throw new Error('generatePermutations: índice fuera de rango');
       }
     }
-    arr[i] = b as T;
-    arr[j] = a as T;
+    arr[i] = b;
+    arr[j] = a;
   }
 
   function* heap(k: number): Generator<T[]> {
@@ -55,7 +55,7 @@ export function* generateCombinations<T>(items: T[], r: number): Generator<T[]> 
       if (v === undefined && !(idx in items)) {
         throw new Error('generateCombinations: índice fuera de rango');
       }
-      out.push(v as T);
+      out.push(v);
     }
     yield out;
     let i = r - 1;
@@ -92,7 +92,7 @@ export function* generatePowerSet<T>(items: T[]): Generator<T[]> {
         if (v === undefined && !(i in items)) {
           throw new Error('generatePowerSet: índice fuera de rango');
         }
-        subset.push(v as T);
+        subset.push(v);
       }
     }
     yield subset;

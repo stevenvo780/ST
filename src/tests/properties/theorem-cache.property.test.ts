@@ -36,9 +36,7 @@ describe('property: TheoremCache store/retrieve round-trip', () => {
           }
           const proof = retrieved.proof as { payload: number } | undefined;
           if (proof?.payload !== payload) {
-            throw new Error(
-              `proof no coincide: stored=${payload}, retrieved=${proof?.payload}`,
-            );
+            throw new Error(`proof no coincide: stored=${payload}, retrieved=${proof?.payload}`);
           }
           return true;
         },

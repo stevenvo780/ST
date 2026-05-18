@@ -80,7 +80,7 @@ describe('unifyPattern — patrón Miller λx. M x ≈ λx. f x', () => {
     const result = unifyPattern(t1, t2);
     expect(result).not.toBeNull();
     // El MGU es M ↦ λx. f x; verificamos aplicando M a un argumento
-    const mBinding = result!['M']!;
+    const mBinding = result!['M'];
     const applied = applyHOSubst(app(mBinding, v('a')), {});
     // (λx. f x) a → f a
     expect(normalize(applied)).toEqual(app(v('f'), v('a')));
@@ -91,7 +91,7 @@ describe('unifyPattern — patrón Miller λx. M x ≈ λx. f x', () => {
     const t2 = abs('x', app(v('g'), v('x')));
     const result = unifyPattern(t1, t2);
     expect(result).not.toBeNull();
-    const mBinding = result!['M']!;
+    const mBinding = result!['M'];
     expect(normalize(app(mBinding, v('a')))).toEqual(app(v('g'), v('a')));
   });
 
@@ -101,7 +101,7 @@ describe('unifyPattern — patrón Miller λx. M x ≈ λx. f x', () => {
     const t2 = abs('x', abs('y', app(v('h'), v('x'), v('y'))));
     const result = unifyPattern(t1, t2);
     expect(result).not.toBeNull();
-    const mBinding = result!['M']!;
+    const mBinding = result!['M'];
     // (λx.λy. h x y) a b → h a b
     expect(normalize(app(mBinding, v('a'), v('b')))).toEqual(app(v('h'), v('a'), v('b')));
   });
@@ -300,7 +300,7 @@ describe('unifyPattern — múltiples metas', () => {
     const result = unifyPattern(t1, t2);
     expect(result).not.toBeNull();
     // MGU: M ↦ λx. f x, N ↦ λx. g x
-    expect(normalize(app(result!['M']!, v('a')))).toEqual(app(v('f'), v('a')));
-    expect(normalize(app(result!['N']!, v('a')))).toEqual(app(v('g'), v('a')));
+    expect(normalize(app(result!['M'], v('a')))).toEqual(app(v('f'), v('a')));
+    expect(normalize(app(result!['N'], v('a')))).toEqual(app(v('g'), v('a')));
   });
 });

@@ -237,10 +237,22 @@ function ctlToLTLRec(f: CTLFormula): LTLFormula {
       return { kind: 'atom', name: f.name };
 
     case 'true':
-      return { kind: 'or', args: [{ kind: 'atom', name: '__true__' }, { kind: 'not', arg: { kind: 'atom', name: '__true__' } }] };
+      return {
+        kind: 'or',
+        args: [
+          { kind: 'atom', name: '__true__' },
+          { kind: 'not', arg: { kind: 'atom', name: '__true__' } },
+        ],
+      };
 
     case 'false':
-      return { kind: 'and', args: [{ kind: 'atom', name: '__false__' }, { kind: 'not', arg: { kind: 'atom', name: '__false__' } }] };
+      return {
+        kind: 'and',
+        args: [
+          { kind: 'atom', name: '__false__' },
+          { kind: 'not', arg: { kind: 'atom', name: '__false__' } },
+        ],
+      };
 
     case 'not':
       return { kind: 'not', arg: ctlToLTLRec(f.arg) };
@@ -252,7 +264,10 @@ function ctlToLTLRec(f: CTLFormula): LTLFormula {
       return { kind: 'or', args: f.args.map(ctlToLTLRec) };
 
     case 'implies':
-      return { kind: 'or', args: [{ kind: 'not', arg: ctlToLTLRec(f.left) }, ctlToLTLRec(f.right)] };
+      return {
+        kind: 'or',
+        args: [{ kind: 'not', arg: ctlToLTLRec(f.left) }, ctlToLTLRec(f.right)],
+      };
 
     case 'EX':
     case 'AX':
@@ -348,7 +363,7 @@ export function findTranslationPath(from: Profile, to: Profile): Profile[] | nul
 
   while (queue.length > 0) {
     const path = queue.shift()!;
-    const current = path[path.length - 1]!;
+    const current = path[path.length - 1];
 
     for (const next of neighbours(current)) {
       if (next === to) return [...path, next];
@@ -375,8 +390,8 @@ export function translateFormula(formula: GenericFormula, target: Profile): Gene
   let current: GenericFormula = formula;
 
   for (let i = 0; i < path.length - 1; i++) {
-    const src = path[i] as Profile;
-    const dst = path[i + 1] as Profile;
+    const src = path[i];
+    const dst = path[i + 1];
     const translation = TRANSLATIONS.find((t) => t.source === src && t.target === dst);
     if (!translation) return null;
     current = {

@@ -20,21 +20,21 @@ import {
   takeSnapshot,
   toArray,
   type TestCase,
-  type TestSuite
+  type TestSuite,
 } from '../../../tooling/test-harness';
 
 function suiteA(): TestSuite<number> {
   return makeSuite('A', [
     { name: 'a1', input: 1, tags: ['fast'] },
     { name: 'a2', input: 2, tags: ['slow'] },
-    { name: 'a3', input: 3, tags: ['fast', 'edge'] }
+    { name: 'a3', input: 3, tags: ['fast', 'edge'] },
   ]);
 }
 
 function suiteB(): TestSuite<string> {
   return makeSuite('B', [
     { name: 'b1', input: 'x', tags: ['fast'] },
-    { name: 'b2', input: 'y', tags: ['slow'] }
+    { name: 'b2', input: 'y', tags: ['slow'] },
   ]);
 }
 
@@ -59,7 +59,7 @@ describe('test-harness combinators', () => {
   it('crossProduct respects filterTags', () => {
     const result = crossProduct(suiteA(), suiteB(), {
       combine: 'cartesian',
-      filterTags: ['edge']
+      filterTags: ['edge'],
     });
     // only a3 has 'edge', combined with b1 and b2 → 2 cases
     expect(result.cases).toHaveLength(2);
@@ -143,8 +143,9 @@ describe('test-harness coverage', () => {
       { name: 'ok1', input: 1, tags: ['pos'] },
       { name: 'ok2', input: 2, tags: ['pos', 'even'] },
       { name: 'bad', input: -1, tags: ['neg'] },
-      { name: 'boom', input: 0, tags: ['zero'] }
+      { name: 'boom', input: 0, tags: ['zero'] },
     ]);
+    // eslint-disable-next-line @typescript-eslint/require-await
     const report = await runWithCoverage(suite, async (c: TestCase<number>) => {
       if (c.name === 'boom') throw new Error('explode');
       return c.input > 0;
@@ -161,6 +162,7 @@ describe('test-harness coverage', () => {
 
   it('runWithCoverage on empty suite returns zeros', async () => {
     const empty = makeSuite<number>('empty', []);
+    // eslint-disable-next-line @typescript-eslint/require-await
     const report = await runWithCoverage(empty, async () => true);
     expect(report.totalCases).toBe(0);
     expect(report.passing).toBe(0);
@@ -226,15 +228,16 @@ describe('test-harness end-to-end', () => {
     const profiles = makeSuite<string>('profiles', [
       { name: 'classical', input: 'classical', tags: ['profile'] },
       { name: 'intuitionistic', input: 'intuitionistic', tags: ['profile'] },
-      { name: 'paraconsistent', input: 'paraconsistent', tags: ['profile'] }
+      { name: 'paraconsistent', input: 'paraconsistent', tags: ['profile'] },
     ]);
     const formulas = makeSuite<string>('formulas', [
       { name: 'p∧¬p', input: 'contradiction', tags: ['formula'] },
-      { name: 'p∨¬p', input: 'tautology', tags: ['formula'] }
+      { name: 'p∨¬p', input: 'tautology', tags: ['formula'] },
     ]);
     const matrix = crossProduct(profiles, formulas, { combine: 'cartesian' });
     expect(matrix.cases).toHaveLength(6);
 
+    // eslint-disable-next-line @typescript-eslint/require-await
     const report = await runWithCoverage(matrix, async (c) => {
       // simulate invariant: every profile evaluates p∨¬p as truthy except paraconsistent contradictions
       return c.input.b === 'tautology';

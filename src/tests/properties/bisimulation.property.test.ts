@@ -34,9 +34,7 @@ describe('property: bisimulation Paige-Tarjan reflexivity & symmetry', () => {
             const ab = areBisimilar(lts, s, t);
             const ba = areBisimilar(lts, t, s);
             if (ab !== ba) {
-              throw new Error(
-                `Asimetría: areBisimilar(${s}, ${t})=${ab}, (${t}, ${s})=${ba}`,
-              );
+              throw new Error(`Asimetría: areBisimilar(${s}, ${t})=${ab}, (${t}, ${s})=${ba}`);
             }
           }
         }

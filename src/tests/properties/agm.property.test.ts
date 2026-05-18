@@ -20,7 +20,7 @@ describe('property: AGM revise consistency preservation', () => {
       fc.property(beliefSetAndFormula(), ({ initial, phi }) => {
         // φ siempre es un literal o ¬literal, siempre consistente.
         // Pero validamos por seguridad.
-        let phiSat = false;
+        let phiSat: boolean;
         try {
           phiSat = isSatisfiable([parsePropFormula(phi)]);
         } catch {

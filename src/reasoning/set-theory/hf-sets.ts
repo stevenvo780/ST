@@ -16,7 +16,7 @@ export interface HFSet {
 
 const makeSet = (elements: ReadonlyArray<HFSet>): HFSet => ({
   kind: 'set',
-  elements
+  elements,
 });
 
 export const EMPTY: HFSet = makeSet([]);

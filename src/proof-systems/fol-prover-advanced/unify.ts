@@ -70,7 +70,7 @@ export function applySubToTerm(t: FOLTerm, sub: Substitution): FOLTerm {
   return {
     kind: 'function',
     name: t.name,
-    args: t.args.map((a) => applySubToTerm(a, sub))
+    args: t.args.map((a) => applySubToTerm(a, sub)),
   };
 }
 
@@ -78,7 +78,7 @@ export function applySubToLiteral(l: FOLLiteral, sub: Substitution): FOLLiteral 
   return {
     negated: l.negated,
     predicate: l.predicate,
-    args: l.args.map((a) => applySubToTerm(a, sub))
+    args: l.args.map((a) => applySubToTerm(a, sub)),
   };
 }
 

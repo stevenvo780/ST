@@ -1,9 +1,4 @@
-import type {
-  CombineMode,
-  CrossProductOptions,
-  TestCase,
-  TestSuite
-} from './types';
+import type { CombineMode, CrossProductOptions, TestCase, TestSuite } from './types';
 
 function caseTags<T>(c: TestCase<T>): string[] {
   return c.tags ?? [];
@@ -18,11 +13,7 @@ function hasAnyTag<T>(c: TestCase<T>, wanted: string[]): boolean {
   return false;
 }
 
-function tagsMatchMode(
-  a: string[],
-  b: string[],
-  mode: CombineMode
-): boolean {
+function tagsMatchMode(a: string[], b: string[], mode: CombineMode): boolean {
   if (mode === 'cartesian') return true;
   if (mode === 'union') {
     if (a.length === 0 && b.length === 0) return true;
@@ -38,7 +29,7 @@ function tagsMatchMode(
 export function crossProduct<T1, T2>(
   s1: TestSuite<T1>,
   s2: TestSuite<T2>,
-  opts?: CrossProductOptions
+  opts?: CrossProductOptions,
 ): TestSuite<{ a: T1; b: T2 }> {
   const mode: CombineMode = opts?.combine ?? 'cartesian';
   const filterTags = opts?.filterTags ?? [];
@@ -46,9 +37,7 @@ export function crossProduct<T1, T2>(
   for (const ca of s1.cases) {
     for (const cb of s2.cases) {
       if (!tagsMatchMode(caseTags(ca), caseTags(cb), mode)) continue;
-      const mergedTags = Array.from(
-        new Set([...caseTags(ca), ...caseTags(cb)])
-      );
+      const mergedTags = Array.from(new Set([...caseTags(ca), ...caseTags(cb)]));
       if (filterTags.length > 0) {
         let hit = false;
         for (const t of filterTags) {
@@ -62,7 +51,7 @@ export function crossProduct<T1, T2>(
       cases.push({
         name: `${ca.name} × ${cb.name}`,
         input: { a: ca.input, b: cb.input },
-        tags: mergedTags.length > 0 ? mergedTags : undefined
+        tags: mergedTags.length > 0 ? mergedTags : undefined,
       });
     }
   }
@@ -71,18 +60,18 @@ export function crossProduct<T1, T2>(
 
 export function parameterize<T, P>(
   suite: TestSuite<T>,
-  params: P[]
+  params: P[],
 ): TestSuite<{ input: T; param: P }> {
   const cases: TestCase<{ input: T; param: P }>[] = [];
   for (let i = 0; i < suite.cases.length; i += 1) {
     const c = suite.cases[i];
     if (!c) continue;
     for (let j = 0; j < params.length; j += 1) {
-      const p = params[j] as P;
+      const p = params[j];
       cases.push({
         name: `${c.name} [param=${formatParam(p)}]`,
         input: { input: c.input, param: p },
-        tags: c.tags
+        tags: c.tags,
       });
     }
   }
@@ -101,40 +90,28 @@ function formatParam(p: unknown): string {
   }
 }
 
-export function filter<T>(
-  suite: TestSuite<T>,
-  pred: (c: TestCase<T>) => boolean
-): TestSuite<T> {
+export function filter<T>(suite: TestSuite<T>, pred: (c: TestCase<T>) => boolean): TestSuite<T> {
   return {
     name: suite.name,
-    cases: suite.cases.filter(pred)
+    cases: suite.cases.filter(pred),
   };
 }
 
-export function filterByTags<T>(
-  suite: TestSuite<T>,
-  tags: string[]
-): TestSuite<T> {
+export function filterByTags<T>(suite: TestSuite<T>, tags: string[]): TestSuite<T> {
   return filter(suite, (c) => hasAnyTag(c, tags));
 }
 
-export function tag<T>(
-  suite: TestSuite<T>,
-  tagFn: (c: TestCase<T>) => string[]
-): TestSuite<T> {
+export function tag<T>(suite: TestSuite<T>, tagFn: (c: TestCase<T>) => string[]): TestSuite<T> {
   return {
     name: suite.name,
     cases: suite.cases.map((c) => {
       const extra = tagFn(c);
       const merged = Array.from(new Set([...(c.tags ?? []), ...extra]));
       return { ...c, tags: merged.length > 0 ? merged : undefined };
-    })
+    }),
   };
 }
 
-export function makeSuite<T>(
-  name: string,
-  cases: TestCase<T>[]
-): TestSuite<T> {
+export function makeSuite<T>(name: string, cases: TestCase<T>[]): TestSuite<T> {
   return { name, cases };
 }

@@ -1,16 +1,10 @@
-export {
-  factorial,
-  binomial,
-  multinomial,
-  permutations,
-  combinations
-} from './basic-counts';
+export { factorial, binomial, multinomial, permutations, combinations } from './basic-counts';
 
 export {
   generatePermutations,
   generateCombinations,
   generatePowerSet,
-  generateSubsetsOfSize
+  generateSubsetsOfSize,
 } from './generators';
 
 export {
@@ -18,14 +12,10 @@ export {
   permutationCycles,
   permutationOrder,
   composePermutations,
-  inversePermutation
+  inversePermutation,
 } from './permutations';
 
-export {
-  partitions,
-  partitionsCount,
-  partitionsIntoParts
-} from './partitions';
+export { partitions, partitionsCount, partitionsIntoParts } from './partitions';
 
 export {
   stirlingSecondKind,
@@ -33,25 +23,13 @@ export {
   catalan,
   bellNumber,
   eulerNumber,
-  eulerianNumber
+  eulerianNumber,
 } from './special-numbers';
 
-export {
-  setPartitions,
-  setPartitionsCount
-} from './set-partitions';
+export { setPartitions, setPartitionsCount } from './set-partitions';
 
-export {
-  burnsideCount,
-  cyclicRotations
-} from './burnside';
+export { burnsideCount, cyclicRotations } from './burnside';
 
-export {
-  multiplyPolynomials,
-  generatingFunction,
-  binomialGF
-} from './generating-functions';
+export { multiplyPolynomials, generatingFunction, binomialGF } from './generating-functions';
 
-export {
-  inclusionExclusion
-} from './inclusion-exclusion';
+export { inclusionExclusion } from './inclusion-exclusion';

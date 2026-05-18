@@ -25,12 +25,12 @@ const atom = (name: string): Formula => ({ kind: 'atom', name });
 const not = (...args: Formula[]): Formula => ({ kind: 'not', args });
 const and = (...args: Formula[]): Formula => ({ kind: 'and', args });
 const implies = (a: Formula, b: Formula): Formula => ({ kind: 'implies', args: [a, b] });
-const box = (f: Formula): Formula => ({ kind: 'modal_necessity', args: [f] });
+const _box = (f: Formula): Formula => ({ kind: 'modal_necessity', args: [f] });
 
 const ltlAtom = (name: string): LTLFormula => ({ kind: 'atom', name });
 const ltlNot = (arg: LTLFormula): LTLFormula => ({ kind: 'not', arg });
 const ltlAnd = (...args: LTLFormula[]): LTLFormula => ({ kind: 'and', args });
-const ltlOr = (...args: LTLFormula[]): LTLFormula => ({ kind: 'or', args });
+const _ltlOr = (...args: LTLFormula[]): LTLFormula => ({ kind: 'or', args });
 const ltlX = (arg: LTLFormula): LTLFormula => ({ kind: 'X', arg });
 const ltlF = (arg: LTLFormula): LTLFormula => ({ kind: 'F', arg });
 const ltlG = (arg: LTLFormula): LTLFormula => ({ kind: 'G', arg });
@@ -38,7 +38,7 @@ const ltlU = (l: LTLFormula, r: LTLFormula): LTLFormula => ({ kind: 'U', left: l
 const ltlR = (l: LTLFormula, r: LTLFormula): LTLFormula => ({ kind: 'R', left: l, right: r });
 
 const ctlAtom = (name: string): CTLFormula => ({ kind: 'atom', name });
-const ctlNot = (arg: CTLFormula): CTLFormula => ({ kind: 'not', arg });
+const _ctlNot = (arg: CTLFormula): CTLFormula => ({ kind: 'not', arg });
 const ctlEX = (arg: CTLFormula): CTLFormula => ({ kind: 'EX', arg });
 const ctlAF = (arg: CTLFormula): CTLFormula => ({ kind: 'AF', arg });
 const ctlEG = (arg: CTLFormula): CTLFormula => ({ kind: 'EG', arg });

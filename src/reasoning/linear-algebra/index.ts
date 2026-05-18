@@ -256,11 +256,7 @@ export function cross(a: Vector, b: Vector): Vector {
   const b0 = getVec(b, 0);
   const b1 = getVec(b, 1);
   const b2 = getVec(b, 2);
-  return [
-    a1 * b2 - a2 * b1,
-    a2 * b0 - a0 * b2,
-    a0 * b1 - a1 * b0
-  ];
+  return [a1 * b2 - a2 * b1, a2 * b0 - a0 * b2, a0 * b1 - a1 * b0];
 }
 
 /** Reduce la matriz a forma escalonada reducida (RREF) por Gauss-Jordan. Devuelve la matriz reducida, el rango y las columnas pivot. */
@@ -568,7 +564,11 @@ export interface SVD {
   V: Matrix;
 }
 
-function symmetricEigen(S: Matrix, maxIter: number, eps: number): { values: number[]; vectors: Matrix } {
+function symmetricEigen(
+  S: Matrix,
+  maxIter: number,
+  eps: number,
+): { values: number[]; vectors: Matrix } {
   const { rows, cols } = ensureRect(S, 'symmetricEigen');
   if (rows !== cols) {
     throw new Error('symmetricEigen: matrix must be square');
@@ -677,7 +677,7 @@ export function decomposeSVD(M: Matrix, maxIter = 200): SVD {
 /** Calcula el autovalor dominante y su autovector por el método de la potencia. */
 export function powerIteration(
   M: Matrix,
-  opts: { maxIter?: number; eps?: number } = {}
+  opts: { maxIter?: number; eps?: number } = {},
 ): { eigenvalue: number; eigenvector: Vector } {
   const { rows, cols } = ensureRect(M, 'powerIteration');
   if (rows !== cols) {
@@ -737,10 +737,7 @@ function isSymmetric(M: Matrix, eps = 1e-9): boolean {
 }
 
 /** Calcula los autovalores reales de la matriz cuadrada `M` (QR iterativo para asimétricas, Jacobi para simétricas). */
-export function eigenvalues(
-  M: Matrix,
-  opts: { maxIter?: number; eps?: number } = {}
-): number[] {
+export function eigenvalues(M: Matrix, opts: { maxIter?: number; eps?: number } = {}): number[] {
   const { rows, cols } = ensureRect(M, 'eigenvalues');
   if (rows !== cols) {
     throw new Error('eigenvalues: matrix must be square');
@@ -794,7 +791,7 @@ export function eigenvalues(
 /** Calcula autovalores y autovectores de la matriz simétrica `M` por el algoritmo de Jacobi. */
 export function eigenvectors(
   M: Matrix,
-  opts: { maxIter?: number; eps?: number } = {}
+  opts: { maxIter?: number; eps?: number } = {},
 ): { values: number[]; vectors: Matrix } {
   const { rows, cols } = ensureRect(M, 'eigenvectors');
   if (rows !== cols) {

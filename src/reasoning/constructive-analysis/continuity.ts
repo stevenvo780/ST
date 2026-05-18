@@ -15,14 +15,7 @@
  *   modulus(k) = m  means  |x - y| < 1/m  =>  |f(x) - f(y)| < 1/k.
  */
 
-import {
-  type CReal,
-  fromFloat,
-  sub,
-  abs,
-  approxLT,
-  toNumber
-} from '../constructive-reals';
+import { type CReal, fromFloat, sub, abs, approxLT, toNumber } from '../constructive-reals';
 
 export interface ConstructiveContinuous {
   /** The function itself. */
@@ -95,7 +88,7 @@ export const composition = (
   g: ConstructiveContinuous,
 ): ConstructiveContinuous => ({
   fn: (x: CReal) => f.fn(g.fn(x)),
-  modulus: (eps: number) => g.modulus(f.modulus(eps))
+  modulus: (eps: number) => g.modulus(f.modulus(eps)),
 });
 
 /**
@@ -103,7 +96,7 @@ export const composition = (
  */
 export const constant = (c: CReal): ConstructiveContinuous => ({
   fn: () => c,
-  modulus: () => 1
+  modulus: () => 1,
 });
 
 /**
@@ -111,7 +104,7 @@ export const constant = (c: CReal): ConstructiveContinuous => ({
  */
 export const identity = (): ConstructiveContinuous => ({
   fn: (x: CReal) => x,
-  modulus: (eps: number) => eps
+  modulus: (eps: number) => eps,
 });
 
 /**
@@ -129,6 +122,6 @@ export const lipschitz = (
   }
   return {
     fn,
-    modulus: (eps: number) => Math.max(1, Math.ceil(lipschitzConstant * eps))
+    modulus: (eps: number) => Math.max(1, Math.ceil(lipschitzConstant * eps)),
   };
 };

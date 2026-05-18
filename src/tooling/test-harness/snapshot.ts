@@ -9,8 +9,8 @@ function stableStringify(value: unknown): string {
     if (typeof v === 'function') return `__fn__:${v.name || 'anon'}`;
     if (typeof v === 'symbol') return `__sym__:${v.toString()}`;
     if (typeof v !== 'object') return v;
-    if (seen.has(v as object)) return '__cycle__';
-    seen.add(v as object);
+    if (seen.has(v)) return '__cycle__';
+    seen.add(v);
     if (Array.isArray(v)) {
       return v.map(walk);
     }
@@ -61,14 +61,11 @@ export function takeSnapshot(input: unknown, output: unknown): Snapshot {
   return {
     input,
     output,
-    hash: snapshotHash(input, output)
+    hash: snapshotHash(input, output),
   };
 }
 
-export function compareSnapshot(
-  snap: Snapshot,
-  current: unknown
-): SnapshotComparison {
+export function compareSnapshot(snap: Snapshot, current: unknown): SnapshotComparison {
   const expected = stableStringify(snap.output);
   const actual = stableStringify(current);
   if (expected === actual) {
@@ -76,6 +73,6 @@ export function compareSnapshot(
   }
   return {
     match: false,
-    diff: `expected: ${expected}\nactual:   ${actual}`
+    diff: `expected: ${expected}\nactual:   ${actual}`,
   };
 }

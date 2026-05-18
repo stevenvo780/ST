@@ -8,9 +8,19 @@
 
 import { describe, it } from 'vitest';
 import { fc } from './generators';
-import { fromInt, fromRational, add, sub, mul, neg } from '../../reasoning/constructive-reals';
+import {
+  fromInt,
+  fromRational,
+  add,
+  sub,
+  mul as _mul,
+  neg as _neg,
+} from '../../reasoning/constructive-reals';
 
-function evalAt(r: { approx: (p: number) => { numerator: bigint; denominator: bigint } }, p: number): number {
+function evalAt(
+  r: { approx: (p: number) => { numerator: bigint; denominator: bigint } },
+  p: number,
+): number {
   const { numerator, denominator } = r.approx(p);
   return Number(numerator) / Number(denominator);
 }
@@ -20,7 +30,10 @@ const rationalArb = fc
   .tuple(fc.integer({ min: -50, max: 50 }), fc.integer({ min: 1, max: 50 }))
   .map(([n, d]) => fromRational(n, d));
 
-const cRealArb = fc.oneof(intArb.map((n) => fromInt(n)), rationalArb);
+const cRealArb = fc.oneof(
+  intArb.map((n) => fromInt(n)),
+  rationalArb,
+);
 
 describe('property: constructive reals — add commutativity and approximation', () => {
   it('add(x, y) ≈ x + y at precision 30', () => {
@@ -33,9 +46,7 @@ describe('property: constructive reals — add commutativity and approximation',
         const error = Math.abs(sumNum - (xNum + yNum));
         // Cota laxa: 2^{-25} (ya considerando errores acumulados).
         if (error > Math.pow(2, -25)) {
-          throw new Error(
-            `add inexacto: sum=${sumNum}, x+y=${xNum + yNum}, error=${error}`,
-          );
+          throw new Error(`add inexacto: sum=${sumNum}, x+y=${xNum + yNum}, error=${error}`);
         }
         return true;
       }),

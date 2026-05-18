@@ -15,7 +15,7 @@ import {
   isSubset,
   orderedPair,
   setEquals,
-  snd
+  snd,
 } from './hf-sets';
 
 export interface HFFunction {
@@ -101,7 +101,7 @@ export function composeHF(f: HFFunction, g: HFFunction): HFFunction | null {
   return {
     graph: { kind: 'set', elements: pairs },
     domain: g.domain,
-    codomain: f.codomain
+    codomain: f.codomain,
   };
 }
 
@@ -150,18 +150,18 @@ export function isBijective(f: HFFunction): boolean {
 export function makeFunction(
   domain: HFSet,
   codomain: HFSet,
-  mapping: ReadonlyArray<readonly [HFSet, HFSet]>
+  mapping: ReadonlyArray<readonly [HFSet, HFSet]>,
 ): HFFunction {
   const pairs = mapping.map(([x, y]) => orderedPair(x, y));
   return {
     graph: { kind: 'set', elements: pairs },
     domain,
-    codomain
+    codomain,
   };
 }
 
 export const EMPTY_FUNCTION: HFFunction = {
   graph: EMPTY,
   domain: EMPTY,
-  codomain: EMPTY
+  codomain: EMPTY,
 };

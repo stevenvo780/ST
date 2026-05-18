@@ -19,10 +19,10 @@ export function renameClause(c: FOLClause): FOLClause {
     literals: c.literals.map((l) => ({
       negated: l.negated,
       predicate: l.predicate,
-      args: l.args.map((a) => renameTerm(a, suffix, cache))
+      args: l.args.map((a) => renameTerm(a, suffix, cache)),
     })),
     parents: c.parents,
-    fromGoal: c.fromGoal
+    fromGoal: c.fromGoal,
   };
 }
 
@@ -37,7 +37,7 @@ function renameTerm(t: FOLTerm, suffix: string, cache: Map<string, FOLTerm>): FO
   return {
     kind: 'function',
     name: t.name,
-    args: t.args.map((a) => renameTerm(a, suffix, cache))
+    args: t.args.map((a) => renameTerm(a, suffix, cache)),
   };
 }
 
@@ -46,7 +46,10 @@ function renameTerm(t: FOLTerm, suffix: string, cache: Map<string, FOLTerm>): FO
  * complementarias unificables. Devuelve cero o más resolventes (uno por par
  * de literales complementarias que unifiquen).
  */
-export function binaryResolve(a: FOLClause, b: FOLClause): Array<{ clause: FOLClause; sub: Substitution }> {
+export function binaryResolve(
+  a: FOLClause,
+  b: FOLClause,
+): Array<{ clause: FOLClause; sub: Substitution }> {
   const out: Array<{ clause: FOLClause; sub: Substitution }> = [];
   const aR = renameClause(a);
   const bR = renameClause(b);
@@ -56,10 +59,7 @@ export function binaryResolve(a: FOLClause, b: FOLClause): Array<{ clause: FOLCl
       const lb = bR.literals[j];
       if (!la || !lb) continue;
       if (la.negated === lb.negated) continue;
-      const sub = unifyLiterals(
-        { ...la, negated: false },
-        { ...lb, negated: false }
-      );
+      const sub = unifyLiterals({ ...la, negated: false }, { ...lb, negated: false });
       if (!sub) continue;
       const remaining: FOLLiteral[] = [];
       for (let k = 0; k < aR.literals.length; k++) {
@@ -96,7 +96,7 @@ export function hyperresolve(positive: FOLClause, nucleus: FOLClause): FOLClause
 
 export function hyperresolveMany(
   positives: FOLClause[],
-  nucleus: FOLClause
+  nucleus: FOLClause,
 ): Array<{ clause: FOLClause; sub: Substitution; usedElectrons: number[] }> {
   // Núcleo debe tener al menos una literal negativa para ser candidato.
   const negativeIdxs = nucleus.literals
@@ -106,7 +106,9 @@ export function hyperresolveMany(
   if (negativeIdxs.length === 0) return [];
 
   // Electrons válidos: cláusulas con sólo literales positivas (≥1 literal).
-  const electrons = positives.filter((c) => c.literals.length > 0 && c.literals.every((l) => !l.negated));
+  const electrons = positives.filter(
+    (c) => c.literals.length > 0 && c.literals.every((l) => !l.negated),
+  );
   if (electrons.length === 0) return [];
 
   type State = {
@@ -127,7 +129,7 @@ export function hyperresolveMany(
     nucleus: nucleusR,
     remaining: negIdxsRenamed,
     sub: new Map(),
-    used: []
+    used: [],
   };
 
   const results: Array<{ clause: FOLClause; sub: Substitution; usedElectrons: number[] }> = [];
@@ -148,7 +150,7 @@ export function hyperresolveMany(
       results.push({
         clause: dedupLiterals({ literals: survivors }),
         sub: state.sub,
-        usedElectrons: state.used
+        usedElectrons: state.used,
       });
       continue;
     }
@@ -168,7 +170,7 @@ export function hyperresolveMany(
         if (!candidate) continue;
         const partial = unifyLiterals(
           { ...targetApplied, negated: false },
-          { ...candidate, negated: false }
+          { ...candidate, negated: false },
         );
         if (!partial) continue;
         // Componer sustituciones
@@ -189,13 +191,13 @@ export function hyperresolveMany(
         const extendedNucleus: FOLClause = {
           literals: [...state.nucleus.literals, ...extra],
           parents: state.nucleus.parents,
-          fromGoal: state.nucleus.fromGoal
+          fromGoal: state.nucleus.fromGoal,
         };
         stack.push({
           nucleus: extendedNucleus,
           remaining: state.remaining.slice(1),
           sub: combined,
-          used: [...state.used, ei]
+          used: [...state.used, ei],
         });
       }
     }
@@ -216,10 +218,7 @@ export function factor(c: FOLClause): FOLClause[] {
       const lj = c.literals[j];
       if (!li || !lj) continue;
       if (li.negated !== lj.negated) continue;
-      const sub = unifyLiterals(
-        { ...li, negated: false },
-        { ...lj, negated: false }
-      );
+      const sub = unifyLiterals({ ...li, negated: false }, { ...lj, negated: false });
       if (!sub) continue;
       const survivors: FOLLiteral[] = [];
       for (let k = 0; k < c.literals.length; k++) {
@@ -255,8 +254,14 @@ export function isTautology(c: FOLClause): boolean {
       for (let k = 0; k < li.args.length; k++) {
         const a = li.args[k];
         const b = lj.args[k];
-        if (!a || !b) { same = false; break; }
-        if (!termsEqualLocal(a, b)) { same = false; break; }
+        if (!a || !b) {
+          same = false;
+          break;
+        }
+        if (!termsEqualLocal(a, b)) {
+          same = false;
+          break;
+        }
       }
       if (same) return true;
     }

@@ -6,11 +6,7 @@ export function* nats(max: number): Generator<number> {
   }
 }
 
-export function* range(
-  start: number,
-  end: number,
-  step?: number
-): Generator<number> {
+export function* range(start: number, end: number, step?: number): Generator<number> {
   const s = step ?? 1;
   if (s === 0 || !Number.isFinite(s)) return;
   if (s > 0) {
@@ -35,11 +31,7 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-export function* randomInts(
-  seed: number,
-  count: number,
-  max: number
-): Generator<number> {
+export function* randomInts(seed: number, count: number, max: number): Generator<number> {
   if (count <= 0) return;
   const rng = mulberry32(seed);
   const cap = Math.max(1, Math.floor(max));

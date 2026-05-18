@@ -3,10 +3,7 @@
 // ============================================================
 
 import { describe, it, expect } from 'vitest';
-import {
-  TableauProver,
-  createPropositionalProver,
-} from '../../../proof-systems/tableau-framework';
+import { TableauProver, createPropositionalProver } from '../../../proof-systems/tableau-framework';
 import type {
   PropFormula,
   TableauBranch,
@@ -159,9 +156,9 @@ describe('Tableau framework — closure condition personalizada', () => {
     const prover = new TableauProver<PropFormula>();
 
     // Condición: cierra si la rama contiene el átomo especial "BOTTOM"
-    prover.registerClosureCondition(b => {
+    prover.registerClosureCondition((b) => {
       const hasBottom = b.nodes.some(
-        n => n.formula.kind === 'atom' && n.formula['name'] === 'BOTTOM'
+        (n) => n.formula.kind === 'atom' && n.formula['name'] === 'BOTTOM',
       );
       return hasBottom ? 'explicit bottom atom' : null;
     });
@@ -173,8 +170,8 @@ describe('Tableau framework — closure condition personalizada', () => {
 
   it('closure custom no interfiere con ramas sin el átomo', () => {
     const prover = new TableauProver<PropFormula>();
-    prover.registerClosureCondition(b => {
-      const has = b.nodes.some(n => n.formula['name'] === 'BOTTOM');
+    prover.registerClosureCondition((b) => {
+      const has = b.nodes.some((n) => n.formula['name'] === 'BOTTOM');
       return has ? 'bottom' : null;
     });
 
@@ -191,12 +188,12 @@ describe('Tableau framework — composición de provers', () => {
     // Regla extra: cierra en cualquier átomo llamado "ABSURD"
     const absurdRule: Rule<PropFormula> = {
       name: 'Absurd-Atom',
-      match: n => n.formula.kind === 'atom' && n.formula['name'] === 'ABSURD',
+      match: (n) => n.formula.kind === 'atom' && n.formula['name'] === 'ABSURD',
       apply: () => [],
     };
     extended.registerRule(absurdRule);
-    extended.registerClosureCondition(b => {
-      const has = b.nodes.some(n => n.formula['name'] === 'ABSURD');
+    extended.registerClosureCondition((b) => {
+      const has = b.nodes.some((n) => n.formula['name'] === 'ABSURD');
       return has ? 'absurd atom present' : null;
     });
 
@@ -218,7 +215,7 @@ describe('Tableau framework — maxDepth guard', () => {
     // Regla que siempre genera más trabajo (sin convergencia)
     const infiniteRule: Rule<PropFormula> = {
       name: 'Infinite',
-      match: n => n.formula.kind === 'loop',
+      match: (n) => n.formula.kind === 'loop',
       apply: (n) => [[n]],
     };
     prover.registerRule(infiniteRule);

@@ -75,7 +75,8 @@ function eulerianFirstOrder(n: number, k: number): bigint {
   const cached = EULER_CACHE.get(key);
   if (cached !== undefined) return cached;
   // <n,k> = (k+1) <n-1,k> + (n-k) <n-1,k-1>
-  const v = BigInt(k + 1) * eulerianFirstOrder(n - 1, k) + BigInt(n - k) * eulerianFirstOrder(n - 1, k - 1);
+  const v =
+    BigInt(k + 1) * eulerianFirstOrder(n - 1, k) + BigInt(n - k) * eulerianFirstOrder(n - 1, k - 1);
   EULER_CACHE.set(key, v);
   return v;
 }

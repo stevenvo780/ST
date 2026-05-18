@@ -31,7 +31,7 @@ import {
   solve,
   sub,
   transpose,
-  zeros
+  zeros,
 } from '../../../reasoning/linear-algebra';
 
 const EPS = 1e-6;
@@ -75,7 +75,7 @@ describe('linear-algebra/construction', () => {
     const A: Matrix = [
       [1, 2, 3],
       [4, 5, 6],
-      [7, 8, 10]
+      [7, 8, 10],
     ];
     const I = identity(3);
     expectMatrixClose(multiply(I, A), A);
@@ -86,20 +86,20 @@ describe('linear-algebra/construction', () => {
     const Z = zeros(2, 3);
     expect(Z).toEqual([
       [0, 0, 0],
-      [0, 0, 0]
+      [0, 0, 0],
     ]);
     const O = diagonal([1, 2, 3]);
     expect(O).toEqual([
       [1, 0, 0],
       [0, 2, 0],
-      [0, 0, 3]
+      [0, 0, 3],
     ]);
   });
 
   it('transpose(transpose(A)) = A', () => {
     const A: Matrix = [
       [1, 2, 3],
-      [4, 5, 6]
+      [4, 5, 6],
     ];
     expectMatrixClose(transpose(transpose(A)), A);
   });
@@ -107,19 +107,40 @@ describe('linear-algebra/construction', () => {
 
 describe('linear-algebra/basic-ops', () => {
   it('add and sub work on equal-shape matrices', () => {
-    const A: Matrix = [[1, 2], [3, 4]];
-    const B: Matrix = [[5, 6], [7, 8]];
-    expectMatrixClose(add(A, B), [[6, 8], [10, 12]]);
-    expectMatrixClose(sub(B, A), [[4, 4], [4, 4]]);
+    const A: Matrix = [
+      [1, 2],
+      [3, 4],
+    ];
+    const B: Matrix = [
+      [5, 6],
+      [7, 8],
+    ];
+    expectMatrixClose(add(A, B), [
+      [6, 8],
+      [10, 12],
+    ]);
+    expectMatrixClose(sub(B, A), [
+      [4, 4],
+      [4, 4],
+    ]);
   });
 
   it('scalarMul scales every entry', () => {
-    const A: Matrix = [[1, -2], [3, 4]];
-    expectMatrixClose(scalarMul(2, A), [[2, -4], [6, 8]]);
+    const A: Matrix = [
+      [1, -2],
+      [3, 4],
+    ];
+    expectMatrixClose(scalarMul(2, A), [
+      [2, -4],
+      [6, 8],
+    ]);
   });
 
   it('matVec, dot, norm, normalize work', () => {
-    const A: Matrix = [[1, 2], [3, 4]];
+    const A: Matrix = [
+      [1, 2],
+      [3, 4],
+    ];
     expectVectorClose(matVec(A, [1, 1]), [3, 7]);
     expect(dot([1, 2, 3], [4, 5, 6])).toBe(32);
     expect(Math.abs(norm([3, 4]) - 5)).toBeLessThan(EPS);
@@ -136,14 +157,19 @@ describe('linear-algebra/basic-ops', () => {
 
 describe('linear-algebra/determinant', () => {
   it('determinant 2x2', () => {
-    expect(determinant([[1, 2], [3, 4]])).toBeCloseTo(-2);
+    expect(
+      determinant([
+        [1, 2],
+        [3, 4],
+      ]),
+    ).toBeCloseTo(-2);
   });
 
   it('determinant 3x3 and product property', () => {
     const A: Matrix = [
       [6, 1, 1],
       [4, -2, 5],
-      [2, 8, 7]
+      [2, 8, 7],
     ];
     expect(determinant(A)).toBeCloseTo(-306);
     const I = identity(3);
@@ -154,7 +180,7 @@ describe('linear-algebra/determinant', () => {
     const S: Matrix = [
       [1, 2, 3],
       [2, 4, 6],
-      [7, 8, 9]
+      [7, 8, 9],
     ];
     expect(Math.abs(determinant(S))).toBeLessThan(EPS);
   });
@@ -167,7 +193,7 @@ describe('linear-algebra/inverse-and-solve', () => {
       [0, 3, 0, 1, 0],
       [1, 0, 4, 0, 1],
       [0, 1, 0, 5, 0],
-      [0, 0, 1, 0, 6]
+      [0, 0, 1, 0, 6],
     ];
     const Ainv = inverse(A);
     expect(Ainv).not.toBeNull();
@@ -180,7 +206,7 @@ describe('linear-algebra/inverse-and-solve', () => {
     const S: Matrix = [
       [1, 2, 3],
       [2, 4, 6],
-      [7, 8, 9]
+      [7, 8, 9],
     ];
     expect(inverse(S)).toBeNull();
   });
@@ -189,7 +215,7 @@ describe('linear-algebra/inverse-and-solve', () => {
     const A: Matrix = [
       [3, 2, -1],
       [2, -2, 4],
-      [-1, 0.5, -1]
+      [-1, 0.5, -1],
     ];
     const b: Vector = [1, -2, 0];
     const x = solve(A, b);
@@ -202,7 +228,7 @@ describe('linear-algebra/inverse-and-solve', () => {
   it('solve returns null for inconsistent system', () => {
     const A: Matrix = [
       [1, 1],
-      [2, 2]
+      [2, 2],
     ];
     expect(solve(A, [1, 3])).toBeNull();
   });
@@ -212,7 +238,7 @@ describe('linear-algebra/inverse-and-solve', () => {
       [0, 1],
       [1, 1],
       [2, 1],
-      [3, 1]
+      [3, 1],
     ];
     const b: Vector = [1, 3, 5, 7];
     const x = leastSquares(A, b);
@@ -225,7 +251,7 @@ describe('linear-algebra/rref-rank', () => {
     const S: Matrix = [
       [1, 2, 3],
       [2, 4, 6],
-      [3, 6, 9]
+      [3, 6, 9],
     ];
     const { rank: r } = rref(S);
     expect(r).toBe(1);
@@ -236,7 +262,7 @@ describe('linear-algebra/rref-rank', () => {
     const A: Matrix = [
       [1, 0, 2],
       [0, 1, 3],
-      [4, 5, 0]
+      [4, 5, 0],
     ];
     expect(rank(A)).toBe(3);
   });
@@ -247,7 +273,7 @@ describe('linear-algebra/lu', () => {
     const A: Matrix = [
       [2, 1, 1],
       [4, 3, 3],
-      [8, 7, 9]
+      [8, 7, 9],
     ];
     const lu = decomposeLU(A);
     expect(lu).not.toBeNull();
@@ -271,7 +297,7 @@ describe('linear-algebra/qr', () => {
     const A: Matrix = [
       [12, -51, 4],
       [6, 167, -68],
-      [-4, 24, -41]
+      [-4, 24, -41],
     ];
     const { Q, R } = decomposeQR(A);
     expectMatrixClose(multiply(Q, R), A);
@@ -283,7 +309,7 @@ describe('linear-algebra/qr', () => {
     const A: Matrix = [
       [1, 1],
       [1, 0],
-      [0, 1]
+      [0, 1],
     ];
     const { Q, R } = decomposeQR(A);
     expectMatrixClose(multiply(Q, R), A);
@@ -295,7 +321,7 @@ describe('linear-algebra/svd', () => {
   it('SVD: U*diag(S)*V^T = A and singular values are non-negative descending', () => {
     const A: Matrix = [
       [3, 1, 1],
-      [-1, 3, 1]
+      [-1, 3, 1],
     ];
     const { U, S, V } = decomposeSVD(A, 500);
     const Sigma = diagonal(S);
@@ -315,22 +341,26 @@ describe('linear-algebra/eigenvalues', () => {
   it('eigenvalues of 2x2 known matrix', () => {
     const A: Matrix = [
       [4, 1],
-      [2, 3]
+      [2, 3],
     ];
-    const vals = eigenvalues(A).slice().sort((a, b) => b - a);
+    const vals = eigenvalues(A)
+      .slice()
+      .sort((a, b) => b - a);
     expectVectorClose(vals, [5, 2]);
   });
 
   it('eigenvalues of diagonal matrix are diagonal entries', () => {
     const D = diagonal([7, 3, -2]);
-    const vals = eigenvalues(D).slice().sort((a, b) => b - a);
+    const vals = eigenvalues(D)
+      .slice()
+      .sort((a, b) => b - a);
     expectVectorClose(vals, [7, 3, -2]);
   });
 
   it('eigenvectors of symmetric matrix satisfy A*v = lambda*v', () => {
     const S: Matrix = [
       [2, 1],
-      [1, 2]
+      [1, 2],
     ];
     const { values, vectors } = eigenvectors(S);
     expect(values.length).toBe(2);
@@ -347,12 +377,16 @@ describe('linear-algebra/eigenvalues', () => {
   it('powerIteration converges to dominant eigenvalue', () => {
     const A: Matrix = [
       [4, 1],
-      [2, 3]
+      [2, 3],
     ];
     const { eigenvalue, eigenvector } = powerIteration(A, { maxIter: 2000, eps: 1e-12 });
     expect(Math.abs(eigenvalue - 5)).toBeLessThan(1e-4);
     const Av = matVec(A, eigenvector);
-    expectVectorClose(Av, eigenvector.map((x) => x * eigenvalue), 1e-3);
+    expectVectorClose(
+      Av,
+      eigenvector.map((x) => x * eigenvalue),
+      1e-3,
+    );
   });
 });
 
@@ -361,7 +395,7 @@ describe('linear-algebra/spaces', () => {
     const vecs: Vector[] = [
       [1, 1, 0],
       [1, 0, 1],
-      [0, 1, 1]
+      [0, 1, 1],
     ];
     const ortho = gramSchmidt(vecs);
     expect(ortho.length).toBe(3);
@@ -378,14 +412,18 @@ describe('linear-algebra/spaces', () => {
   });
 
   it('gramSchmidt drops dependent vectors', () => {
-    const ortho = gramSchmidt([[1, 0], [2, 0], [0, 1]]);
+    const ortho = gramSchmidt([
+      [1, 0],
+      [2, 0],
+      [0, 1],
+    ]);
     expect(ortho.length).toBe(2);
   });
 
   it('nullSpace contains kernel basis: M*v = 0', () => {
     const M: Matrix = [
       [1, 2, 3],
-      [2, 4, 6]
+      [2, 4, 6],
     ];
     const basis = nullSpace(M);
     expect(basis.length).toBeGreaterThanOrEqual(2);
@@ -401,7 +439,7 @@ describe('linear-algebra/spaces', () => {
     const A: Matrix = [
       [1, 0, 0],
       [0, 1, 0],
-      [0, 0, 1]
+      [0, 0, 1],
     ];
     expect(nullSpace(A).length).toBe(0);
   });
@@ -410,7 +448,7 @@ describe('linear-algebra/spaces', () => {
     const M: Matrix = [
       [1, 2, 0],
       [2, 4, 1],
-      [3, 6, 1]
+      [3, 6, 1],
     ];
     const basis = columnSpace(M);
     expect(basis.length).toBe(rank(M));
@@ -418,8 +456,24 @@ describe('linear-algebra/spaces', () => {
   });
 
   it('isLinearlyIndependent detects dependence and independence', () => {
-    expect(isLinearlyIndependent([[1, 0], [0, 1]])).toBe(true);
-    expect(isLinearlyIndependent([[1, 2], [2, 4]])).toBe(false);
-    expect(isLinearlyIndependent([[1, 0], [0, 1], [1, 1]])).toBe(false);
+    expect(
+      isLinearlyIndependent([
+        [1, 0],
+        [0, 1],
+      ]),
+    ).toBe(true);
+    expect(
+      isLinearlyIndependent([
+        [1, 2],
+        [2, 4],
+      ]),
+    ).toBe(false);
+    expect(
+      isLinearlyIndependent([
+        [1, 0],
+        [0, 1],
+        [1, 1],
+      ]),
+    ).toBe(false);
   });
 });

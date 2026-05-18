@@ -19,7 +19,7 @@ import {
   snd,
   succ,
   union,
-  unionFamily
+  unionFamily,
 } from '../../../reasoning/set-theory';
 
 describe('HF sets — basic operations', () => {

@@ -75,7 +75,7 @@ export const limit = (seq: ConstructiveCauchySeq): CReal => ({
     const eps = Math.pow(2, bits + 1);
     const N = seq.modulus(eps);
     return seq.approx(N).approx(bits + 1);
-  }
+  },
 });
 
 /**
@@ -87,5 +87,5 @@ export const cauchyFrom = (
   modulus: (eps: number) => number,
 ): ConstructiveCauchySeq => ({
   approx: term,
-  modulus
+  modulus,
 });

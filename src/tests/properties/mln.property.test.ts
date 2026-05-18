@@ -16,9 +16,7 @@ describe('property: MLN hard constraints', () => {
       fc.property(fc.boolean(), fc.boolean(), (alicePred, bobPred) => {
         // Hard constraint: ∀x. Friends(x, x) — todos amigos de sí mismos.
         const theory: MLNTheory = {
-          formulas: [
-            { formula: 'Friends(x, x)', weight: Infinity },
-          ],
+          formulas: [{ formula: 'Friends(x, x)', weight: Infinity }],
           constants: { Person: ['Alice', 'Bob'] },
           predicates: [{ name: 'Friends', types: ['Person', 'Person'] }],
         };
@@ -36,9 +34,7 @@ describe('property: MLN hard constraints', () => {
           );
         }
         if (!violated && !Number.isFinite(w) && w === Number.NEGATIVE_INFINITY) {
-          throw new Error(
-            `World no viola hard pero weight = -∞`,
-          );
+          throw new Error(`World no viola hard pero weight = -∞`);
         }
         return true;
       }),

@@ -24,7 +24,7 @@ import {
   singleton,
   succ,
   union,
-  unionFamily
+  unionFamily,
 } from './hf-sets';
 
 export interface ZFCAxiomCheck {
@@ -85,7 +85,7 @@ export function checkExtensionality(): ZFCAxiomCheck {
         return {
           name: 'Extensionality',
           holds: false,
-          counterexample: [a, b]
+          counterexample: [a, b],
         };
       }
     }
@@ -210,7 +210,7 @@ export function checkInfinity(): ZFCAxiomCheck {
         name: 'Infinity',
         holds: true,
         note: 'closure detected (unexpected for Vω)',
-        counterexample: witnesses
+        counterexample: witnesses,
       };
     }
     seen.add(key);
@@ -221,7 +221,7 @@ export function checkInfinity(): ZFCAxiomCheck {
     name: 'Infinity',
     holds: false,
     note: 'Vω no contiene un conjunto inductivo: successor strictamente aumenta el rango',
-    counterexample: witnesses
+    counterexample: witnesses,
   };
 }
 
@@ -262,6 +262,6 @@ export function checkAllAxioms(): ZFCAxiomCheck[] {
     checkUnion(),
     checkPowerSet(),
     checkInfinity(),
-    checkFoundation()
+    checkFoundation(),
   ];
 }

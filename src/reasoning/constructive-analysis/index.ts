@@ -18,13 +18,7 @@ export type { ConstructiveCauchySeq } from './cauchy';
 export { isCauchy, limit, cauchyFrom } from './cauchy';
 
 export type { ConstructiveContinuous } from './continuity';
-export {
-  isUniformlyContinuousOn,
-  composition,
-  constant,
-  identity,
-  lipschitz
-} from './continuity';
+export { isUniformlyContinuousOn, composition, constant, identity, lipschitz } from './continuity';
 
 export { bishopIntegral } from './integral';
 

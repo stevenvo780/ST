@@ -5,36 +5,15 @@ export type {
   Snapshot,
   SnapshotComparison,
   TestCase,
-  TestSuite
+  TestSuite,
 } from './types';
 
-export {
-  crossProduct,
-  filter,
-  filterByTags,
-  makeSuite,
-  parameterize,
-  tag
-} from './combinators';
+export { crossProduct, filter, filterByTags, makeSuite, parameterize, tag } from './combinators';
 
-export {
-  nats,
-  randomInts,
-  range,
-  take,
-  toArray
-} from './generators';
+export { nats, randomInts, range, take, toArray } from './generators';
 
 export { runWithCoverage } from './coverage';
 
-export {
-  compareSnapshot,
-  snapshotHash,
-  takeSnapshot
-} from './snapshot';
+export { compareSnapshot, snapshotHash, takeSnapshot } from './snapshot';
 
-export {
-  mutateBoolean,
-  mutateNumber,
-  mutateString
-} from './mutation';
+export { mutateBoolean, mutateNumber, mutateString } from './mutation';

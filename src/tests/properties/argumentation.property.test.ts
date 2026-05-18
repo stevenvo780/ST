@@ -31,9 +31,7 @@ describe('property: argumentation extension lattice', () => {
         const prefs = preferredExtensions(af, { exhaustiveLimit: 8, warnOnLarge: false });
         for (const p of prefs) {
           if (!isSubsetOf(g, p)) {
-            throw new Error(
-              `grounded ⊄ preferred: g=${[...g].join(',')}, p=${[...p].join(',')}`,
-            );
+            throw new Error(`grounded ⊄ preferred: g=${[...g].join(',')}, p=${[...p].join(',')}`);
           }
         }
         return true;
@@ -51,9 +49,7 @@ describe('property: argumentation extension lattice', () => {
         for (const p of prefs) {
           const key = [...p].sort().join('|');
           if (!compKeys.includes(key)) {
-            throw new Error(
-              `preferred ${key} no aparece en complete (${compKeys.join(';')})`,
-            );
+            throw new Error(`preferred ${key} no aparece en complete (${compKeys.join(';')})`);
           }
         }
         return true;

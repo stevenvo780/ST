@@ -10,11 +10,7 @@
 
 import { describe, it } from 'vitest';
 import { fc, auTerm } from './generators';
-import {
-  antiUnify,
-  applySubst,
-  termEquals,
-} from '../../runtime/anti-unification';
+import { antiUnify, applySubst, termEquals } from '../../runtime/anti-unification';
 
 describe('property: anti-unification reconstruction', () => {
   it('substLeft(lgg) === t1 ∧ substRight(lgg) === t2', () => {
@@ -49,9 +45,7 @@ describe('property: anti-unification reconstruction', () => {
           );
         }
         if (result.variables.length !== 0) {
-          throw new Error(
-            `antiUnify(t,t) introdujo ${result.variables.length} vars frescas`,
-          );
+          throw new Error(`antiUnify(t,t) introdujo ${result.variables.length} vars frescas`);
         }
         return true;
       }),

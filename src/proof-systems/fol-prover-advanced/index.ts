@@ -8,7 +8,7 @@ export type {
   AdvancedProveOptions,
   AdvancedProveResult,
   ProofStep,
-  ProofStats
+  ProofStats,
 } from './types';
 
 export {
@@ -17,21 +17,12 @@ export {
   applySubToTerm,
   applySubToLiteral,
   termsEqual,
-  literalsEqual
+  literalsEqual,
 } from './unify';
 
-export {
-  kboGreater,
-  lpoGreater,
-  maximalLiterals
-} from './ordering';
+export { kboGreater, lpoGreater, maximalLiterals } from './ordering';
 
-export {
-  subsumes,
-  removeSubsumed,
-  unitPreference,
-  clausesAlphaEqual
-} from './subsumption';
+export { subsumes, removeSubsumed, unitPreference, clausesAlphaEqual } from './subsumption';
 
 export {
   binaryResolve,
@@ -41,12 +32,7 @@ export {
   dedupLiterals,
   isTautology,
   renameClause,
-  resetRenameCounter
+  resetRenameCounter,
 } from './resolve';
 
-export {
-  proveAdvanced,
-  negateLiteral,
-  negateClause,
-  strategyLabel
-} from './prover';
+export { proveAdvanced, negateLiteral, negateClause, strategyLabel } from './prover';

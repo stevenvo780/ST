@@ -14,10 +14,7 @@ import type { STRIPSProblem, Fact } from '../../reasoning/planning/types';
 // Generador de un problema mini estilo blocksworld 1D:
 // objetos a..b en posiciones discretas; acción move(?x, ?y).
 const problemArb: fc.Arbitrary<STRIPSProblem> = fc
-  .tuple(
-    fc.constantFrom('p1', 'p2', 'p3'),
-    fc.constantFrom('p1', 'p2', 'p3'),
-  )
+  .tuple(fc.constantFrom('p1', 'p2', 'p3'), fc.constantFrom('p1', 'p2', 'p3'))
   .filter(([s, g]) => s !== g)
   .map(([start, goal]) => ({
     predicates: ['at'],

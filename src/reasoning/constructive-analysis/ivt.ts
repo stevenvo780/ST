@@ -20,14 +20,7 @@
  *   |f(c) - average| < 1/N.
  */
 
-import {
-  type CReal,
-  fromFloat,
-  sub,
-  abs,
-  toNumber,
-  approxLT
-} from '../constructive-reals';
+import { type CReal, fromFloat, sub, abs, toNumber, approxLT } from '../constructive-reals';
 import type { ConstructiveContinuous } from './continuity';
 import { bishopIntegral } from './integral';
 
@@ -79,7 +72,7 @@ export const intermediateValueTheorem = (
     }
     if ((fLo - tgt) * (fMid - tgt) <= 0) {
       hi = mid;
-      fHi = fMid;
+      fHi = fMid; // eslint-disable-line no-useless-assignment
     } else {
       lo = mid;
       fLo = fMid;
@@ -122,7 +115,7 @@ export const meanValueConstructive = (
   // Compute integral at higher precision so dividing by (b - a) keeps
   // the error budget under 1/(2 precision).
   const length = bNum - aNum;
-  const intPrec = Math.max(1, Math.ceil(2 * precision / Math.max(length, 1e-12)));
+  const intPrec = Math.max(1, Math.ceil((2 * precision) / Math.max(length, 1e-12)));
   const integral = bishopIntegral(f, a, b, intPrec);
   const average = fromFloat(toNumber(integral, Math.max(4 * intPrec, 1_000)) / length);
   return intermediateValueTheorem(f, a, b, average, precision);

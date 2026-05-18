@@ -20,7 +20,7 @@ export {
   snd,
   succ,
   union,
-  unionFamily
+  unionFamily,
 } from './hf-sets';
 export type { HFSet } from './hf-sets';
 
@@ -32,7 +32,7 @@ export {
   isInjective,
   isSurjective,
   isValidFunction,
-  makeFunction
+  makeFunction,
 } from './hf-functions';
 export type { HFFunction } from './hf-functions';
 
@@ -43,6 +43,6 @@ export {
   checkInfinity,
   checkPairing,
   checkPowerSet,
-  checkUnion
+  checkUnion,
 } from './zfc-axioms';
 export type { ZFCAxiomCheck } from './zfc-axioms';

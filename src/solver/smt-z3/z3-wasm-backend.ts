@@ -7,7 +7,6 @@ import type {
   AsyncSMTBackend,
   AvailableSMTRuntime,
   Z3Scope,
-  Z3ScopedAssertion,
   Z3ScopedDecl,
   Z3WasmBackendOptions,
 } from './types';
@@ -61,6 +60,7 @@ let cachedInitError: unknown;
 /** Carga perezosa de z3-solver. Cachea el módulo entre instancias. */
 async function loadZ3(): Promise<Z3Module> {
   if (cachedZ3Module) return cachedZ3Module;
+  // eslint-disable-next-line @typescript-eslint/only-throw-error
   if (cachedInitError !== undefined) throw cachedInitError;
   try {
     // Import dinámico + cast a `any`: la API real de z3-solver expone
@@ -162,9 +162,7 @@ export class Z3WasmBackend implements AsyncSMTBackend {
   }
 
   /** Crea un backend nuevo. Falla si z3-solver no puede inicializarse. */
-  static async create(
-    logicOrOptions?: SMTLogic | Z3WasmBackendOptions,
-  ): Promise<Z3WasmBackend> {
+  static async create(logicOrOptions?: SMTLogic | Z3WasmBackendOptions): Promise<Z3WasmBackend> {
     const options: Z3WasmBackendOptions =
       typeof logicOrOptions === 'string' ? { logic: logicOrOptions } : (logicOrOptions ?? {});
     const z3 = await loadZ3();

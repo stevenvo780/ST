@@ -161,7 +161,7 @@ export function maximalLiterals(
   clause: { literals: FOLLiteral[] },
   ordering: 'KBO' | 'LPO' | 'none',
   weights: Map<string, number>,
-  precedence: Map<string, number>
+  precedence: Map<string, number>,
 ): number[] {
   if (ordering === 'none' || clause.literals.length === 0) {
     return clause.literals.map((_, i) => i);
@@ -169,7 +169,7 @@ export function maximalLiterals(
   const wrapped: FOLTerm[] = clause.literals.map((l) => ({
     kind: 'function',
     name: l.predicate,
-    args: l.args
+    args: l.args,
   }));
   const maximal: number[] = [];
   for (let i = 0; i < wrapped.length; i++) {

@@ -2,7 +2,7 @@ import type { CoverageReport, TestCase, TestSuite } from './types';
 
 export async function runWithCoverage<T>(
   suite: TestSuite<T>,
-  runner: (c: TestCase<T>) => Promise<boolean>
+  runner: (c: TestCase<T>) => Promise<boolean>,
 ): Promise<CoverageReport> {
   let passing = 0;
   let failing = 0;
@@ -27,6 +27,6 @@ export async function runWithCoverage<T>(
     passing,
     failing,
     errored,
-    tagDistribution
+    tagDistribution,
   };
 }

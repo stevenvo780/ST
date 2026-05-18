@@ -17,18 +17,23 @@ describe('CDCL incremental + MUS extraction', () => {
     // Fórmula unsat: (x1 ∨ x2) ∧ (¬x1 ∨ x2) ∧ (x1 ∨ ¬x2) ∧ (¬x1 ∨ ¬x2)
     // Es la negación de x1 XOR x2 mezclada — el conjunto completo de 4
     // cláusulas es insatisfacible.
-    const clauses: number[][] = [[1, 2], [-1, 2], [1, -2], [-1, -2]];
+    const clauses: number[][] = [
+      [1, 2],
+      [-1, 2],
+      [1, -2],
+      [-1, -2],
+    ];
 
     // Oráculo brute-force para MUS
     const oracle: SATOracle = (cls) => {
       if (cls.length === 0) return true;
       const vars = Array.from(new Set(cls.flat().map(Math.abs)));
       const n = vars.length;
-      for (let mask = 0; mask < (1 << n); mask++) {
+      for (let mask = 0; mask < 1 << n; mask++) {
         const asg = new Map<number, boolean>();
         vars.forEach((v, i) => asg.set(v, !!(mask & (1 << i))));
-        const sat = cls.every(c =>
-          c.some(lit => lit > 0 ? asg.get(lit) === true : asg.get(-lit) === false)
+        const sat = cls.every((c) =>
+          c.some((lit) => (lit > 0 ? asg.get(lit) === true : asg.get(-lit) === false)),
         );
         if (sat) return true;
       }
@@ -46,13 +51,11 @@ describe('CDCL incremental + MUS extraction', () => {
     // El MUS debe ser no vacío y un subconjunto de índices
     expect(musResult.mus.length).toBeGreaterThan(0);
     // El MUS debe ser unsat por sí solo
-    const musSubset = musResult.mus.map(i => clauses[i]!);
+    const musSubset = musResult.mus.map((i) => clauses[i]);
     expect(oracle(musSubset)).toBe(false);
     // Si quitamos cualquier cláusula del MUS, debe quedar SAT (minimalidad)
     for (const idx of musResult.mus) {
-      const withoutOne = musResult.mus
-        .filter(i => i !== idx)
-        .map(i => clauses[i]!);
+      const withoutOne = musResult.mus.filter((i) => i !== idx).map((i) => clauses[i]);
       if (withoutOne.length > 0) {
         expect(oracle(withoutOne)).toBe(true);
       }
@@ -139,7 +142,7 @@ import {
   isBisimilar,
   prove as bisimProve,
   take,
-  zipWith,
+  zipWith as _zipWith,
   fibonacci,
 } from '../../semantics/coinduction';
 import type { BisimulationProof } from '../../semantics/coinduction';
@@ -155,10 +158,12 @@ describe('Bisimulación coinductiva cross-módulo', () => {
     // fib1 vía iterate sobre pares
     const fib1 = fibonacci;
     // fib2 construida con zipWith explícito
-    const makeZipFib = (): typeof fib1 => {
+    const _makeZipFib = (): typeof fib1 => {
       // iterate(([a,b]) => [b, a+b], [0,1]) proyectado al primer elemento
-      const pairs = iterate(([a, b]: [number, number]) => [b, a + b] as [number, number], [0, 1] as [number, number]);
-      return { head: pairs.head[0], tail: () => makeZipFib() };
+      const pairs = iterate(([a, b]: [number, number]) => [b, a + b] as [number, number], [
+        0, 1,
+      ] as [number, number]);
+      return { head: pairs.head[0], tail: () => _makeZipFib() };
     };
     // Verificar simplemente los primeros 10 elementos
     const expected = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34];
@@ -184,9 +189,9 @@ describe('Bisimulación coinductiva cross-módulo', () => {
 import {
   differentiate,
   gradient,
-  variable,
+  variable as _variable,
 } from '../../runtime/symbolic-diff/differentiate';
-import { cst, v as mkVar, mul, pow } from '../../runtime/symbolic-diff/constructors';
+import { cst, v as mkVar, mul as _mul, pow } from '../../runtime/symbolic-diff/constructors';
 import { toString as exprToString } from '../../runtime/symbolic-diff/stringify';
 
 describe('Symbolic diff + simplify — d/dx(x²) = 2x', () => {
@@ -218,11 +223,11 @@ describe('Symbolic diff + simplify — d/dx(x²) = 2x', () => {
     expect(dfx).toBeDefined();
     expect(dfy).toBeDefined();
     // dfx = 2x (contiene x y 2)
-    expect(exprToString(dfx!)).toMatch(/x/);
-    expect(exprToString(dfx!)).toMatch(/2/);
+    expect(exprToString(dfx)).toMatch(/x/);
+    expect(exprToString(dfx)).toMatch(/2/);
     // dfy = 2y (contiene y y 2)
-    expect(exprToString(dfy!)).toMatch(/y/);
-    expect(exprToString(dfy!)).toMatch(/2/);
+    expect(exprToString(dfy)).toMatch(/y/);
+    expect(exprToString(dfy)).toMatch(/2/);
   });
 
   it('d/dx(c) = 0 para constante c', () => {
@@ -282,7 +287,7 @@ describe('Bayesian inference — red clásica Burglary-Alarm', () => {
     const posterior = query(burglaryNet, 'Burglary', evidence);
     const pTrue = posterior.distribution['true'];
     expect(pTrue).toBeDefined();
-    expect(Math.abs(pTrue! - 0.284)).toBeLessThan(0.02); // tolerancia ±2%
+    expect(Math.abs(pTrue - 0.284)).toBeLessThan(0.02); // tolerancia ±2%
   });
 
   it('distribución posterior suma a 1', () => {
@@ -297,15 +302,15 @@ describe('Bayesian inference — red clásica Burglary-Alarm', () => {
     const posterior = query(burglaryNet, 'Burglary', {});
     const pTrue = posterior.distribution['true'];
     expect(pTrue).toBeDefined();
-    expect(Math.abs(pTrue! - 0.001)).toBeLessThan(1e-6);
+    expect(Math.abs(pTrue - 0.001)).toBeLessThan(1e-6);
   });
 });
 
 // ── 6. MLTT + Curry-Howard: tipo Π ↔ fórmula ─────────────────────────
 import {
-  mPi,
+  mPi as _mPi,
   mLam,
-  mApp,
+  mApp as _mApp,
   mVar,
   mUniverse,
   inferType as mlttInfer,
@@ -367,7 +372,7 @@ import {
   antiUnifyMany,
   c,
   f as mkFunc,
-  v as mkTRSVar,
+  v as _mkTRSVar,
   termEquals,
   applySubst,
 } from '../../runtime/anti-unification';
@@ -376,11 +381,15 @@ describe('Anti-unification — lgg de términos', () => {
   it('lgg(f(a, b), f(a, c)) = f(a, V) con sustituciones correctas', () => {
     const result = antiUnify(mkFunc('f', c('a'), c('b')), mkFunc('f', c('a'), c('c')));
     expect(result.variables.length).toBe(1);
-    const vname = result.variables[0]!;
+    const vname = result.variables[0];
     // Sustitución izquierda retorna el término original izquierdo
-    expect(termEquals(applySubst(result.generalization, result.substLeft), mkFunc('f', c('a'), c('b')))).toBe(true);
+    expect(
+      termEquals(applySubst(result.generalization, result.substLeft), mkFunc('f', c('a'), c('b'))),
+    ).toBe(true);
     // Sustitución derecha retorna el término original derecho
-    expect(termEquals(applySubst(result.generalization, result.substRight), mkFunc('f', c('a'), c('c')))).toBe(true);
+    expect(
+      termEquals(applySubst(result.generalization, result.substRight), mkFunc('f', c('a'), c('c'))),
+    ).toBe(true);
     // La variable fresca debe mapear correctamente
     expect(termEquals(result.substLeft.get(vname)!, c('b'))).toBe(true);
     expect(termEquals(result.substRight.get(vname)!, c('c'))).toBe(true);
@@ -426,16 +435,16 @@ describe('Anti-unification — lgg de términos', () => {
 // ── 8. System F + lambda-calc: tipo-abstracción y aplicación ──────────
 import {
   fAtom,
-  fForall,
-  fArrow,
-  fVar as sfFTypeVar,
+  fForall as _fForall,
+  fArrow as _fArrow,
+  fVar as _sfFTypeVar,
   fAbs,
   fApp,
   fTAbs,
   fTApp,
   typeOf,
   isTypeError,
-  normalize as sfNormalize,
+  normalize as _sfNormalize,
   emptyContext,
 } from '../../type-theory/system-f';
 
@@ -537,7 +546,7 @@ describe('Proof Nets + MLL — construcción y corrección Danos-Regnier', () =>
   it('axiom ⊢ A, A⊥ construye net correcto', () => {
     const net = constructFromSequent([atomPos('A'), atomNeg('A')]);
     expect(net.links.length).toBe(1);
-    expect(net.links[0]!.kind).toBe('axiom');
+    expect(net.links[0].kind).toBe('axiom');
     expect(isCorrect(net)).toBe(true);
     expect(isCutFree(net)).toBe(true);
   });
@@ -548,7 +557,7 @@ describe('Proof Nets + MLL — construcción y corrección Danos-Regnier', () =>
       atomNeg('B'),
       tensor(atomPos('A'), atomPos('B')),
     ]);
-    expect(net.links.some(l => l.kind === 'tensor')).toBe(true);
+    expect(net.links.some((l) => l.kind === 'tensor')).toBe(true);
     expect(isCorrect(net)).toBe(true);
   });
 
@@ -578,12 +587,12 @@ import {
 import {
   createFramework,
   groundedExtension,
-  preferredExtensions,
-  stableExtensions,
+  preferredExtensions as _preferredExtensions,
+  stableExtensions as _stableExtensions,
   computeExtensions,
   isAdmissible,
-  isConflictFree,
-  DEFAULT_EXHAUSTIVE_LIMIT,
+  isConflictFree as _isConflictFree,
+  DEFAULT_EXHAUSTIVE_LIMIT as _DEFAULT_EXHAUSTIVE_LIMIT,
 } from '../../reasoning/argumentation';
 
 describe('FCA + Dung argumentation — conceptos como argumentos', () => {
@@ -594,7 +603,14 @@ describe('FCA + Dung argumentation — conceptos como argumentos', () => {
     const ctx = fcaCreateCtx(
       ['a', 'b', 'c'],
       ['p', 'q', 'r'],
-      [['a', 'p'], ['a', 'q'], ['b', 'q'], ['b', 'r'], ['c', 'p'], ['c', 'r']],
+      [
+        ['a', 'p'],
+        ['a', 'q'],
+        ['b', 'q'],
+        ['b', 'r'],
+        ['c', 'p'],
+        ['c', 'r'],
+      ],
     );
     const concepts = allConcepts(ctx);
     // El número de conceptos debe ser al menos 2 (top y bottom siempre existen)
@@ -611,7 +627,12 @@ describe('FCA + Dung argumentation — conceptos como argumentos', () => {
     const ctx = fcaCreateCtx(
       ['a', 'b', 'c'],
       ['p', 'q'],
-      [['a', 'p'], ['b', 'p'], ['b', 'q'], ['c', 'q']],
+      [
+        ['a', 'p'],
+        ['b', 'p'],
+        ['b', 'q'],
+        ['c', 'q'],
+      ],
     );
     const concepts = allConcepts(ctx);
     const hasse = fcaLattice(concepts);
@@ -623,7 +644,13 @@ describe('FCA + Dung argumentation — conceptos como argumentos', () => {
 
   it('framework de Dung: extensión fundamentada del ejemplo clásico', () => {
     // Ejemplo clásico: a ataca b, b ataca c
-    const af = createFramework(['a', 'b', 'c'], [['a', 'b'], ['b', 'c']]);
+    const af = createFramework(
+      ['a', 'b', 'c'],
+      [
+        ['a', 'b'],
+        ['b', 'c'],
+      ],
+    );
     const grounded = groundedExtension(af);
     // a y c deben estar en la extensión fundamentada
     expect(grounded.has('a')).toBe(true);
@@ -637,12 +664,19 @@ describe('FCA + Dung argumentation — conceptos como argumentos', () => {
     const stable = computeExtensions(af, 'stable');
     // Debe haber exactamente 1 extensión estable: {a}
     expect(stable.length).toBe(1);
-    expect(stable[0]!.has('a')).toBe(true);
-    expect(stable[0]!.has('b')).toBe(false);
+    expect(stable[0].has('a')).toBe(true);
+    expect(stable[0].has('b')).toBe(false);
   });
 
   it('admisibilidad: conjunto vacio siempre es admisible', () => {
-    const af = createFramework(['a', 'b', 'c'], [['a', 'b'], ['b', 'c'], ['c', 'a']]);
+    const af = createFramework(
+      ['a', 'b', 'c'],
+      [
+        ['a', 'b'],
+        ['b', 'c'],
+        ['c', 'a'],
+      ],
+    );
     expect(isAdmissible(af, new Set())).toBe(true);
   });
 });
@@ -674,7 +708,7 @@ describe('STRIPS planning — blocks world', () => {
     expect(plan).not.toBeNull();
     expect(plan!.length).toBeGreaterThanOrEqual(1);
     // El plan debe contener la acción 'move'
-    expect(plan!.actions.some(s => s.action.name === 'move')).toBe(true);
+    expect(plan!.actions.some((s) => s.action.name === 'move')).toBe(true);
   });
 
   it('goal ya satisfecho en estado inicial devuelve plan vacío', () => {
@@ -746,7 +780,12 @@ describe('SKI combinators — SKK = I (identidad)', () => {
 });
 
 // ── 14. FOL prover: silogismo con premises reales ─────────────────────
-import { mkConst, mkVar as folMkVar, mkFunc as folMkFunc, mkLit } from '../../proof-systems/fol-prover';
+import {
+  mkConst as _mkConst,
+  mkVar as _folMkVar,
+  mkFunc as _folMkFunc,
+  mkLit as _mkLit,
+} from '../../proof-systems/fol-prover';
 
 describe('FOL prover — silogismo de primer orden', () => {
   it('∀x.Mortal(x) ⊢ Mortal(socrates) usando resolución', () => {
@@ -784,15 +823,16 @@ describe('TheoremCache — LRU eviction y pattern matching', () => {
   it('LRU eviction: con maxEntries=2, la entrada más vieja se elimina', () => {
     const cache = new TheoremCache({ maxEntries: 2 });
     // Usamos normalizedFormulas distintas para garantizar entradas distintas
-    const storeDistinct = (formula: string, norm: string) => cache.store({
-      formula,
-      normalizedFormula: norm,
-      profile: 'test',
-      proof: {},
-      metadata: { provedAt: new Date().toISOString(), ms: 0 },
-    });
+    const storeDistinct = (formula: string, norm: string) =>
+      cache.store({
+        formula,
+        normalizedFormula: norm,
+        profile: 'test',
+        proof: {},
+        metadata: { provedAt: new Date().toISOString(), ms: 0 },
+      });
     const idA = storeDistinct('thm-A', 'norm-a');
-    const idB = storeDistinct('thm-B', 'norm-b');
+    const _idB = storeDistinct('thm-B', 'norm-b');
     // Acceder a la entrada A para promocionarla a MRU
     cache.remove(idA);
     // Re-insertar A (promovida a MRU)
@@ -828,8 +868,8 @@ describe('TheoremCache — LRU eviction y pattern matching', () => {
     // Patrón que matchea fórmulas con estructura A → A (mismo lado)
     const matches = cache.retrieveByPattern('?x → ?x');
     // P → P debe matchear (P y P son iguales)
-    expect(matches.some(m => m.formula === 'P → P')).toBe(true);
+    expect(matches.some((m) => m.formula === 'P → P')).toBe(true);
     // R → Q NO debe matchear (R ≠ Q)
-    expect(matches.every(m => m.formula !== 'R → Q')).toBe(true);
+    expect(matches.every((m) => m.formula !== 'R → Q')).toBe(true);
   });
 });

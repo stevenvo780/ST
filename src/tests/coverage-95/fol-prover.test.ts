@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { toCNF, skolemize, negate } from '../../proof-systems/fol-prover/cnf';
-import { resolve, resolveWithRecord, runResolutionLoop } from '../../proof-systems/fol-prover/resolve';
+import {
+  resolve,
+  resolveWithRecord,
+  runResolutionLoop,
+} from '../../proof-systems/fol-prover/resolve';
 import {
   mkVar,
   mkConst,

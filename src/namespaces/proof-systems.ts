@@ -16,11 +16,4 @@ import * as proofMinify from '../proof-systems/proof-minify';
 import * as tableauFramework from '../proof-systems/tableau-framework';
 import * as proofNets from '../proof-systems/proof-nets';
 
-export {
-  folProver,
-  folProverEquality,
-  proofExchange,
-  proofMinify,
-  tableauFramework,
-  proofNets,
-};
+export { folProver, folProverEquality, proofExchange, proofMinify, tableauFramework, proofNets };

@@ -21,7 +21,7 @@ export function setPartitions<T>(items: T[]): T[][][] {
         }
         const block = blocks[bIdx];
         if (block === undefined) throw new Error('setPartitions: bloque inválido');
-        block.push(item as T);
+        block.push(item);
       }
       result.push(blocks);
       return;

@@ -6,21 +6,17 @@ import type {
   ProofStats,
   ProofStep,
   RefinementStrategy,
-  TermOrdering
+  TermOrdering,
 } from './types';
 import {
   binaryResolve,
   factor,
   hyperresolveMany,
   isTautology,
-  resetRenameCounter
+  resetRenameCounter,
 } from './resolve';
 import { maximalLiterals } from './ordering';
-import {
-  clausesAlphaEqual,
-  subsumes,
-  unitPreference
-} from './subsumption';
+import { clausesAlphaEqual, subsumes, unitPreference } from './subsumption';
 
 /**
  * Negación lógica de una literal (toggle del flag `negated`).
@@ -46,7 +42,7 @@ export function negateClause(c: FOLClause): FOLClause[] {
 export function proveAdvanced(
   premises: FOLClause[],
   goal: FOLClause,
-  opts: AdvancedProveOptions
+  opts: AdvancedProveOptions,
 ): AdvancedProveResult {
   resetRenameCounter();
   const timeoutMs = opts.timeoutMs ?? 5_000;
@@ -86,7 +82,7 @@ export function proveAdvanced(
     deduplicated: 0,
     hyperresolutions: 0,
     factored: 0,
-    steps: 0
+    steps: 0,
   };
 
   const start = Date.now();
@@ -98,7 +94,7 @@ export function proveAdvanced(
         proven: true,
         steps,
         stats,
-        termination: 'refuted'
+        termination: 'refuted',
       };
     }
   }
@@ -130,7 +126,9 @@ export function proveAdvanced(
           // En este modo el "núcleo" es la cláusula con literales negativas
           // y los electrons salen de positivas. Probamos cada cláusula como
           // núcleo contra el resto positivo.
-          const positives = clauses.filter((c) => c.literals.length > 0 && c.literals.every((l) => !l.negated));
+          const positives = clauses.filter(
+            (c) => c.literals.length > 0 && c.literals.every((l) => !l.negated),
+          );
           const candidates = [ci, cj];
           for (const nucleus of candidates) {
             if (nucleus.literals.every((l) => !l.negated)) continue; // ya positiva
@@ -144,9 +142,9 @@ export function proveAdvanced(
                   rule: 'hyperresolution',
                   from: [i, j, ...hr.usedElectrons.map((e) => -1 - e)], // electron indices con offset negativo
                   result: hr.clause,
-                  substitution: hr.sub
+                  substitution: hr.sub,
                 },
-                fromGoalDerived: !!ci.fromGoal || !!cj.fromGoal
+                fromGoalDerived: !!ci.fromGoal || !!cj.fromGoal,
               });
             }
           }
@@ -158,7 +156,9 @@ export function proveAdvanced(
         for (const r of resolvents) {
           // Ordered resolution: la literal resuelta debe ser máxima en su cláusula.
           if (strategy === 'ordered') {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             const liMax = maximalLiterals(ci, ordering, weights, precedence);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             const ljMax = maximalLiterals(cj, ordering, weights, precedence);
             // Aceptamos si en cada padre la literal usada está entre las máximas.
             // Como `binaryResolve` no devuelve cuál par usó, hacemos un check
@@ -172,9 +172,9 @@ export function proveAdvanced(
               rule: strategy === 'ordered' ? 'ordered-resolution' : 'binary-resolution',
               from: [i, j],
               result: r.clause,
-              substitution: r.sub
+              substitution: r.sub,
             },
-            fromGoalDerived: !!ci.fromGoal || !!cj.fromGoal
+            fromGoalDerived: !!ci.fromGoal || !!cj.fromGoal,
           });
         }
 
@@ -185,7 +185,7 @@ export function proveAdvanced(
             newClauses.push({
               clause: fc,
               step: { rule: 'factoring', from: [i], result: fc },
-              fromGoalDerived: !!ci.fromGoal || !!cj.fromGoal
+              fromGoalDerived: !!ci.fromGoal || !!cj.fromGoal,
             });
           }
         }
@@ -239,10 +239,15 @@ export function proveAdvanced(
  */
 export function strategyLabel(s: RefinementStrategy): string {
   switch (s) {
-    case 'binary': return 'Binary resolution';
-    case 'hyperresolution': return 'Hyperresolution';
-    case 'set-of-support': return 'Set-of-support';
-    case 'ordered': return 'Ordered resolution';
-    case 'unit-preference': return 'Unit preference';
+    case 'binary':
+      return 'Binary resolution';
+    case 'hyperresolution':
+      return 'Hyperresolution';
+    case 'set-of-support':
+      return 'Set-of-support';
+    case 'ordered':
+      return 'Ordered resolution';
+    case 'unit-preference':
+      return 'Unit preference';
   }
 }

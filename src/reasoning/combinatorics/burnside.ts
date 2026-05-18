@@ -35,7 +35,7 @@ function cartesianProduct<T>(items: T[], length: number): T[][] {
 export function burnsideCount<T>(
   items: T[],
   length: number,
-  groupActions: Array<(x: T[]) => T[]>
+  groupActions: Array<(x: T[]) => T[]>,
 ): number {
   if (!Number.isInteger(length) || length < 0) {
     throw new RangeError('burnsideCount: length debe ser entero no negativo');

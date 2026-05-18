@@ -14,7 +14,7 @@ import {
   orderedPair,
   pair,
   setEquals,
-  singleton
+  singleton,
 } from '../../../reasoning/set-theory';
 
 describe('HF functions', () => {
@@ -24,7 +24,7 @@ describe('HF functions', () => {
     const id = makeFunction(dom, cod, [
       [nat(0), nat(0)],
       [nat(1), nat(1)],
-      [nat(2), nat(2)]
+      [nat(2), nat(2)],
     ]);
     expect(isValidFunction(id)).toBe(true);
     expect(isInjective(id)).toBe(true);
@@ -38,7 +38,7 @@ describe('HF functions', () => {
     const f = makeFunction(dom, cod, [
       [nat(0), nat(2)],
       [nat(1), nat(4)],
-      [nat(2), nat(0)]
+      [nat(2), nat(0)],
     ]);
     const y = applyHF(f, nat(1));
     expect(y).not.toBeNull();
@@ -54,7 +54,7 @@ describe('HF functions', () => {
     const f = makeFunction(dom, cod, [
       [nat(0), nat(1)],
       [nat(1), nat(1)],
-      [nat(2), nat(2)]
+      [nat(2), nat(2)],
     ]);
     expect(isInjective(f)).toBe(false);
     expect(isSurjective(f)).toBe(false);
@@ -65,7 +65,7 @@ describe('HF functions', () => {
     const cod = singleton(nat(7));
     const f = makeFunction(dom, cod, [
       [EMPTY, nat(7)],
-      [singleton(EMPTY), nat(7)]
+      [singleton(EMPTY), nat(7)],
     ]);
     expect(isSurjective(f)).toBe(true);
     expect(isInjective(f)).toBe(false);
@@ -78,13 +78,13 @@ describe('HF functions', () => {
     const g: HFFunction = makeFunction(a, b, [
       [nat(0), nat(1)],
       [nat(1), nat(2)],
-      [nat(2), nat(3)]
+      [nat(2), nat(3)],
     ]);
     const f: HFFunction = makeFunction(b, c, [
       [nat(0), nat(0)],
       [nat(1), nat(2)],
       [nat(2), nat(3)],
-      [nat(3), nat(4)]
+      [nat(3), nat(4)],
     ]);
     expect(isValidFunction(g)).toBe(true);
     expect(isValidFunction(f)).toBe(true);
@@ -105,12 +105,12 @@ describe('HF functions', () => {
   it('composeHF retorna null si codominio(g) ≠ dominio(f)', () => {
     const g = makeFunction(nat(2), nat(2), [
       [nat(0), nat(0)],
-      [nat(1), nat(1)]
+      [nat(1), nat(1)],
     ]);
     const f = makeFunction(nat(3), nat(3), [
       [nat(0), nat(0)],
       [nat(1), nat(1)],
-      [nat(2), nat(2)]
+      [nat(2), nat(2)],
     ]);
     expect(composeHF(f, g)).toBeNull();
   });
@@ -122,13 +122,13 @@ describe('HF functions', () => {
       elements: [
         orderedPair(nat(0), nat(0)),
         orderedPair(nat(0), nat(1)),
-        orderedPair(nat(1), nat(1))
-      ]
+        orderedPair(nat(1), nat(1)),
+      ],
     };
     const f: HFFunction = {
       graph: badGraph,
       domain: nat(2),
-      codomain: nat(2)
+      codomain: nat(2),
     };
     expect(isValidFunction(f)).toBe(false);
   });

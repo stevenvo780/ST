@@ -21,13 +21,7 @@ import * as gameSemantics from '../semantics/game-semantics';
 import * as profileBridge from '../logic/profile-bridge';
 import * as coinduction from '../semantics/coinduction';
 
-export {
-  textLayerCompiler,
-  textLayerV2,
-  gameSemantics,
-  profileBridge,
-  coinduction,
-};
+export { textLayerCompiler, textLayerV2, gameSemantics, profileBridge, coinduction };
 
 // Aliases convenientes — text-layer flat para coincidir con flat exports.
 export const textLayer = textLayerCompiler;

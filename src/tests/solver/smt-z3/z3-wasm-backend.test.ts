@@ -3,11 +3,7 @@
 // ============================================================
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import {
-  Z3WasmBackend,
-  detectAvailableSMT,
-  isZ3Available,
-} from '../../../solver/smt-z3';
+import { Z3WasmBackend, detectAvailableSMT, isZ3Available } from '../../../solver/smt-z3';
 
 // Detección sincronizada: `describe.skipIf(!flag)` necesita boolean inmediato.
 // Evitamos top-level await (incompatible con CommonJS) usando `require.resolve`

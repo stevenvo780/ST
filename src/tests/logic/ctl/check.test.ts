@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { modelCheckCTL, satisfiesCTL, generateWitness, ctlToString } from '../../../logic/profiles/ctl';
+import {
+  modelCheckCTL,
+  satisfiesCTL,
+  generateWitness,
+  ctlToString,
+} from '../../../logic/profiles/ctl';
 import type { CTLFormula, KripkeStructure } from '../../../logic/profiles/ctl';
 
 function st(id: string, labels: string[] = []) {

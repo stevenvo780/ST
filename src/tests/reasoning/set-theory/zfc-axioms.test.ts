@@ -6,7 +6,7 @@ import {
   checkInfinity,
   checkPairing,
   checkPowerSet,
-  checkUnion
+  checkUnion,
 } from '../../../reasoning/set-theory';
 
 describe('ZFC axioms on Vω', () => {
@@ -58,7 +58,7 @@ describe('ZFC axioms on Vω', () => {
       'Infinity',
       'Pairing',
       'Power Set',
-      'Union'
+      'Union',
     ]);
     // Sólo Infinity falla.
     const failing = all.filter((a) => !a.holds);
