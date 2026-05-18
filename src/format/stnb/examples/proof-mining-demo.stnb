@@ -1,0 +1,70 @@
+{
+  "version": "1.0",
+  "kernel": "st-lang",
+  "kernelVersion": "4.14",
+  "metadata": {
+    "title": "Demo: Proof Mining con ST",
+    "author": "Agora Education",
+    "profile": "classical.propositional",
+    "createdAt": "2026-05-18T00:00:00.000Z",
+    "updatedAt": "2026-05-18T00:00:00.000Z"
+  },
+  "cells": [
+    {
+      "id": "cell-pm-intro",
+      "type": "markdown",
+      "source": "# Proof Mining con ST\n\nEsta demostración ilustra técnicas básicas de proof mining en lógica clásica.\nAplicamos derivaciones sistemáticas para extraer patrones de prueba.\n\n**Objetivo:** Demostrar que un conjunto de axiomas es suficiente para derivar conclusiones."
+    },
+    {
+      "id": "cell-hypothetical-syllogism",
+      "type": "code",
+      "source": "axiom h1 : A -> B\naxiom h2 : B -> C\nderive A -> C from h1, h2",
+      "outputs": [
+        {
+          "type": "result",
+          "data": {
+            "valid": true,
+            "stdout": "✓ [derive] A -> C es DERIVABLE desde h1, h2"
+          },
+          "metadata": { "executionTime": 8 }
+        }
+      ]
+    },
+    {
+      "id": "cell-contrapositive-md",
+      "type": "markdown",
+      "source": "## Contraposición\n\nEl principio de contraposición dice:\n$$P \\to Q \\equiv \\lnot Q \\to \\lnot P$$\n\nEsto es una tautología clásica y permite invertir implicaciones."
+    },
+    {
+      "id": "cell-contrapositive",
+      "type": "code",
+      "source": "check valid (P -> Q) <-> ((not Q) -> (not P))",
+      "outputs": [
+        {
+          "type": "result",
+          "data": {
+            "valid": true,
+            "stdout": "✓ [check] La fórmula es VÁLIDA (tautología)"
+          },
+          "metadata": { "executionTime": 5 }
+        }
+      ]
+    },
+    {
+      "id": "cell-disjunctive-md",
+      "type": "markdown",
+      "source": "## Razonamiento Disyuntivo\n\nDado un dilema $A \\lor B$, si tanto $A \\to C$ como $B \\to C$, entonces $C$.\n\n$$\\frac{A \\lor B \\quad A \\to C \\quad B \\to C}{C} \\text{(Dilema Constructivo)}$$"
+    },
+    {
+      "id": "cell-disjunctive",
+      "type": "code",
+      "source": "check valid ((A or B) and (A -> C) and (B -> C)) -> C",
+      "outputs": []
+    },
+    {
+      "id": "cell-summary",
+      "type": "markdown",
+      "source": "## Resumen\n\nEn este notebook demostramos:\n1. **Silogismo hipotético**: $A \\to B, B \\to C \\vdash A \\to C$\n2. **Contraposición**: $(P \\to Q) \\leftrightarrow (\\lnot Q \\to \\lnot P)$\n3. **Dilema constructivo**: $(A \\lor B) \\land (A \\to C) \\land (B \\to C) \\to C$\n\nEstas formas son los pilares de la deducción proposicional clásica."
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "kernel": "st-lang",
+  "kernelVersion": "4.14",
+  "metadata": {
+    "title": "Introducción a Lógica Clásica",
+    "author": "Agora Education",
+    "profile": "classical.propositional",
+    "createdAt": "2026-05-18T00:00:00.000Z",
+    "updatedAt": "2026-05-18T00:00:00.000Z"
+  },
+  "cells": [
+    {
+      "id": "cell-intro-md",
+      "type": "markdown",
+      "source": "# Introducción a Lógica Propositional Clásica\n\nEn esta sesión exploraremos las tautologías fundamentales.\nComenzamos con el teorema de identidad: $p \\to p$."
+    },
+    {
+      "id": "cell-identity",
+      "type": "code",
+      "source": "check valid (P -> P)",
+      "outputs": []
+    },
+    {
+      "id": "cell-modus-md",
+      "type": "markdown",
+      "source": "## Modus Ponens\n\nSi tenemos $P \\to Q$ y $P$, podemos derivar $Q$.\n\n$$\\frac{P \\to Q \\quad P}{Q} MP$$"
+    },
+    {
+      "id": "cell-modus-ponens",
+      "type": "code",
+      "source": "axiom a1 : P -> Q\naxiom a2 : P\nderive Q from a1, a2",
+      "outputs": []
+    },
+    {
+      "id": "cell-de-morgan-md",
+      "type": "markdown",
+      "source": "## Leyes de De Morgan\n\nLas leyes de De Morgan son fundamentales:\n- $\\lnot(P \\land Q) \\equiv \\lnot P \\lor \\lnot Q$\n- $\\lnot(P \\lor Q) \\equiv \\lnot P \\land \\lnot Q$"
+    },
+    {
+      "id": "cell-de-morgan",
+      "type": "code",
+      "source": "check valid (not (P and Q)) <-> ((not P) or (not Q))",
+      "outputs": []
+    }
+  ]
+}

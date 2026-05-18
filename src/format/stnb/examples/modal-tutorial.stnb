@@ -1,0 +1,50 @@
+{
+  "version": "1.0",
+  "kernel": "st-lang",
+  "kernelVersion": "4.14",
+  "metadata": {
+    "title": "Tutorial: Lógica Modal S4",
+    "author": "Agora Education",
+    "profile": "modal.s4",
+    "createdAt": "2026-05-18T00:00:00.000Z",
+    "updatedAt": "2026-05-18T00:00:00.000Z"
+  },
+  "cells": [
+    {
+      "id": "cell-modal-intro",
+      "type": "markdown",
+      "source": "# Lógica Modal S4\n\nEl sistema S4 extiende la lógica modal K con los axiomas:\n- **T**: $\\Box p \\to p$ (reflexividad)\n- **4**: $\\Box p \\to \\Box\\Box p$ (transitividad)\n\nEn S4 el operador $\\Box$ (necessarily) satisface la propiedad de iteración."
+    },
+    {
+      "id": "cell-axiom-t",
+      "type": "code",
+      "profile": "modal.s4",
+      "source": "check valid ([]P -> P)",
+      "outputs": []
+    },
+    {
+      "id": "cell-axiom-4-md",
+      "type": "markdown",
+      "source": "## Axioma 4: Iteración de necesidad\n\nEn S4 tenemos: $\\Box p \\to \\Box\\Box p$\n\nEsto refleja la **persistencia epistémica**: si algo es necesariamente verdadero,\nes necesariamente necesariamente verdadero."
+    },
+    {
+      "id": "cell-axiom-4",
+      "type": "code",
+      "profile": "modal.s4",
+      "source": "check valid ([]P -> [][]P)",
+      "outputs": []
+    },
+    {
+      "id": "cell-diamond-md",
+      "type": "markdown",
+      "source": "## Operador Diamante\n\nEl operador $\\Diamond$ (possibly) se define como $\\Diamond p = \\lnot\\Box\\lnot p$.\n\nEn S4: $\\Diamond\\Diamond p \\to \\Diamond p$"
+    },
+    {
+      "id": "cell-diamond",
+      "type": "code",
+      "profile": "modal.s4",
+      "source": "check valid (<><>P -> <>P)",
+      "outputs": []
+    }
+  ]
+}
