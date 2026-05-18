@@ -1,0 +1,20 @@
+// traffic-light.dl — Semáforo (puramente discreto)
+//
+// Modela un semáforo de tres estados: VERDE (g=1), AMARILLO (y=1), ROJO (r=1).
+// Las transiciones son verde → amarillo → rojo → verde. Sin ODE: este
+// ejemplo verifica que el invariante "exactamente un color encendido"
+// se preserva tras una transición.
+//
+// Variables:
+//   g, y, r  ∈ {0, 1}
+//
+// Estados: (1,0,0), (0,1,0), (0,0,1).
+//
+// Propiedad de mutua exclusión:
+//   "tras una transición, g + y + r = 1"
+//
+// [ ?(g = 1); g := 0; y := 1
+//   ++ ?(y = 1); y := 0; r := 1
+//   ++ ?(r = 1); r := 0; g := 1 ] (g + y + r = 1)
+//
+// Resultado esperado: VALID — la transición preserva el invariante.

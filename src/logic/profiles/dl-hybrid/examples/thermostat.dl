@@ -1,0 +1,21 @@
+// thermostat.dl — Termostato simple
+//
+// Modela un calentador que se enciende cuando la temperatura cae por
+// debajo de 18 grados y se apaga cuando supera 22. En estado encendido,
+// la temperatura sube a tasa 1; en estado apagado baja a tasa -1.
+//
+// Variables:
+//   t        temperatura
+//   on       1 si calefactor encendido, 0 si apagado
+//
+// Propiedad de seguridad: a partir de t ≥ 18, la temperatura nunca cae
+// por debajo de 17 (margen de tolerancia 1 grado).
+
+// pre: t = 20 & on = 1
+// safety: [ ((?(t >= 22); on := 0 ++ ?(t < 18); on := 1);
+//           ({t' = 1 & t < 22} ++ {t' = -1 & t > 17}))* ] t >= 17
+
+// Versión simplificada para validación con el motor (sin loop):
+// [ ?(t >= 18); {t' = -1 & t > 17} ] t >= 17
+
+// Resultado esperado: VALID — el calentador respeta la cota inferior.

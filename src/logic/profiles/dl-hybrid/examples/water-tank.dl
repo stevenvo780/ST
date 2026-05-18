@@ -1,0 +1,20 @@
+// water-tank.dl — Tanque de agua con válvula
+//
+// Tanque con nivel `x` (entrada) que sube a tasa 2 cuando la válvula
+// está abierta (v = 1) y baja a tasa 1 cuando está cerrada (v = 0).
+// El controlador abre la válvula si x ≤ 1 y la cierra si x ≥ 9.
+//
+// Propiedad de seguridad: el tanque nunca se desborda (x ≤ 10) ni se
+// vacía (x ≥ 0).
+
+// pre: 1 <= x & x <= 9 & v = 0
+// safety: [ ((?(x <= 1); v := 1 ++ ?(x >= 9); v := 0);
+//           ({x' = 2 & x < 10 & v = 1} ++ {x' = -1 & x > 0 & v = 0}))* ]
+//         (0 <= x & x <= 10)
+
+// Versión validable con el motor (un solo ciclo):
+// [ ?(x <= 1); v := 1; {x' = 2 & x < 10} ] x <= 10
+
+// Invariante diferencial: si v = 1 y x < 10 entonces x' = 2 ≥ 0, así
+// que x es monótonamente creciente y cota superior x ≤ 10 se respeta
+// por el guarda de dominio.
