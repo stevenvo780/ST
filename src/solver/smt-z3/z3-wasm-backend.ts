@@ -136,7 +136,6 @@ let contextCounter = 0;
 export class Z3WasmBackend implements AsyncSMTBackend {
   readonly name = 'z3-wasm';
 
-  private readonly z3: Z3Module;
   private readonly ctx: Z3Context;
   private solver: Z3Solver;
   private readonly logic: SMTLogic | undefined;
@@ -151,8 +150,7 @@ export class Z3WasmBackend implements AsyncSMTBackend {
   private lastUnsatCore: string[] = [];
   private lastStatistics: Record<string, number> = {};
 
-  private constructor(z3: Z3Module, ctx: Z3Context, options: Z3WasmBackendOptions = {}) {
-    this.z3 = z3;
+  private constructor(_z3: Z3Module, ctx: Z3Context, options: Z3WasmBackendOptions = {}) {
     this.ctx = ctx;
     this.logic = options.logic;
     this.produceUnsatCore = options.produceUnsatCore ?? true;

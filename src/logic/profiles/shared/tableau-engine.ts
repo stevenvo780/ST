@@ -378,7 +378,6 @@ function closes(branch: Branch, node: LabeledNode): boolean {
 // ── Pool de Ramas (Object Pooling) ──────────────────────────
 
 const branchPool: Branch[] = [];
-const MAX_POOL_SIZE = 32;
 let nextBranchId = 1;
 let nextTraceNodeId = 1;
 
@@ -422,22 +421,6 @@ function acquireBranch(): Branch {
     branchId: `b${nextBranchId++}`,
     trace: [],
   };
-}
-
-function _releaseBranch(b: Branch): void {
-  if (branchPool.length < MAX_POOL_SIZE) {
-    b.literals.length = 0;
-    b.pending.length = 0;
-    b.accessibility.clear();
-    b.nextWorlds.clear();
-    b.worlds.clear();
-    b.gammaWatchers.length = 0;
-    b.processed.clear();
-    b.worldCounter = 0;
-    b.branchId = `b${nextBranchId++}`;
-    b.trace.length = 0;
-    branchPool.push(b);
-  }
 }
 
 // ── Clonación ───────────────────────────────────────────────
