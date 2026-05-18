@@ -7,8 +7,8 @@
 **ST** es un lenguaje ejecutable para lógica, argumentación y formalización documental.
 Combina verificación formal, scripting declarativo, control de flujo, funciones, perfiles lógicos múltiples y una **Text Layer** para conectar fórmulas con texto humano real.
 
-[![Version](https://img.shields.io/badge/version-4.5.0-blue.svg)](package.json)
-[![Tests](https://img.shields.io/badge/tests-4041-brightgreen.svg)]()
+[![Version](https://img.shields.io/badge/version-4.14.0-blue.svg)](package.json)
+[![Tests](https://img.shields.io/badge/tests-6333-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
 
@@ -38,7 +38,7 @@ Combina verificación formal, scripting declarativo, control de flujo, funciones
 ### Con npm
 
 ```bash
-npm install @stevenvo780/st-lang@4.5.0
+npm install @stevenvo780/st-lang@4.14.0
 ```
 
 ### Desde el código fuente
@@ -53,9 +53,9 @@ npm link
 
 ---
 
-## What's new in V4 (4.0 → 4.5.0)
+## What's new in V4–V5 (4.0 → 4.14.0)
 
-52+ módulos nuevos. 4041 tests (eran 1583 en v3.3).
+80+ módulos nuevos. 6333 tests (eran 1583 en v3.3).
 
 ### Performance & SAT
 - CDCL v2 con VSIDS, clause learning y reinicios Luby.
@@ -493,7 +493,7 @@ La extensión oficial en `editors/vscode-st` aporta:
 ## Documentación ampliada
 
 - Guía completa local: [`DOCS.md`](./DOCS.md)
-- Documentación web: [agora.humanizar.cloud/docs#st-lang](https://agora.humanizar.cloud/docs#st-lang)
+- Documentación web: [agora.elenxos.com/docs#st-lang](https://agora.elenxos.com/docs#st-lang)
 
 ---
 

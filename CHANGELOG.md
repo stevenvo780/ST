@@ -7,6 +7,21 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Changed
+- chore(lint): -661 issues via prettier + ESLint --fix + disables localizados (`658f3b6`).
+- chore(cleanup): borrar `_releaseBranch` dead + campo `z3` huérfano.
+- docs: regenerar `docs/api/` con 527 módulos (TSDoc 37.2% → 45.8%) (`8867b3a`).
+- test: skip agora-integration-fixtures cuando fixture externo no existe (`0c538e4`).
+
+### Added — V5 wave 7b (post-4.14.0)
+- Sequent calculus intuicionista LJ + cut-elimination + embed Glivenko en `proof-systems/sequent-lj/` (`314f724`).
+- Peano arithmetic P1-P6 + induction + comm/assoc theorems + Gödel encoding en `reasoning/peano-arithmetic/` (`16a2546`).
+- Order theory posets + Dilworth + Hasse + Zorn finito + well-founded induction en `reasoning/order-theory/` (`48dfb12`).
+
+---
+
 ## [4.14.0] - 2026-05-17
 
 ### Added — V5 wave 7

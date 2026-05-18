@@ -164,6 +164,12 @@ Releases incrementales: 4.0.x → 4.1.0 → 4.2.0 → 4.3.0 → 4.4.0 → 4.5.0.
 **Sin breaking changes en la API pública.** `parse`, `evaluate`, `check`, `quickEval`,
 `createInterpreter`, `listProfiles`, `formulaToString`, `STInterpreter` mantienen firmas idénticas.
 
+## 4.5.0 → 4.14.0
+
+Releases incrementales: 4.6.0 → 4.7.0 → 4.8.0 → 4.9.0 → 4.10.0 → 4.11.0 → 4.12.0 → 4.13.0 → 4.14.0.
+**Sin breaking changes en la API pública.** Todos los módulos nuevos son aditivos.
+Para el detalle por versión ver las entradas correspondientes en `CHANGELOG.md`.
+
 ---
 
 ## Test suite
@@ -177,7 +183,16 @@ Releases incrementales: 4.0.x → 4.1.0 → 4.2.0 → 4.3.0 → 4.4.0 → 4.5.0.
 | 4.2.0 | 3 058 | +353 |
 | 4.3.0 | 3 414 | +356 |
 | 4.4.0 | 3 731 | +317 |
-| **4.5.0** | **4 041** | +310 (+200 features 4.8/4.9, +48 integration, +62 resto) |
+| 4.5.0 | 4 041 | +310 (+200 features 4.8/4.9, +48 integration, +62 resto) |
+| 4.6.0 | ~4 400 | +359 (HM, Cat, HoTT, TPTP, CSP, Tactic, LemmasynQ) |
+| 4.7.0 | 4 636 | +236 (refactor estructural V5 α1, 0 regresiones) |
+| 4.8.0 | ~4 800 | +180 (Z3 real, Cubical, MechDesign, CombGames, PPL, ML-proof) |
+| 4.9.0 | ~5 000 | +200 (Mathlib, DiffPrivacy, Effects, BAN, PROOFLIB, Quantum) |
+| 4.10.0 | ~5 300 | +286 (NumberTh, ND-NK, Lean4, RealAn, Topology, Automata, Computability) |
+| 4.11.0 | ~5 500 | +180 (GraphTh, GroupPres, Coq-v2, LemmaLib, Provenance, DistExchange) |
+| 4.12.0 | 5 699 | +199 (wave 5b: DocGen, LinAlg, ConstrAn, Harness, Combinatorics, FOL-adv, SetTh) |
+| 4.13.0 | 5 854 | +155 (wave 6: LambdaCube, PolyRing, GaloisF, Lattice, Datalog) |
+| **4.14.0** | **5 964** | +110 (wave 7: Hoare, SepLogic, UnivAlg, ModelChecking) |
 
 ---
 
