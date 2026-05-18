@@ -28,10 +28,12 @@ export function formulaKey(f: NKFormula): string {
   }
 }
 
+/** Igualdad sintáctica entre dos fórmulas NK por comparación de claves. */
 export function formulaEquals(a: NKFormula, b: NKFormula): boolean {
   return formulaKey(a) === formulaKey(b);
 }
 
+/** Renderiza una fórmula NK en notación textual (¬, ∧, ∨, →, ⊥). */
 export function formulaToString(f: NKFormula): string {
   switch (f.kind) {
     case 'atom':
@@ -76,19 +78,25 @@ export function collectAtoms(f: NKFormula, out: Set<string> = new Set()): Set<st
 
 // Constructores ergonómicos -----------------------------------
 
+/** Átomo proposicional clásico. */
 export const atom = (name: string): NKFormula => ({ kind: 'atom', name });
+/** Constante de falsedad ⊥. */
 export const bottom = (): NKFormula => ({ kind: 'bottom' });
+/** Negación: ¬φ. */
 export const not = (arg: NKFormula): NKFormula => ({ kind: 'not', arg });
+/** Conjunción: left ∧ right. */
 export const and = (left: NKFormula, right: NKFormula): NKFormula => ({
   kind: 'and',
   left,
   right,
 });
+/** Disyunción: left ∨ right. */
 export const or = (left: NKFormula, right: NKFormula): NKFormula => ({
   kind: 'or',
   left,
   right,
 });
+/** Implicación: left → right. */
 export const implies = (left: NKFormula, right: NKFormula): NKFormula => ({
   kind: 'implies',
   left,

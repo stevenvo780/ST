@@ -23,6 +23,7 @@ import { LTLFormula, formulaKey, formulaToString } from './types';
 
 // --- NNF: negation normal form -----------------------------------------------
 
+/** Convierte una fórmula LTL a Negation Normal Form (NNF): negaciones empujadas hasta átomos. */
 export function toNNF(f: LTLFormula): LTLFormula {
   return pushNot(f, false);
 }
@@ -89,6 +90,10 @@ function pushNot(f: LTLFormula, negated: boolean): LTLFormula {
 
 // --- Closure ----------------------------------------------------------------
 
+/**
+ * Calcula la clausura de subfórmulas de `f` (incluyendo duales de F, G, U, R via X).
+ * El conjunto resultado es el universo de fórmulas sobre el que se construyen los atoms.
+ */
 export function closure(f: LTLFormula): LTLFormula[] {
   const seen = new Map<string, LTLFormula>();
   function visit(g: LTLFormula): void {
@@ -138,12 +143,17 @@ export function closure(f: LTLFormula): LTLFormula[] {
 
 // --- Atoms (subconjuntos localmente consistentes) ---------------------------
 
+/**
+ * Subconjunto de la clausura localmente consistente con las reglas de tableau.
+ * Cada `Atom` representa un estado posible del autómata de Büchi implícito.
+ */
 export interface Atom {
   id: number;
-  // Conjunto de fórmulas presentes (claves canónicas → fórmula).
+  /** Fórmulas presentes en este átomo (clave canónica → fórmula). */
   formulas: Map<string, LTLFormula>;
-  // Cache: literales positivos y negativos para imprimir trace.
+  /** Literales positivos presentes (para trazas legibles). */
   positiveLiterals: string[];
+  /** Literales negativos presentes (para trazas legibles). */
   negativeLiterals: string[];
 }
 
@@ -230,6 +240,11 @@ function isLocallyConsistent(present: Set<string>, byKey: Map<string, LTLFormula
 // Genera todos los atoms (subconjuntos de la clausura) localmente
 // consistentes. Para evitar explosión usamos enumeración por elección
 // de subfórmulas en orden tópico con poda temprana.
+/**
+ * Genera todos los atoms localmente consistentes a partir de la clausura dada.
+ * Usa backtracking con poda de contradicciones átomo/¬átomo.
+ * Límite de seguridad: 200 000 atoms para evitar explosión exponencial.
+ */
 export function enumerateAtoms(closureFormulas: LTLFormula[]): Atom[] {
   const byKey = new Map<string, LTLFormula>();
   for (const g of closureFormulas) byKey.set(formulaKey(g), g);
@@ -305,6 +320,11 @@ export function enumerateAtoms(closureFormulas: LTLFormula[]): Atom[] {
 // (F, G, U, R) deben mantenerse consistentes. La regla X-φ ∈ A ⇒ φ ∈ B
 // es suficiente porque la clausura ya contiene X(F φ), X(G φ), X(φ U ψ),
 // X(φ R ψ) explícitamente.
+/**
+ * Construye la relación de transición entre atoms.
+ * A → B sii para toda Xφ ∈ A se cumple φ ∈ B.
+ * @returns Mapa de id de atom origen a lista de ids de atoms destino.
+ */
 export function transitions(atoms: Atom[]): Map<number, number[]> {
   const out = new Map<number, number[]>();
   for (const a of atoms) {
@@ -336,13 +356,18 @@ export function transitions(atoms: Atom[]): Map<number, number[]> {
 // Una "eventualidad" en LTL es F ψ (que debe satisfacerse alguna vez) o
 // φ U ψ (idem). Para que un lazo sea aceptante, cada eventualidad presente
 // debe cumplirse dentro del ciclo (estado donde ψ está presente).
+/**
+ * Eventualidad LTL que debe cumplirse dentro del lazo aceptante.
+ * F ψ y φ U ψ son eventualidades; se satisfacen cuando ψ aparece en algún estado del ciclo.
+ */
 export interface Eventuality {
+  /** Clave canónica de la eventualidad (F ψ o φ U ψ). */
   key: string;
-  // Fórmula que debe estar presente en algún estado del ciclo para
-  // "cumplir" esta eventualidad.
+  /** Clave de la fórmula testigo ψ que debe estar presente en el ciclo. */
   witnessFormulaKey: string;
 }
 
+/** Extrae todas las eventualidades (F ψ y φ U ψ) presentes en un atom. */
 export function eventualitiesIn(atom: Atom): Eventuality[] {
   const ev: Eventuality[] = [];
   for (const [k, f] of atom.formulas) {
@@ -355,6 +380,7 @@ export function eventualitiesIn(atom: Atom): Eventuality[] {
   return ev;
 }
 
+/** Describe un atom por sus literales: "p,¬q" o "∅" si está vacío. */
 export function describeAtom(a: Atom): string {
   const pos = a.positiveLiterals.join(',');
   const neg = a.negativeLiterals.map((n) => `¬${n}`).join(',');
@@ -362,6 +388,7 @@ export function describeAtom(a: Atom): string {
   return all || '∅';
 }
 
+/** Alias de `formulaToString` para uso en contextos de depuración del tableau. */
 export function describeFormula(f: LTLFormula): string {
   return formulaToString(f);
 }

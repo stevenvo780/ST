@@ -36,10 +36,13 @@ function binRight(f: ModalFormula): ModalFormula {
 // Constructores ergonómicos
 // ------------------------------------------------------------
 
+/** Crea un átomo proposicional modal. */
 export const atom = (name: string): ModalFormula => ({ kind: 'atom', name });
 
+/** Negación: ¬φ. */
 export const not = (arg: ModalFormula): ModalFormula => ({ kind: 'not', arg, args: [arg] });
 
+/** Conjunción: φ ∧ ψ. */
 export const and = (left: ModalFormula, right: ModalFormula): ModalFormula => ({
   kind: 'and',
   left,
@@ -47,6 +50,7 @@ export const and = (left: ModalFormula, right: ModalFormula): ModalFormula => ({
   args: [left, right],
 });
 
+/** Disyunción: φ ∨ ψ. */
 export const or = (left: ModalFormula, right: ModalFormula): ModalFormula => ({
   kind: 'or',
   left,
@@ -54,6 +58,7 @@ export const or = (left: ModalFormula, right: ModalFormula): ModalFormula => ({
   args: [left, right],
 });
 
+/** Implicación: φ → ψ. */
 export const implies = (left: ModalFormula, right: ModalFormula): ModalFormula => ({
   kind: 'implies',
   left,
@@ -61,8 +66,10 @@ export const implies = (left: ModalFormula, right: ModalFormula): ModalFormula =
   args: [left, right],
 });
 
+/** Operador □ (necesidad / box): □φ. */
 export const box = (arg: ModalFormula): ModalFormula => ({ kind: 'box', arg, args: [arg] });
 
+/** Operador ◇ (posibilidad / diamond): ◇φ. */
 export const diamond = (arg: ModalFormula): ModalFormula => ({
   kind: 'diamond',
   arg,
@@ -95,10 +102,12 @@ export function formulaKey(f: ModalFormula): string {
   }
 }
 
+/** Igualdad sintáctica entre dos fórmulas modales. */
 export function formulaEquals(a: ModalFormula, b: ModalFormula): boolean {
   return formulaKey(a) === formulaKey(b);
 }
 
+/** Renderiza una fórmula modal en notación textual (¬, ∧, ∨, →, □, ◇). */
 export function formulaToString(f: ModalFormula): string {
   switch (f.kind) {
     case 'atom':
@@ -131,6 +140,7 @@ function parens(f: ModalFormula): string {
 // Átomos
 // ------------------------------------------------------------
 
+/** Recolecta todos los nombres de átomos proposicionales que aparecen en `f`. */
 export function collectAtoms(f: ModalFormula, out: Set<string> = new Set()): Set<string> {
   switch (f.kind) {
     case 'atom':

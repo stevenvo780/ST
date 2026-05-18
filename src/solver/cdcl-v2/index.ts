@@ -1,3 +1,11 @@
+/**
+ * @module cdcl-v2
+ * Entry point público del solver CDCL v2.
+ *
+ * Uso: `solveCDCLv2(clauses, numVars, opts?)` donde `clauses` es un arreglo
+ * de `Int32Array` en formato DIMACS (variables 1..numVars). Devuelve
+ * {@link SatResult} o {@link UnsatResult}.
+ */
 // CDCL v2 — Entry point público.
 //
 // API principal:

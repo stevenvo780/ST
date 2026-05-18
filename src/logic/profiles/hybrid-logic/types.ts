@@ -65,50 +65,67 @@ export interface HybridFrame {
 
 // ── Constructores de conveniencia ──────────────────────────
 
+/** Crea un átomo proposicional híbrido. */
 export function atom(name: string): HybridFormula {
   return { kind: 'atom', name };
 }
 
+/** Crea un nominal (proposición que denota un único mundo). */
 export function nominal(name: string): HybridFormula {
   return { kind: 'nominal', name };
 }
 
+/** Negación: ¬φ. */
 export function not(arg: HybridFormula): HybridFormula {
   return { kind: 'not', arg };
 }
 
+/**
+ * Conjunción n-aria: φ₁ ∧ … ∧ φₙ.
+ * @throws si se llama sin argumentos.
+ */
 export function and(...args: HybridFormula[]): HybridFormula {
   if (args.length === 0) throw new Error('and: aridad >= 1 requerida');
   if (args.length === 1) return args[0];
   return { kind: 'and', args };
 }
 
+/**
+ * Disyunción n-aria: φ₁ ∨ … ∨ φₙ.
+ * @throws si se llama sin argumentos.
+ */
 export function or(...args: HybridFormula[]): HybridFormula {
   if (args.length === 0) throw new Error('or: aridad >= 1 requerida');
   if (args.length === 1) return args[0];
   return { kind: 'or', args };
 }
 
+/** Implicación: left → right. */
 export function implies(left: HybridFormula, right: HybridFormula): HybridFormula {
   return { kind: 'implies', left, right };
 }
 
+/** Operador □ (necesidad modal). */
 export function box(arg: HybridFormula): HybridFormula {
   return { kind: 'box', arg };
 }
 
+/** Operador ◇ (posibilidad modal). */
 export function diamond(arg: HybridFormula): HybridFormula {
   return { kind: 'diamond', arg };
 }
 
+/** Operador de satisfacción: @i φ ("φ en el mundo i"). */
 export function at(nominalName: string, arg: HybridFormula): HybridFormula {
   return { kind: 'at', nominal: nominalName, arg };
 }
 
+/** Operador de ligadura: ↓bind. φ (bind el mundo actual). */
 export function down(bind: string, arg: HybridFormula): HybridFormula {
   return { kind: 'down', bind, arg };
 }
 
+/** Cuantificador de mundo: ∃bind. φ (existe un mundo bind donde φ). */
 export function existsWorld(bind: string, arg: HybridFormula): HybridFormula {
   return { kind: 'exists-world', bind, arg };
 }

@@ -37,6 +37,7 @@
 // Sintaxis
 // ============================================================
 
+/** AST de fórmulas proposicionales intuicionistas para el cálculo LJ. */
 export type LJFormula =
   | { kind: 'atom'; name: string }
   | { kind: 'not'; arg: LJFormula }
@@ -45,6 +46,7 @@ export type LJFormula =
   | { kind: 'implies'; left: LJFormula; right: LJFormula }
   | { kind: 'bottom' };
 
+/** Nombres de las reglas del cálculo de secuentes LJ de Gentzen. */
 export type LJRule =
   | 'axiom'
   | 'cut'
@@ -72,6 +74,10 @@ export interface LJSequent {
   right: LJFormula | null;
 }
 
+/**
+ * Árbol de derivación LJ.
+ * Cada nodo registra el secuente meta, la regla aplicada y las sub-derivaciones.
+ */
 export interface LJProof {
   goal: LJSequent;
   rule: LJRule;
@@ -427,6 +433,7 @@ export function proveLJ(seq: LJSequent, options: { budget?: number } = {}): LJPr
 }
 
 /** Atajo: ⊢ φ en LJ. */
+/** Atajo: intenta derivar ⊢ φ en LJ (secuente con antecedente vacío). */
 export function proveLJFormula(
   formula: LJFormula,
   options: { budget?: number } = {},
@@ -438,6 +445,7 @@ export function proveLJFormula(
 // Validacion estructural de derivaciones LJ
 // ============================================================
 
+/** Verifica estructuralmente que un árbol de derivación LJ es correcto. */
 export function isValid(proof: LJProof): boolean {
   const { goal, rule, premises } = proof;
   const L = goal.left;
@@ -616,6 +624,7 @@ export function isValid(proof: LJProof): boolean {
   }
 }
 
+/** Devuelve `true` si el árbol de derivación contiene alguna aplicación de la regla cut. */
 export function hasCut(proof: LJProof): boolean {
   if (proof.rule === 'cut') return true;
   return proof.premises.some(hasCut);
@@ -752,6 +761,11 @@ function eliminateCutAtRoot(proof: LJProof): LJProof {
   return proof;
 }
 
+/**
+ * Elimina cortes de una derivación LJ (Hauptsatz de Gentzen).
+ * Usa reducciones principales para los casos estructurales y el prover
+ * cut-free como oráculo para los casos permutativos restantes.
+ */
 export function eliminateCut(proof: LJProof): LJProof {
   const premises = proof.premises.map(eliminateCut);
   const updated: LJProof = { ...proof, premises };

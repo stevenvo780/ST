@@ -9,6 +9,12 @@
 // normalización: φ W ψ ≡ ψ R (φ ∨ ψ) ≡ (G φ) ∨ (φ U ψ).
 // ============================================================
 
+/**
+ * AST de fórmulas LTL.
+ *
+ * Operadores temporales: X (next), F (eventually), G (globally),
+ * U (until), R (release). W (weak-until) se codifica como `or(until, globally)`.
+ */
 export type LTLFormula =
   | { kind: 'atom'; name: string }
   | { kind: 'not'; arg: LTLFormula }
@@ -45,16 +51,24 @@ export const weakUntil = (left: LTLFormula, right: LTLFormula): LTLFormula =>
 // Implicación derivada: φ → ψ ≡ ¬φ ∨ ψ
 export const implies = (left: LTLFormula, right: LTLFormula): LTLFormula => or(not(left), right);
 
+/** Modelo lasso que satisface una fórmula LTL: prefijo + lazo infinito. */
 export interface Witness {
+  /** Segmento inicial (finito) antes del lazo. Cada elemento es la etiqueta del estado. */
   prefix: string[];
+  /** Segmento cíclico que se repite infinitamente. */
   loop: string[];
 }
 
+/**
+ * Resultado de la decisión de satisfacibilidad LTL.
+ * Si `sat` es verdadero, `witness` contiene un modelo lasso.
+ */
 export interface SatResult {
   sat: boolean;
   witness?: Witness;
 }
 
+/** Renderiza una fórmula LTL en notación textual estándar. */
 export function formulaToString(f: LTLFormula): string {
   switch (f.kind) {
     case 'atom':
@@ -84,7 +98,7 @@ function parenthesize(f: LTLFormula): string {
   return `(${formulaToString(f)})`;
 }
 
-// Clave canónica: usada para hashing en sets/maps.
+/** Clave canónica determinista de una fórmula LTL, usada para hashing en sets/maps. */
 export function formulaKey(f: LTLFormula): string {
   switch (f.kind) {
     case 'atom':
