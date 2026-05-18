@@ -210,6 +210,33 @@ export function occursIn(v: string, t: Term): boolean {
 }
 
 /**
+ * Occurs check con walk sobre la sustitución parcial.
+ *
+ * Igual que occursIn pero sigue la cadena sigma para cada variable
+ * encontrada. Necesario dentro de unify para detectar ciclos
+ * indirectos como w→f(z), z→f(w) donde occursIn simple no bastaría.
+ */
+function occursInSubst(v: string, t: Term, subst: Substitution): boolean {
+  const visited = new Set<string>();
+  const stack: Term[] = [t];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (node === undefined) break;
+    if (node.kind === 'var') {
+      if (node.name === v) return true;
+      if (!visited.has(node.name)) {
+        visited.add(node.name);
+        const bound = subst.get(node.name);
+        if (bound !== undefined) stack.push(bound);
+      }
+    } else {
+      for (const a of node.args) stack.push(a);
+    }
+  }
+  return false;
+}
+
+/**
  * Matching (pattern matching): encuentra σ tal que σ(pattern) = target.
  *
  * A diferencia de la unificación, solo las variables del pattern
@@ -266,12 +293,12 @@ export function unify(s: Term, t: Term, subst: Substitution = new Map()): Substi
 
     if (a.kind === 'var' && b.kind === 'var' && a.name === b.name) continue;
     if (a.kind === 'var') {
-      if (occursIn(a.name, b)) return null;
+      if (occursInSubst(a.name, b, sigma)) return null;
       sigma.set(a.name, b);
       continue;
     }
     if (b.kind === 'var') {
-      if (occursIn(b.name, a)) return null;
+      if (occursInSubst(b.name, a, sigma)) return null;
       sigma.set(b.name, a);
       continue;
     }
