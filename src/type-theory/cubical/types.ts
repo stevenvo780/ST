@@ -21,6 +21,11 @@
 // API mínima compatible con MLTT/HoTT:
 //   inferType / normalize / isIntervalExpr / evalInterval
 
+/**
+ * Término de la Teoría de Tipos Cubical (CTT-Lite).
+ * Cubre el intervalo I con extremos i0/i1, operaciones ∧/∨/~, caminos PathP,
+ * abstracción/aplicación de path, glue (univalencia computacional) y MLTT base (Π, λ, app, universo).
+ */
 export type CubicalTerm =
   // ── Intervalo I ──────────────────────────────────────────
   | { kind: 'i0' }
@@ -44,21 +49,28 @@ export type CubicalTerm =
 
 // ── Constructores convenientes ──────────────────────────────
 
+/** Extremo inferior del intervalo `i0 : I`. */
 export const cI0 = (): CubicalTerm => ({ kind: 'i0' });
+/** Extremo superior del intervalo `i1 : I`. */
 export const cI1 = (): CubicalTerm => ({ kind: 'i1' });
+/** Variable de intervalo `name : I`. */
 export const cIVar = (name: string): CubicalTerm => ({ kind: 'iVar', name });
+/** Mínimo de intervalo `left ∧ right` (conexión). */
 export const cIMin = (left: CubicalTerm, right: CubicalTerm): CubicalTerm => ({
   kind: 'iMin',
   left,
   right,
 });
+/** Máximo de intervalo `left ∨ right` (conexión). */
 export const cIMax = (left: CubicalTerm, right: CubicalTerm): CubicalTerm => ({
   kind: 'iMax',
   left,
   right,
 });
+/** Negación de intervalo `~arg` (involución: `~i0 = i1`). */
 export const cINeg = (arg: CubicalTerm): CubicalTerm => ({ kind: 'iNeg', arg });
 
+/** `PathP family left right` — tipo de caminos dependientes sobre la familia `family`. */
 export const cPathP = (
   family: CubicalTerm,
   left: CubicalTerm,
@@ -69,42 +81,52 @@ export const cPathP = (
   left,
   right,
 });
+/** Abstracción de camino `λi. body` donde `bind` es la variable de intervalo. */
 export const cPLam = (bind: string, body: CubicalTerm): CubicalTerm => ({
   kind: 'pLam',
   bind,
   body,
 });
+/** Aplicación de camino `path @ arg` (evaluación en un punto del intervalo). */
 export const cPApp = (path: CubicalTerm, arg: CubicalTerm): CubicalTerm => ({
   kind: 'pApp',
   path,
   arg,
 });
 
+/** Glue: construcción precursora de univalencia computacional con equivalencia `equiv` y parcial `partial`. */
 export const cGlue = (equiv: CubicalTerm, partial: CubicalTerm): CubicalTerm => ({
   kind: 'glue',
   equiv,
   partial,
 });
 
+/** Variable del cálculo de tipos. */
 export const cVar = (name: string): CubicalTerm => ({ kind: 'var', name });
+/** Universo de tipos de nivel `level` (default 0). */
 export const cUniverse = (level = 0): CubicalTerm => ({ kind: 'universe', level });
+/** Tipo Π dependiente `Π (bind : domain). codomain`. */
 export const cPi = (bind: string, domain: CubicalTerm, codomain: CubicalTerm): CubicalTerm => ({
   kind: 'pi',
   bind,
   domain,
   codomain,
 });
+/** Abstracción dependiente `λ (bind : domain). body`. */
 export const cLam = (bind: string, domain: CubicalTerm, body: CubicalTerm): CubicalTerm => ({
   kind: 'lam',
   bind,
   domain,
   body,
 });
+/** Aplicación de término `fn arg`. */
 export const cApp = (fn: CubicalTerm, arg: CubicalTerm): CubicalTerm => ({ kind: 'app', fn, arg });
+/** Flecha no dependiente `from → to` (azúcar para `cPi('_', from, to)`). */
 export const cArrow = (from: CubicalTerm, to: CubicalTerm): CubicalTerm => cPi('_', from, to);
 
 // ── Discriminador de fragmentos del intervalo ───────────────
 
+/** Devuelve `true` si el término `t` es una expresión pura del intervalo I (i0, i1, iVar, iMin, iMax, iNeg). */
 export function isIntervalExpr(t: CubicalTerm): boolean {
   switch (t.kind) {
     case 'i0':
@@ -123,6 +145,7 @@ export function isIntervalExpr(t: CubicalTerm): boolean {
 
 // ── Inspección estructural ───────────────────────────────────
 
+/** Devuelve `true` si `name` ocurre libre en `term`. */
 export function occursFreeCubical(name: string, term: CubicalTerm): boolean {
   switch (term.kind) {
     case 'i0':
@@ -165,6 +188,7 @@ export function occursFreeCubical(name: string, term: CubicalTerm): boolean {
   }
 }
 
+/** Acumula en `acc` (o devuelve un nuevo Set) el conjunto de variables libres del término. */
 export function freeVarsCubical(term: CubicalTerm, acc: Set<string> = new Set()): Set<string> {
   switch (term.kind) {
     case 'i0':
@@ -226,6 +250,7 @@ export function freeVarsCubical(term: CubicalTerm, acc: Set<string> = new Set())
 
 // ── Serialización ────────────────────────────────────────────
 
+/** Serializa un término CTT-Lite a su representación textual estándar. */
 export function termToStringCubical(t: CubicalTerm): string {
   switch (t.kind) {
     case 'i0':

@@ -30,25 +30,31 @@
 // Tipos
 // ------------------------------------------------------------
 
-// Un simplex es la lista ordenada ascendente de sus vértices.
+/** Simplex abstracto: lista ordenada ascendente de vértices (enteros). */
 export type Simplex = number[];
 
-// Versión con signo, usada por el operador borde sobre Z.
+/** Simplex con signo orientado, usado por el operador borde ∂ sobre Z. */
 export interface SignedSimplex {
   sign: 1 | -1;
   simplex: Simplex;
 }
 
-// Un complejo simplicial abstracto. Internamente indexamos los
-// simplices por dimensión (k = |s|-1) y los almacenamos por su clave
-// canónica `v0,v1,...,vk`.
+/**
+ * Complejo simplicial abstracto.
+ * Internamente los simplices se indexan por dimensión (`k = |s|-1`) y se
+ * almacenan por su clave canónica `v0,v1,...,vk`.
+ */
 export interface SimplicialComplex {
   vertices: number[];
   simplices: Map<number, Set<string>>;
   dim: number;
 }
 
-// Resultado de un cómputo de homología completo.
+/**
+ * Resultado de un cómputo de homología sobre un complejo simplicial.
+ * Incluye números de Betti, característica de Euler y, cuando se trabaja
+ * sobre Z, la torsión por dimensión.
+ */
 export interface HomologyResult {
   dim: number;
   bettiNumbers: number[];
@@ -88,6 +94,7 @@ function normalize(s: Simplex): Simplex {
 // API de construcción
 // ------------------------------------------------------------
 
+/** Crea un complejo simplicial vacío (sin vértices ni simplices). */
 export function makeComplex(): SimplicialComplex {
   return {
     vertices: [],
@@ -96,7 +103,11 @@ export function makeComplex(): SimplicialComplex {
   };
 }
 
-// Añade un simplex y todas sus caras al complejo.
+/**
+ * Añade un simplex `s` y todas sus caras al complejo `K` (cierre hacia abajo).
+ * El simplex se normaliza a orden creciente antes de insertarse.
+ * @throws si `s` contiene vértices repetidos.
+ */
 export function addSimplex(K: SimplicialComplex, s: Simplex): void {
   const sorted = normalize(s);
   const k = sorted.length - 1;
@@ -135,7 +146,10 @@ export function addSimplex(K: SimplicialComplex, s: Simplex): void {
 // Caras y operador borde
 // ------------------------------------------------------------
 
-// Todas las caras directas (codimensión 1) de un k-simplex: hay k+1.
+/**
+ * Devuelve las caras directas (codimensión 1) del k-simplex `s`.
+ * Un k-simplex tiene exactamente k+1 caras. Devuelve `[]` para 0-simplices.
+ */
 export function faces(s: Simplex): Simplex[] {
   if (s.length <= 1) return [];
   const out: Simplex[] = [];
@@ -152,13 +166,15 @@ export function faces(s: Simplex): Simplex[] {
   return out;
 }
 
-// Borde sobre Z/2: la lista de caras sin orientación.
+/** Operador borde ∂ sobre Z/2 (coeficientes en F₂): lista de caras sin signos. */
 export function boundaryZ2(simplex: Simplex): Simplex[] {
   return faces(simplex);
 }
 
-// Borde sobre Z: cada cara con signo (-1)^i, donde i es el índice del
-// vértice omitido en el orden canónico del simplex.
+/**
+ * Operador borde ∂ sobre Z: devuelve cada cara con signo `(-1)^i`, donde `i`
+ * es el índice del vértice omitido en el orden canónico del simplex.
+ */
 export function boundaryZ(simplex: Simplex): SignedSimplex[] {
   if (simplex.length <= 1) return [];
   const out: SignedSimplex[] = [];
@@ -180,11 +196,15 @@ export function boundaryZ(simplex: Simplex): SignedSimplex[] {
 // Invariantes elementales
 // ------------------------------------------------------------
 
+/** Dimensión del complejo simplicial (el mayor k tal que K contiene un k-simplex, o -1 si está vacío). */
 export function dimension(K: SimplicialComplex): number {
   return K.dim;
 }
 
-// f-vector: f_i = número de i-simplices, i = 0..dim.
+/**
+ * f-vector del complejo: `f[i]` = número de i-simplices, para i = 0..dim.
+ * @example fVector(nSimplex(2)) // [3, 3, 1] (triángulo lleno)
+ */
 export function fVector(K: SimplicialComplex): number[] {
   const out: number[] = [];
   for (let i = 0; i <= K.dim; i++) {
@@ -193,7 +213,10 @@ export function fVector(K: SimplicialComplex): number[] {
   return out;
 }
 
-// Característica de Euler χ = ∑ (-1)^i f_i.
+/**
+ * Característica de Euler: χ = ∑ (-1)^i f_i.
+ * Invariante topológico (S² → 2, T² → 0, RP² → 1).
+ */
 export function eulerCharacteristic(K: SimplicialComplex): number {
   const f = fVector(K);
   let chi = 0;
@@ -297,16 +320,17 @@ function rankF2(M: number[][]): number {
   return rank;
 }
 
-// Rango del operador borde ∂_d sobre Z/2.
+/** Rango del operador borde ∂_d : C_d → C_{d-1} sobre F₂. */
 export function rankBoundaryZ2(K: SimplicialComplex, dim: number): number {
   if (dim <= 0) return 0;
   const M = boundaryMatrixZ2(K, dim);
   return rankF2(M);
 }
 
-// Números de Betti sobre Z/2:
-//   β_d = dim ker ∂_d - dim im ∂_{d+1}
-//       = n_d - rank ∂_d - rank ∂_{d+1}
+/**
+ * Número de Betti β_d sobre Z/2 (F₂).
+ * β_d = dim ker ∂_d − dim im ∂_{d+1} = n_d − rank ∂_d − rank ∂_{d+1}.
+ */
 export function bettiNumberZ2(K: SimplicialComplex, dim: number): number {
   if (dim < 0) return 0;
   const nd = K.simplices.get(dim)?.size ?? 0;
@@ -357,13 +381,12 @@ function absGcd(a: number, b: number): number {
   return x;
 }
 
-// Smith Normal Form sobre Z para una matriz entera.
-// Devuelve la SNF (diagonal con factores invariantes d_1 | d_2 | ... | d_r,
-// resto ceros), el rango (= número de pivotes no nulos) y la dimensión del
-// kernel (cols - rank).
-//
-// Algoritmo: reducción iterativa estilo Bareiss/Euclidiana sobre filas y
-// columnas hasta diagonalizar. Para complejos pequeños es más que suficiente.
+/**
+ * Forma Normal de Smith sobre Z para una matriz entera.
+ * Devuelve la SNF (diagonal con factores invariantes d₁ | d₂ | … | dᵣ, resto ceros),
+ * el rango (número de pivotes no nulos) y la dimensión del kernel (cols − rankIm).
+ * Algoritmo: reducción iterativa estilo Bareiss/Euclídea sobre filas y columnas.
+ */
 export function smithNormalForm(matrix: number[][]): {
   snf: number[][];
   rankIm: number;
@@ -575,8 +598,10 @@ export function smithNormalForm(matrix: number[][]): {
 // Homología sobre Z
 // ------------------------------------------------------------
 
-// β_d = rank ker ∂_d - rank im ∂_{d+1} (sobre Z, dimensión libre de la
-// homología, equivalente a contar copias de Z en H_d).
+/**
+ * Número de Betti β_d sobre Z (parte libre de la homología H_d).
+ * β_d = rank ker ∂_d − rank im ∂_{d+1}, equivalente a contar copias de Z en H_d.
+ */
 export function bettiNumberZ(K: SimplicialComplex, dim: number): number {
   if (dim < 0) return 0;
   const nd = K.simplices.get(dim)?.size ?? 0;
@@ -588,9 +613,11 @@ export function bettiNumberZ(K: SimplicialComplex, dim: number): number {
   return nd - rankD - rankD1;
 }
 
-// Factores invariantes (>1) de la torsión de H_d sobre Z:
-//   H_d = Z^{β_d} ⊕ ⊕_i Z/d_i, con d_1 | d_2 | ... | d_k, d_i > 1.
-// Los factores vienen de los invariantes de ∂_{d+1} que son >1.
+/**
+ * Factores invariantes (> 1) de la torsión de H_d sobre Z.
+ * H_d = Z^{β_d} ⊕ ⊕ᵢ Z/dᵢ, con d₁ | d₂ | … | dₖ, dᵢ > 1.
+ * Ejemplo: RP² tiene torsión [2] en dimensión 1.
+ */
 export function torsionZ(K: SimplicialComplex, dim: number): number[] {
   if (dim < 0) return [];
   const M = boundaryMatrixZ(K, dim + 1);
@@ -603,8 +630,10 @@ export function torsionZ(K: SimplicialComplex, dim: number): number[] {
 // Complejos estándar
 // ------------------------------------------------------------
 
-// Complejo del n-simplex completo: todos los subconjuntos de {0,...,n}.
-// `nSimplex(2)` da un triángulo con su 2-cara rellena (no la frontera).
+/**
+ * Complejo del n-simplex completo: todos los subconjuntos no vacíos de {0,…,n}.
+ * `nSimplex(2)` da un triángulo relleno (2-cara incluida), no solo su borde.
+ */
 export function nSimplex(n: number): SimplicialComplex {
   const K = makeComplex();
   if (n < 0) return K;
@@ -614,8 +643,10 @@ export function nSimplex(n: number): SimplicialComplex {
   return K;
 }
 
-// Frontera del (n+1)-simplex = triangulación canónica de S^n.
-// `spheres(2)` = borde del tetraedro = 4 vértices, 6 aristas, 4 triángulos.
+/**
+ * Triangulación canónica de la esfera S^n (frontera del (n+1)-simplex).
+ * `spheres(2)` = borde del tetraedro: 4 vértices, 6 aristas, 4 triángulos; χ = 2.
+ */
 export function spheres(n: number): SimplicialComplex {
   const K = makeComplex();
   if (n < 0) {
@@ -634,13 +665,10 @@ export function spheres(n: number): SimplicialComplex {
   return K;
 }
 
-// Triangulación del toro T² basada en un cuadrado 3×3 con identificaciones
-// opuestas estándar (a b a⁻¹ b⁻¹). 9 vértices etiquetados como (i,j) con
-// i,j ∈ {0,1,2}, identificando (3,j) ≡ (0,j) y (i,3) ≡ (i,0). Cada celda
-// 1×1 se divide en 2 triángulos por la diagonal (i,j)-(i+1,j+1).
-//
-// Resultado: 9 vértices, 27 aristas, 18 triángulos.
-// χ = 9 - 27 + 18 = 0, β = [1,2,1].
+/**
+ * Triangulación del toro T² (cuadrado 3×3 con identificaciones a b a⁻¹ b⁻¹).
+ * 9 vértices, 27 aristas, 18 triángulos. χ = 0, β_{Z/2} = [1,2,1].
+ */
 export function torus2(): SimplicialComplex {
   const K = makeComplex();
   // Mapeo (i, j) ∈ Z₃ × Z₃ → índice 3*i + j ∈ {0..8}
@@ -659,9 +687,10 @@ export function torus2(): SimplicialComplex {
   return K;
 }
 
-// Triangulación mínima del plano proyectivo real RP² (6 vértices,
-// 15 aristas, 10 triángulos). Esta es la triangulación canónica del
-// hemisferio con identificación antipodal del ecuador.
+/**
+ * Triangulación mínima del plano proyectivo real RP² (6 vértices, 15 aristas, 10 triángulos).
+ * β_Z = [1,0,0] con torsión Z/2 en dimensión 1; β_{Z/2} = [1,1,1]; χ = 1.
+ */
 export function projectivePlane(): SimplicialComplex {
   const K = makeComplex();
   const triangles: Simplex[] = [
@@ -680,14 +709,10 @@ export function projectivePlane(): SimplicialComplex {
   return K;
 }
 
-// Triangulación de la botella de Klein como cuadrado 3×3 con
-// identificaciones (a b a b⁻¹): bordes horizontales pegan en paralelo,
-// bordes verticales pegan con flip. Concretamente:
-//   (i, 3) ≡ (i, 0)        (horizontal sin twist)
-//   (3, j) ≡ (0, 2 - j)    (vertical con twist)
-// Cada celda 1×1 dividida en 2 triángulos.
-//
-// Resultado: 9 vértices, χ = 0, β_Z = [1,1,0], torsión Z/2 en dim 1.
+/**
+ * Triangulación de la botella de Klein (cuadrado 3×3 con identificaciones a b a b⁻¹).
+ * 9 vértices; χ = 0; β_Z = [1,1,0]; torsión Z/2 en dim 1.
+ */
 export function kleinBottle(): SimplicialComplex {
   const K = makeComplex();
   // v(i, j) representa el vértice (i mod 3, j mod 3) con flip al cruzar
@@ -725,6 +750,11 @@ export function kleinBottle(): SimplicialComplex {
 // Cómputo completo de homología
 // ------------------------------------------------------------
 
+/**
+ * Cómputo completo de homología de `K` con coeficientes en Z/2 o Z.
+ * Devuelve números de Betti, característica de Euler y (si Z) la torsión por dimensión.
+ * @param coefficients `'Z2'` para F₂ (defecto) o `'Z'` para coeficientes enteros.
+ */
 export function computeHomology(
   K: SimplicialComplex,
   coefficients: 'Z2' | 'Z' = 'Z2',

@@ -36,8 +36,10 @@
 //   λPω̄        (*, *) (*, ◻) (◻, ◻)
 //   λC         (*, *) (◻, *) (*, ◻) (◻, ◻)         Calculus of Constructions
 
+/** Sort del cubo λ: `'*'` (tipo/proposición) o `'◻'` (kind/tipo de tipos). */
 export type Sort = '*' | '◻';
 
+/** Uno de los 8 sistemas del cubo λ de Barendregt, identificado por su nombre canónico. */
 export type CubeSystem =
   | 'lambda'
   | 'lambda2'
@@ -48,6 +50,7 @@ export type CubeSystem =
   | 'lambda-P-omega'
   | 'lambda-C';
 
+/** Término de un Pure Type System del cubo λ: variable, sort, Π-tipo, λ-abstracción o aplicación. */
 export type CubeTerm =
   | { kind: 'var'; name: string }
   | { kind: 'sort'; sort: Sort }
@@ -57,22 +60,29 @@ export type CubeTerm =
 
 // ---------- Constructores convenientes ----------
 
+/** Variable de término o tipo. */
 export const cVar = (name: string): CubeTerm => ({ kind: 'var', name });
+/** Sort arbitrario `'*'` o `'◻'`. */
 export const cSort = (sort: Sort): CubeTerm => ({ kind: 'sort', sort });
+/** Sort `*` (tipo/proposición). */
 export const cStar: CubeTerm = { kind: 'sort', sort: '*' };
+/** Sort `◻` (kind / tipo de tipos). */
 export const cBox: CubeTerm = { kind: 'sort', sort: '◻' };
+/** Π-tipo dependiente `Π bind:domain. codomain`. */
 export const cPi = (bind: string, domain: CubeTerm, codomain: CubeTerm): CubeTerm => ({
   kind: 'pi',
   bind,
   domain,
   codomain,
 });
+/** Abstracción dependiente `λ bind:domain. body`. */
 export const cLam = (bind: string, domain: CubeTerm, body: CubeTerm): CubeTerm => ({
   kind: 'lam',
   bind,
   domain,
   body,
 });
+/** Aplicación `fn arg`. */
 export const cApp = (fn: CubeTerm, arg: CubeTerm): CubeTerm => ({ kind: 'app', fn, arg });
 
 /** Flecha no-dependiente: Π (_ : A). B, cuando B no menciona el binder. */
@@ -80,6 +90,7 @@ export const cArrow = (from: CubeTerm, to: CubeTerm): CubeTerm => cPi('_', from,
 
 // ---------- Variables libres ----------
 
+/** Devuelve `true` si `name` ocurre libre en `term`. */
 export function occursFree(name: string, term: CubeTerm): boolean {
   switch (term.kind) {
     case 'var':
@@ -98,6 +109,7 @@ export function occursFree(name: string, term: CubeTerm): boolean {
   }
 }
 
+/** Acumula en `acc` (o devuelve un nuevo Set) el conjunto de variables libres del término. */
 export function freeVars(term: CubeTerm, acc: Set<string> = new Set()): Set<string> {
   switch (term.kind) {
     case 'var':
@@ -123,6 +135,7 @@ export function freeVars(term: CubeTerm, acc: Set<string> = new Set()): Set<stri
 
 // ---------- Serialización legible ----------
 
+/** Serializa un término del cubo λ a texto legible (Π, λ, →, sorts). */
 export function termToString(t: CubeTerm): string {
   switch (t.kind) {
     case 'var':
@@ -155,6 +168,7 @@ export function termToString(t: CubeTerm): string {
 
 // ---------- α-equivalencia ----------
 
+/** α-equivalencia entre dos términos del cubo λ (renombra binders a índices canónicos). */
 export function alphaEq(a: CubeTerm, b: CubeTerm): boolean {
   return alphaEqEnv(a, b, new Map(), new Map(), { n: 0 });
 }
@@ -206,12 +220,15 @@ function alphaEqEnv(
 //
 // Mapa nombre → tipo. Conserva orden de inserción para impresión.
 
+/** Contexto de tipado del cubo λ: mapa de variables a sus tipos. */
 export type CubeContext = Map<string, CubeTerm>;
 
+/** Crea un contexto vacío para el cubo λ. */
 export function emptyContext(): CubeContext {
   return new Map();
 }
 
+/** Extiende el contexto con `name : type`. Devuelve un nuevo mapa (no muta el original). */
 export function extendContext(ctx: CubeContext, name: string, type: CubeTerm): CubeContext {
   const next = new Map(ctx);
   next.set(name, type);

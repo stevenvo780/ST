@@ -69,17 +69,19 @@ export function makeGraph<V>(directed = false): Graph<V> {
   };
 }
 
+/** Añade el vértice `v` al grafo `G` (sin aristas). */
 export function addVertex<V>(G: Graph<V>, v: V): void {
   G.vertices.add(v);
 }
 
+/** Añade la arista `e` al grafo `G`, incluyendo sus extremos como vértices si es necesario. */
 export function addEdge<V>(G: Graph<V>, e: Edge<V>): void {
   G.vertices.add(e.from);
   G.vertices.add(e.to);
   G.edges.push({ from: e.from, to: e.to, weight: e.weight });
 }
 
-// Vecinos salientes (en no dirigido, ambos extremos cuentan).
+/** Devuelve los vecinos salientes de `v` (en no dirigido, ambos extremos cuentan). */
 export function neighbors<V>(G: Graph<V>, v: V): V[] {
   const out: V[] = [];
   for (const e of G.edges) {
@@ -89,6 +91,7 @@ export function neighbors<V>(G: Graph<V>, v: V): V[] {
   return out;
 }
 
+/** Grado de entrada de `v` (en grafo no dirigido, igual al grado total). */
 export function inDegree<V>(G: Graph<V>, v: V): number {
   if (!G.directed) return degreeUndirected(G, v);
   let d = 0;
@@ -96,6 +99,7 @@ export function inDegree<V>(G: Graph<V>, v: V): number {
   return d;
 }
 
+/** Grado de salida de `v` (en grafo no dirigido, igual al grado total). */
 export function outDegree<V>(G: Graph<V>, v: V): number {
   if (!G.directed) return degreeUndirected(G, v);
   let d = 0;
@@ -140,6 +144,7 @@ function buildAdjacency<V>(G: Graph<V>): Map<V, AdjEntry<V>[]> {
 // Recorridos
 // ------------------------------------------------------------
 
+/** BFS desde `start`; devuelve los vértices en orden de visita. Llama `visit` por cada uno si se proporciona. */
 export function bfs<V>(G: Graph<V>, start: V, visit?: (v: V) => void): V[] {
   if (!G.vertices.has(start)) return [];
   const adj = buildAdjacency(G);
@@ -162,6 +167,7 @@ export function bfs<V>(G: Graph<V>, start: V, visit?: (v: V) => void): V[] {
   return order;
 }
 
+/** DFS desde `start`; devuelve los vértices en orden de visita. Llama `visit` por cada uno si se proporciona. */
 export function dfs<V>(G: Graph<V>, start: V, visit?: (v: V) => void): V[] {
   if (!G.vertices.has(start)) return [];
   const adj = buildAdjacency(G);
@@ -184,7 +190,7 @@ export function dfs<V>(G: Graph<V>, start: V, visit?: (v: V) => void): V[] {
   return order;
 }
 
-// Orden topológico vía Kahn. Devuelve `has-cycle` si no es DAG.
+/** Orden topológico vía Kahn. Devuelve `'has-cycle'` si el grafo no es un DAG. */
 export function topologicalSort<V>(G: Graph<V>): V[] | 'has-cycle' {
   if (!G.directed) {
     // Para no dirigidos no tiene sentido salvo aristas-cero; devolver vértices.
@@ -218,6 +224,7 @@ export function topologicalSort<V>(G: Graph<V>): V[] | 'has-cycle' {
 // Conectividad
 // ------------------------------------------------------------
 
+/** Componentes conexos (débiles en dirigido) del grafo. Cada componente es una lista de vértices. */
 export function connectedComponents<V>(G: Graph<V>): V[][] {
   const adj = buildAdjacency(G);
   const seen = new Set<V>();
@@ -245,13 +252,13 @@ export function connectedComponents<V>(G: Graph<V>): V[][] {
   return comps;
 }
 
+/** Devuelve `true` si el grafo tiene un solo componente conexo. */
 export function isConnected<V>(G: Graph<V>): boolean {
   if (G.vertices.size <= 1) return true;
   return connectedComponents(G).length === 1;
 }
 
-// Tarjan SCC en grafos dirigidos. Para no dirigidos cada SCC coincide con
-// el componente conexo.
+/** Componentes fuertemente conexos (Tarjan, iterativo). En no dirigido cada SCC = componente conexo. */
 export function stronglyConnectedComponents<V>(G: Graph<V>): V[][] {
   if (!G.directed) return connectedComponents(G);
   const adj = buildAdjacency(G);
@@ -321,7 +328,7 @@ export function stronglyConnectedComponents<V>(G: Graph<V>): V[][] {
   return result;
 }
 
-// Articulation points (corte) en grafos no dirigidos por DFS lowlink.
+/** Puntos de articulación (corte) del grafo no dirigido, detectados vía DFS lowlink. */
 export function articulationPoints<V>(G: Graph<V>): V[] {
   if (G.vertices.size === 0) return [];
   const adj = buildAdjacency(G);
@@ -380,7 +387,7 @@ export function articulationPoints<V>(G: Graph<V>): V[] {
   return Array.from(isArt);
 }
 
-// Puentes en grafo no dirigido (DFS lowlink). Devuelve aristas (a,b).
+/** Puentes del grafo no dirigido (DFS lowlink): aristas cuya eliminación desconecta el grafo. */
 export function bridges<V>(G: Graph<V>): Array<{ from: V; to: V }> {
   const adj = buildAdjacency(G);
   const disc = new Map<V, number>();
@@ -490,6 +497,10 @@ class MinHeap<V> {
   }
 }
 
+/**
+ * Dijkstra: caminos mínimos desde `start` (pesos no negativos).
+ * @throws si hay aristas con peso negativo.
+ */
 export function dijkstra<V>(
   G: Graph<V>,
   start: V,
@@ -526,6 +537,7 @@ export function dijkstra<V>(
   return { distances: dist, predecessors: pred };
 }
 
+/** Bellman-Ford: caminos mínimos desde `start` con detección de ciclos negativos. */
 export function bellmanFord<V>(
   G: Graph<V>,
   start: V,
@@ -572,6 +584,7 @@ export function bellmanFord<V>(
   return { distances: dist, predecessors: pred, negativeCycle };
 }
 
+/** Floyd-Warshall: distancias mínimas entre todos los pares de vértices O(n³). */
 export function floydWarshall<V>(G: Graph<V>): Map<V, Map<V, number>> {
   const verts = Array.from(G.vertices);
   const idx = new Map<V, number>();
@@ -659,6 +672,7 @@ class DSU<V> {
 // MST
 // ------------------------------------------------------------
 
+/** Kruskal: árbol generador mínimo en grafo no dirigido (DSU + ordenación por peso). */
 export function kruskal<V>(G: Graph<V>): { edges: Array<WeightedEdge<V>>; totalWeight: number } {
   if (G.directed) {
     throw new Error('kruskal: requiere grafo no dirigido');
@@ -679,6 +693,7 @@ export function kruskal<V>(G: Graph<V>): { edges: Array<WeightedEdge<V>>; totalW
   return { edges: result, totalWeight: total };
 }
 
+/** Prim: árbol generador mínimo en grafo no dirigido (cola de prioridad). */
 export function prim<V>(
   G: Graph<V>,
   start?: V,
@@ -717,7 +732,7 @@ export function prim<V>(
 // Bipartite matching
 // ------------------------------------------------------------
 
-// Empareja izquierda con derecha vía DFS-aumento (algoritmo de Kuhn).
+/** Emparejamiento bipartito máximo vía DFS-aumento (algoritmo de Kuhn). */
 export function bipartiteMaximumMatching<V>(
   G: Graph<V>,
   leftPartition: Set<V>,
@@ -747,7 +762,7 @@ export function bipartiteMaximumMatching<V>(
   return out;
 }
 
-// Hopcroft-Karp con BFS por niveles + DFS de aumento.
+/** Hopcroft-Karp: emparejamiento bipartito máximo con BFS por niveles + DFS de aumento (O(E√V)). */
 export function hopcroftKarp<V>(G: Graph<V>, leftPartition: Set<V>): Array<{ left: V; right: V }> {
   const adj = buildAdjacency(G);
   const pairL = new Map<V, V | null>();
@@ -832,7 +847,7 @@ export function hopcroftKarp<V>(G: Graph<V>, leftPartition: Set<V>): Array<{ lef
 // Coloreo
 // ------------------------------------------------------------
 
-// Greedy: ordena por grado descendente y asigna el primer color disponible.
+/** Coloreo greedy: ordena por grado descendente y asigna el primer color disponible. */
 export function greedyColoring<V>(G: Graph<V>): Map<V, number> {
   const order = Array.from(G.vertices).sort(
     (a, b) => degreeUndirected(G, b) - degreeUndirected(G, a),
@@ -851,7 +866,7 @@ export function greedyColoring<V>(G: Graph<V>): Map<V, number> {
   return color;
 }
 
-// Número cromático por backtracking con poda (intenta k = 1, 2, ...).
+/** Número cromático χ(G) por backtracking con poda (intenta k = 1, 2, …). Solo apto para grafos pequeños. */
 export function chromaticNumber<V>(G: Graph<V>): number {
   const verts = Array.from(G.vertices);
   if (verts.length === 0) return 0;
@@ -916,10 +931,12 @@ function signatureMultiset(sigs: Map<unknown, string>): string {
   return arr.join('||');
 }
 
+/** Devuelve `true` si los grafos `g1` y `g2` son isomorfos (estructuralmente equivalentes). */
 export function areIsomorphic<V1, V2>(g1: Graph<V1>, g2: Graph<V2>): boolean {
   return findIsomorphism(g1, g2) !== null;
 }
 
+/** Busca un isomorfismo entre `g1` y `g2`; devuelve el mapeo de vértices o `null` si no existe. */
 export function findIsomorphism<V1, V2>(g1: Graph<V1>, g2: Graph<V2>): Map<V1, V2> | null {
   if (g1.directed !== g2.directed) return null;
   if (g1.vertices.size !== g2.vertices.size) return null;

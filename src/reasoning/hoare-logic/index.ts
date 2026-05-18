@@ -89,16 +89,22 @@ export const not = (arg: ImpExpr): ImpExpr => ({ kind: 'not', arg });
 export const and = (left: ImpExpr, right: ImpExpr): ImpExpr => binop('&&', left, right);
 /** Constructor de disyunción lógica IMP: `left || right`. */
 export const or = (left: ImpExpr, right: ImpExpr): ImpExpr => binop('||', left, right);
+/** Constructor de igualdad IMP: `left == right`. */
 export const eq = (left: ImpExpr, right: ImpExpr): ImpExpr => binop('==', left, right);
+/** Constructor de menor estricto IMP: `left < right`. */
 export const lt = (left: ImpExpr, right: ImpExpr): ImpExpr => binop('<', left, right);
+/** Constructor de menor o igual IMP: `left <= right`. */
 export const le = (left: ImpExpr, right: ImpExpr): ImpExpr => binop('<=', left, right);
 
+/** Instrucción `skip` (no-op). */
 export const skip = (): ImpStmt => ({ kind: 'skip' });
+/** Instrucción de asignación: `varName := expr`. */
 export const assign = (varName: string, expr: ImpExpr): ImpStmt => ({
   kind: 'assign',
   var: varName,
   expr,
 });
+/** Secuencia de instrucciones (asociativa a la derecha). Con 0 args devuelve `skip`. */
 export function seq(...stmts: ImpStmt[]): ImpStmt {
   if (stmts.length === 0) return skip();
   if (stmts.length === 1) return stmts[0];
@@ -109,12 +115,14 @@ export function seq(...stmts: ImpStmt[]): ImpStmt {
   }
   return acc;
 }
+/** Instrucción condicional `if cond then then_ else else_`. */
 export const ifS = (cond: ImpExpr, then_: ImpStmt, else_: ImpStmt): ImpStmt => ({
   kind: 'if',
   cond,
   then: then_,
   else: else_,
 });
+/** Instrucción `while cond body` con invariante opcional para verificación. */
 export const whileS = (cond: ImpExpr, body: ImpStmt, invariant?: ImpExpr): ImpStmt => ({
   kind: 'while',
   cond,
@@ -124,6 +132,7 @@ export const whileS = (cond: ImpExpr, body: ImpStmt, invariant?: ImpExpr): ImpSt
 
 // ── Sustitución sintáctica P[E/x] ────────────────────────────
 
+/** Sustitución sintáctica `expr[replacement/varName]` en expresiones IMP. */
 export function substitute(expr: ImpExpr, varName: string, replacement: ImpExpr): ImpExpr {
   switch (expr.kind) {
     case 'const':
@@ -145,6 +154,7 @@ export function substitute(expr: ImpExpr, varName: string, replacement: ImpExpr)
 
 // ── Recolección de variables libres ──────────────────────────
 
+/** Variables libres en la expresión IMP `expr`. Acumula en `acc` (o devuelve un nuevo Set). */
 export function freeVars(expr: ImpExpr, acc: Set<string> = new Set()): Set<string> {
   switch (expr.kind) {
     case 'const':
@@ -163,6 +173,7 @@ export function freeVars(expr: ImpExpr, acc: Set<string> = new Set()): Set<strin
   }
 }
 
+/** Variables mencionadas en la instrucción IMP `stmt` (asignadas y/o leídas). */
 export function stmtVars(stmt: ImpStmt, acc: Set<string> = new Set()): Set<string> {
   switch (stmt.kind) {
     case 'skip':
@@ -190,8 +201,10 @@ export function stmtVars(stmt: ImpStmt, acc: Set<string> = new Set()): Set<strin
 
 // ── Evaluación de expresiones en un estado concreto ──────────
 
+/** Estado concreto de IMP: mapa de variables a valores enteros (variables no definidas = 0). */
 export type State = Record<string, number>;
 
+/** Evalúa la expresión IMP `expr` en el estado `state`. Devuelve un número o booleano. */
 export function evalExpr(expr: ImpExpr, state: State): number | boolean {
   switch (expr.kind) {
     case 'const':
@@ -259,8 +272,10 @@ function toBool(v: number | boolean): boolean {
 
 // ── Ejecución concreta de statements ─────────────────────────
 
+/** Error de ejecución en IMP (e.g. timeout por bucle infinito). */
 export type ExecError = { error: string };
 
+/** Ejecuta `stmt` sobre `state` con un límite de `maxSteps` pasos. Devuelve el estado final o un error. */
 export function execStmt(
   stmt: ImpStmt,
   state: State,
@@ -318,6 +333,7 @@ function execInternal(
 
 // ── Weakest precondition (wp) ────────────────────────────────
 
+/** Precondición más débil `wp(stmt, post)`. Para while requiere invariant anotado; sin él devuelve `false`. */
 export function wp(stmt: ImpStmt, post: ImpExpr): ImpExpr {
   switch (stmt.kind) {
     case 'skip':
@@ -351,6 +367,7 @@ export function wp(stmt: ImpStmt, post: ImpExpr): ImpExpr {
 // una fórmula que describe el estado tras ejecutar `stmt`. Para
 // loops sin invariant cae a `true` (no informativo).
 
+/** Postcondición más fuerte aproximada `sp(stmt, pre)`. Para x := E cuando E no menciona x; sino devuelve `true`. */
 export function spExtension(stmt: ImpStmt, pre: ImpExpr): ImpExpr {
   switch (stmt.kind) {
     case 'skip':
@@ -383,6 +400,7 @@ export function spExtension(stmt: ImpStmt, pre: ImpExpr): ImpExpr {
 
 // ── Generación de condiciones de verificación (VCs) ──────────
 
+/** Genera las condiciones de verificación (VCs) para la tripla de Hoare: pre, wp global y VCs de loops. */
 export function generateVCs(triple: HoareTriple): ImpExpr[] {
   const vcs: ImpExpr[] = [];
   // VC global: pre → wp(stmt, post)
@@ -431,12 +449,14 @@ function collectLoopVCs(stmt: ImpStmt, post: ImpExpr, out: ImpExpr[]): void {
 
 // ── Verificación por muestreo de VCs ─────────────────────────
 
+/** Resultado de `verifyTriple`: validez, lista de VCs y fallos con contraejemplo. */
 export interface VerificationResult {
   valid: boolean;
   vcs: ImpExpr[];
   failures: Array<{ vc: ImpExpr; state?: State }>;
 }
 
+/** Opciones para `verifyTriple`: tamaño de muestreo, rango de enteros, semilla y estados extra. */
 export interface VerifyOptions {
   samples?: number;
   /** Rango de muestreo entero para variables (inclusive en ambos extremos). */
@@ -447,6 +467,7 @@ export interface VerifyOptions {
   seedStates?: State[];
 }
 
+/** Verifica la tripla `{pre} stmt {post}` por muestreo aleatorio de estados. */
 export function verifyTriple(triple: HoareTriple, opts: VerifyOptions = {}): VerificationResult {
   const samples = opts.samples ?? 200;
   const range = opts.range ?? [-5, 10];
@@ -606,12 +627,14 @@ export function programLinearSearch(): ImpStmt {
 
 // ── Helper: cómputo factorial concreto (para los tests) ──────
 
+/** Calcula el factorial de `n` en enteros (JavaScript). Solo para tests. */
 export function factorial(n: number): number {
   let r = 1;
   for (let k = 1; k <= n; k++) r *= k;
   return r;
 }
 
+/** Máximo común divisor de `a` y `b` (Euclides). Solo para tests. */
 export function gcd(a: number, b: number): number {
   let x = Math.abs(a);
   let y = Math.abs(b);

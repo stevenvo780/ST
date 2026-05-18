@@ -19,13 +19,14 @@
 //     que asuma normalización. `normalize` no se llama implícitamente
 //     porque queremos que el usuario decida cuándo reescalar.
 
-// Tipo público: distribución discreta sobre símbolos T.
+/** Distribución de probabilidad discreta sobre símbolos de tipo `T` (`Map<T, number>`, masa ≈ 1). */
 export type Distribution<T> = Map<T, number>;
 
-// Distribución conjunta sobre pares (X, Y). Usamos tupla como clave
-// directamente; nota que `Map<[X, Y], number>` no des-duplica por
-// igualdad estructural — quien construye un Joint debe garantizar que
-// no haya tuplas distintas para el mismo par.
+/**
+ * Distribución conjunta sobre pares (X, Y).
+ * Nota: `Map<[X, Y], number>` no des-duplica por igualdad estructural;
+ * el llamante debe garantizar un par por combinación (x, y).
+ */
 export type Joint<X, Y> = Map<[X, Y], number>;
 
 // Tolerancia por defecto para "suma ≈ 1" y comparaciones simétricas.
@@ -35,8 +36,7 @@ const EPS_DEFAULT = 1e-9;
 // Soporte y validación
 // ------------------------------------------------------------
 
-// Devuelve los símbolos con probabilidad estrictamente positiva, en el
-// orden en que aparecen en el Map (orden de inserción, estable).
+/** Devuelve los símbolos con probabilidad estrictamente positiva (soporte de `p`). */
 export function support<T>(p: Distribution<T>): T[] {
   const out: T[] = [];
   for (const [k, v] of p) {
@@ -45,8 +45,7 @@ export function support<T>(p: Distribution<T>): T[] {
   return out;
 }
 
-// True si todas las probabilidades son finitas y ≥ 0, y la suma está a
-// menos de `eps` de 1. Probabilidades negativas o NaN ⇒ false.
+/** `true` si todas las probabilidades son ≥ 0, finitas y su suma difiere de 1 en menos de `eps`. */
 export function isValidDistribution<T>(p: Distribution<T>, eps: number = EPS_DEFAULT): boolean {
   let sum = 0;
   for (const v of p.values()) {
@@ -56,8 +55,10 @@ export function isValidDistribution<T>(p: Distribution<T>, eps: number = EPS_DEF
   return Math.abs(sum - 1) <= eps;
 }
 
-// Reescala la distribución a masa 1. Si la suma actual es 0, lanza:
-// no hay forma canónica de "normalizar" la distribución nula.
+/**
+ * Reescala la distribución `p` para que su masa sea 1.
+ * @throws si alguna probabilidad es inválida o la masa total es 0.
+ */
 export function normalize<T>(p: Distribution<T>): Distribution<T> {
   let sum = 0;
   for (const v of p.values()) {
@@ -80,7 +81,7 @@ export function normalize<T>(p: Distribution<T>): Distribution<T> {
 // Logaritmos parametrizados por base
 // ------------------------------------------------------------
 
-// Aceptamos 'log' como alias semántico de "log por defecto" = base 2.
+/** Base del logaritmo para entropías: `2` (bits, default), `'e'` (nats), `10` (hartleys), `'log'` (alias de 2). */
 export type LogBase = 'log' | 'e' | 2 | 10;
 
 function logIn(base: LogBase): (x: number) => number {
@@ -100,8 +101,7 @@ function logIn(base: LogBase): (x: number) => number {
 // Entropías
 // ------------------------------------------------------------
 
-// Shannon: H(p) = -Σ p(x) · log p(x).
-// Convención lim_{x→0} x·log x = 0 ⇒ los símbolos con masa 0 no aportan.
+/** Entropía de Shannon: H(p) = −Σ p(x)·log p(x). Convención: 0·log 0 = 0. */
 export function shannonEntropy<T>(p: Distribution<T>, base: LogBase = 2): number {
   const log = logIn(base);
   let h = 0;
@@ -113,17 +113,11 @@ export function shannonEntropy<T>(p: Distribution<T>, base: LogBase = 2): number
   return h;
 }
 
-// Rényi de orden α (α ≥ 0, α ≠ 1):
-//   H_α(p) = 1/(1-α) · log Σ p(x)^α
-//
-// Casos especiales:
-//   α = 0 → log |sop(p)|       (Hartley / max-entropy del soporte)
-//   α = 1 → Shannon            (límite L'Hôpital — devolvemos Shannon)
-//   α = 2 → -log Σ p(x)^2      (entropía de colisión)
-//   α → ∞ → -log max p(x)      (min-entropy)
-//
-// `alpha` debe ser un número real finito y ≥ 0. α negativos no son
-// entropías de Rényi estándar y no se aceptan.
+/**
+ * Entropía de Rényi de orden `alpha` (α ≥ 0): H_α(p) = 1/(1−α)·log Σ p(x)^α.
+ * Límites: α=0 → max-entropy, α=1 → Shannon, α=2 → colisión, α→∞ → min-entropy.
+ * @throws si `alpha` es negativo o no finito.
+ */
 export function renyiEntropy<T>(p: Distribution<T>, alpha: number, base: LogBase = 2): number {
   if (!Number.isFinite(alpha) || alpha < 0) {
     throw new Error('renyiEntropy: α debe ser finito y ≥ 0');
@@ -140,7 +134,7 @@ export function renyiEntropy<T>(p: Distribution<T>, alpha: number, base: LogBase
   return log(s) / (1 - alpha);
 }
 
-// Min-entropy: -log max_x p(x). Mide la peor predictibilidad single-guess.
+/** Min-entropy: −log max_x p(x). Mide la peor predictibilidad en un solo intento. */
 export function minEntropy<T>(p: Distribution<T>, base: LogBase = 2): number {
   const log = logIn(base);
   let max = 0;
@@ -151,7 +145,7 @@ export function minEntropy<T>(p: Distribution<T>, base: LogBase = 2): number {
   return -log(max);
 }
 
-// Max-entropy: log|soporte(p)|. Hartley sobre el soporte estricto.
+/** Max-entropy (Hartley): log|soporte(p)|, el logaritmo del tamaño del soporte estricto. */
 export function maxEntropy<T>(p: Distribution<T>, base: LogBase = 2): number {
   const log = logIn(base);
   const n = support(p).length;
@@ -159,7 +153,7 @@ export function maxEntropy<T>(p: Distribution<T>, base: LogBase = 2): number {
   return log(n);
 }
 
-// Entropía de colisión: Rényi α=2 = -log Σ p(x)^2.
+/** Entropía de colisión: Rényi α=2 = −log Σ p(x)². Mide la probabilidad de dos muestras iguales. */
 export function collisionEntropy<T>(p: Distribution<T>, base: LogBase = 2): number {
   const log = logIn(base);
   let s = 0;
@@ -174,9 +168,7 @@ export function collisionEntropy<T>(p: Distribution<T>, base: LogBase = 2): numb
 // Divergencias y distancias
 // ------------------------------------------------------------
 
-// KL(p ‖ q) = Σ p(x) · log(p(x)/q(x)).
-// Convención: p(x)=0 aporta 0; p(x)>0 y q(x)=0 ⇒ +Infinity.
-// Soporte sobre la unión de claves de p y q.
+/** Divergencia KL: KL(p ‖ q) = Σ p(x)·log(p(x)/q(x)). Devuelve +∞ si p(x)>0 y q(x)=0. */
 export function klDivergence<T>(p: Distribution<T>, q: Distribution<T>, base: LogBase = 2): number {
   const log = logIn(base);
   let d = 0;
@@ -189,8 +181,7 @@ export function klDivergence<T>(p: Distribution<T>, q: Distribution<T>, base: Lo
   return d;
 }
 
-// Jensen-Shannon: JS(p,q) = ½ KL(p ‖ m) + ½ KL(q ‖ m), m = ½(p+q).
-// Simétrica y siempre finita en [0, log 2] (base 2 ⇒ [0, 1]).
+/** Divergencia Jensen-Shannon: JS(p,q) = ½ KL(p ‖ m) + ½ KL(q ‖ m), m = ½(p+q). Simétrica, ∈ [0, log 2]. */
 export function jsDivergence<T>(p: Distribution<T>, q: Distribution<T>, base: LogBase = 2): number {
   const m = new Map<T, number>();
   for (const [k, v] of p) m.set(k, (m.get(k) ?? 0) + v);
@@ -201,7 +192,7 @@ export function jsDivergence<T>(p: Distribution<T>, q: Distribution<T>, base: Lo
   return 0.5 * klDivergence(p, m, base) + 0.5 * klDivergence(q, m, base);
 }
 
-// Distancia de variación total: TV(p,q) = ½ Σ |p(x) - q(x)|. ∈ [0, 1].
+/** Distancia de variación total: TV(p,q) = ½ Σ |p(x) − q(x)|. ∈ [0, 1]. */
 export function tvDistance<T>(p: Distribution<T>, q: Distribution<T>): number {
   const keys = new Set<T>();
   for (const k of p.keys()) keys.add(k);
@@ -213,8 +204,7 @@ export function tvDistance<T>(p: Distribution<T>, q: Distribution<T>): number {
   return s / 2;
 }
 
-// Distancia de Hellinger: H(p,q) = (1/√2) · sqrt(Σ (√p(x) - √q(x))²).
-// ∈ [0, 1]; 0 sii p=q; 1 sii soportes disjuntos.
+/** Distancia de Hellinger: H(p,q) = (1/√2)·√(Σ (√p(x) − √q(x))²). ∈ [0, 1]; 0 ⟺ p = q; 1 ⟺ soportes disjuntos. */
 export function hellingerDistance<T>(p: Distribution<T>, q: Distribution<T>): number {
   const keys = new Set<T>();
   for (const k of p.keys()) keys.add(k);
@@ -233,8 +223,7 @@ export function hellingerDistance<T>(p: Distribution<T>, q: Distribution<T>): nu
 // Cross-entropy
 // ------------------------------------------------------------
 
-// H(p, q) = -Σ p(x) · log q(x) = H(p) + KL(p ‖ q).
-// Devuelve +∞ si existe x con p(x) > 0 y q(x) = 0.
+/** Cross-entropía: H(p,q) = −Σ p(x)·log q(x) = H(p) + KL(p ‖ q). Devuelve +∞ si p(x)>0 y q(x)=0. */
 export function crossEntropy<T>(p: Distribution<T>, q: Distribution<T>, base: LogBase = 2): number {
   const log = logIn(base);
   let h = 0;
@@ -251,10 +240,7 @@ export function crossEntropy<T>(p: Distribution<T>, q: Distribution<T>, base: Lo
 // Distribuciones conjuntas e información mutua
 // ------------------------------------------------------------
 
-// Proyecta la conjunta sobre cada eje. Devuelve dos distribuciones
-// (marginales) tal que Σ joint(x,y) = X(x) = Σ_y joint(x,y), etc.
-// Si dos claves de la conjunta tienen el mismo par lógico (mismas X y
-// Y por referencia/valor), sus masas se suman en las marginales.
+/** Proyecta la distribución conjunta `j` sobre cada eje, devolviendo las marginales `X` e `Y`. */
 export function jointToMarginals<X, Y>(j: Joint<X, Y>): { X: Distribution<X>; Y: Distribution<Y> } {
   const mX = new Map<X, number>();
   const mY = new Map<Y, number>();
@@ -277,10 +263,7 @@ function jointEntropy<X, Y>(j: Joint<X, Y>, base: LogBase): number {
   return h;
 }
 
-// I(X; Y) = Σ_xy p(x,y) · log( p(x,y) / (p(x)·p(y)) ).
-// Equivalentemente: I(X;Y) = H(X) + H(Y) − H(X,Y).
-// Usamos la forma sumatoria directa para mantener invariancia ante
-// reordenamiento numérico de los marginales y evitar restas catastróficas.
+/** Información mutua I(X;Y) = Σ p(x,y)·log(p(x,y)/(p(x)·p(y))) = H(X) + H(Y) − H(X,Y). */
 export function mutualInformation<X, Y>(j: Joint<X, Y>, base: LogBase = 2): number {
   const log = logIn(base);
   const { X: mX, Y: mY } = jointToMarginals(j);
@@ -297,8 +280,7 @@ export function mutualInformation<X, Y>(j: Joint<X, Y>, base: LogBase = 2): numb
   return mi < 0 && mi > -1e-12 ? 0 : mi;
 }
 
-// H(X|Y) o H(Y|X) según `condOn`.
-// H(X|Y) = H(X,Y) − H(Y); H(Y|X) = H(X,Y) − H(X). Ambas ≥ 0.
+/** Entropía condicional H(X|Y) o H(Y|X) según `condOn`. H(X|Y) = H(X,Y) − H(Y) ≥ 0. */
 export function conditionalEntropy<X, Y>(
   j: Joint<X, Y>,
   condOn: 'X' | 'Y',
@@ -312,8 +294,10 @@ export function conditionalEntropy<X, Y>(
   return out < 0 && out > -1e-12 ? 0 : out;
 }
 
-// Cuatro escalares clásicos: H(X), H(Y), H(X,Y), I(X;Y). Útil para
-// verificar la regla de la cadena: H(X,Y) = H(X) + H(Y) − I(X;Y).
+/**
+ * Devuelve los cuatro escalares {hX, hY, hXY, iXY} de la regla de la cadena.
+ * Verifica: H(X,Y) = H(X) + H(Y) − I(X;Y).
+ */
 export function chainRule<X, Y>(
   j: Joint<X, Y>,
   base: LogBase = 2,

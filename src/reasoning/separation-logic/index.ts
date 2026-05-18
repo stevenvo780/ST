@@ -64,6 +64,7 @@ export function asLoc(v: SLValue): number | null {
 
 // ── Heap ─────────────────────────────────────────────────────
 
+/** Heap finito de separación: mapa inmutable de direcciones (number) a valores SL. */
 export interface Heap {
   readonly map: ReadonlyMap<number, SLValue>;
   domain(): number[];
@@ -116,10 +117,12 @@ class HeapImpl implements Heap {
   }
 }
 
+/** Crea un heap vacío. */
 export function newHeap(): Heap {
   return new HeapImpl(new Map());
 }
 
+/** Crea un heap a partir de una lista de pares `[dirección, valor]`. */
 export function fromMap(entries: Array<[number, SLValue]>): Heap {
   return new HeapImpl(new Map(entries));
 }
@@ -178,6 +181,7 @@ export function splits(h: Heap): Array<{ h1: Heap; h2: Heap }> {
 
 // ── Fórmulas ─────────────────────────────────────────────────
 
+/** Fórmula de separación lógica (SL). Cubre emp, pointsTo, star (*), magic wand (-*), cuantificadores y lógica proposicional pura. */
 export type SLFormula =
   | { kind: 'emp' }
   | { kind: 'pointsTo'; loc: SLValue; val: SLValue }
@@ -191,60 +195,72 @@ export type SLFormula =
   | { kind: 'exists'; bind: string; body: SLFormula }
   | { kind: 'forall'; bind: string; body: SLFormula };
 
+/** Predicado puro de SL: función JavaScript que evalúa una condición sobre la valuación de variables. */
 export type PurePredicate = (val: SLValuation) => boolean;
 
+/** Heap vacío: `emp`. La fórmula que vale sobre el heap vacío. */
 export const emp = (): SLFormula => ({ kind: 'emp' });
 
+/** `loc ↦ val` — `loc` apunta a `val` (heap de un solo celda). */
 export const pointsTo = (loc: SLValue, val: SLValue): SLFormula => ({
   kind: 'pointsTo',
   loc,
   val,
 });
 
+/** Conjunción separante `P * Q`: `P` y `Q` valen sobre sub-heaps disjuntos cuya unión es el heap total. */
 export const star = (left: SLFormula, right: SLFormula): SLFormula => ({
   kind: 'star',
   left,
   right,
 });
 
+/** Magic wand `P -* Q`: para cualquier heap disjunto que satisfaga `P`, la unión satisface `Q`. */
 export const magicWand = (left: SLFormula, right: SLFormula): SLFormula => ({
   kind: 'magicWand',
   left,
   right,
 });
 
+/** Fórmula pura `[expr]`: condición sin acceso al heap, evaluada por `predicate`. */
 export const pure = (expression: string, predicate: PurePredicate): SLFormula => ({
   kind: 'pure',
   expression,
   predicate,
 });
 
+/** Conjunción clásica de dos fórmulas SL (no separante). */
 export const andF = (left: SLFormula, right: SLFormula): SLFormula => ({
   kind: 'and',
   left,
   right,
 });
 
+/** Disyunción de dos fórmulas SL. */
 export const orF = (left: SLFormula, right: SLFormula): SLFormula => ({
   kind: 'or',
   left,
   right,
 });
 
+/** Implicación clásica entre dos fórmulas SL. */
 export const impliesF = (left: SLFormula, right: SLFormula): SLFormula => ({
   kind: 'implies',
   left,
   right,
 });
 
+/** Negación de una fórmula SL. */
 export const notF = (body: SLFormula): SLFormula => ({ kind: 'not', body });
 
+/** Cuantificador existencial sobre una variable de valuación. */
 export const existsF = (bind: string, body: SLFormula): SLFormula => ({
   kind: 'exists',
   bind,
   body,
 });
 
+/** Cuantificador universal sobre una variable de valuación. */
 export const forallF = (bind: string, body: SLFormula): SLFormula => ({
   kind: 'forall',
   bind,
@@ -253,6 +269,7 @@ export const forallF = (bind: string, body: SLFormula): SLFormula => ({
 
 // ── Pretty printer ───────────────────────────────────────────
 
+/** Serializa una fórmula SL a su representación textual estándar. */
 export function formulaToString(f: SLFormula): string {
   switch (f.kind) {
     case 'emp':
@@ -280,6 +297,7 @@ export function formulaToString(f: SLFormula): string {
   }
 }
 
+/** Serializa un valor SL (int, addr, null) a texto legible. */
 export function valueToString(v: SLValue): string {
   if (v.kind === 'int') return `${v.value}`;
   if (v.kind === 'addr') return `&${v.loc}`;
@@ -288,6 +306,7 @@ export function valueToString(v: SLValue): string {
 
 // ── Valuación ────────────────────────────────────────────────
 
+/** Mapa de variables de SL a valores; permite atar variables lógicas durante la evaluación. */
 export interface SLValuation {
   [varName: string]: SLValue;
 }
@@ -451,6 +470,7 @@ function* enumerateSubset(
 
 // ── Comandos y triplas ──────────────────────────────────────
 
+/** Comando de SL: operación de heap que puede modificar el heap y/o la valuación de variables. */
 export interface SLCommand {
   kind: 'alloc' | 'free' | 'load' | 'store' | 'skip' | 'assign';
   /** Variable destino para `alloc`/`load`/`assign`. */
@@ -461,6 +481,7 @@ export interface SLCommand {
   value?: SLValue;
 }
 
+/** Tripla de Hoare para SL: `{ pre } cmd { post }`. */
 export interface SLTriple {
   pre: SLFormula;
   cmd: SLCommand;
@@ -549,6 +570,7 @@ function freshAddress(heap: Heap): number {
 
 // ── Verificación de triplas vía muestreo ────────────────────
 
+/** Opciones para `checkTriple`: heaps candidatos, tamaño de muestreo y semilla RNG. */
 export interface CheckTripleOptions {
   /** Heaps candidatos a probar como precondición. Si no se da, se generan. */
   candidates?: Array<{ heap: Heap; val: SLValuation }>;
@@ -558,6 +580,7 @@ export interface CheckTripleOptions {
   seed?: number;
 }
 
+/** Resultado de `checkTriple`: validez (o contraejemplo encontrado) y cantidad de modelos evaluados. */
 export interface CheckTripleResult {
   valid: boolean;
   counterexample?: { heap: Heap; val: SLValuation; reason: string };
@@ -778,6 +801,7 @@ export function tree(root: SLValue): SLFormula {
   };
 }
 
+/** Comprueba si `heap` representa un árbol binario con raíz `root` (nodos de 2 celdas contiguas). */
 export function isTree(root: SLValue, heap: Heap): boolean {
   if (root.kind === 'null') return heap.size() === 0;
   if (root.kind !== 'addr') return false;
@@ -819,6 +843,7 @@ export function frame(triple: SLTriple, frameFormula: SLFormula): SLTriple {
 
 // ── Re-exports y constructores convenientes ─────────────────
 
+/** Constructores convenientes para `SLCommand` (skip, assign, alloc, free, load, store). */
 export const Cmd = {
   skip: (): SLCommand => ({ kind: 'skip' }),
   assign: (variable: string, value: SLValue): SLCommand => ({

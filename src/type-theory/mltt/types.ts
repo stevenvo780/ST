@@ -19,6 +19,10 @@
 //   - `codomain` (Π) y `second` (Σ) pueden depender de `bind`.
 //   - α-equivalencia se trata vía sustitución capture-avoiding.
 
+/**
+ * Término de Martin-Löf Type Theory (MLTT): tipos y términos comparten el mismo universo.
+ * Cubre variables, universos jerárquicos, Π, Σ, λ, app, pares, identidad, Nat y constructores numéricos.
+ */
 export type MLTTTerm =
   | { kind: 'var'; name: string }
   | { kind: 'universe'; level: number }
@@ -37,42 +41,56 @@ export type MLTTTerm =
 
 // ---------- Constructores convenientes ----------
 
+/** Variable. */
 export const mVar = (name: string): MLTTTerm => ({ kind: 'var', name });
+/** Universo `Type level`. */
 export const mUniverse = (level = 0): MLTTTerm => ({ kind: 'universe', level });
+/** Tipo Π dependiente `Π bind:domain. codomain`. */
 export const mPi = (bind: string, domain: MLTTTerm, codomain: MLTTTerm): MLTTTerm => ({
   kind: 'pi',
   bind,
   domain,
   codomain,
 });
+/** Abstracción dependiente `λ bind:domain. body`. */
 export const mLam = (bind: string, domain: MLTTTerm, body: MLTTTerm): MLTTTerm => ({
   kind: 'lam',
   bind,
   domain,
   body,
 });
+/** Aplicación `fn arg`. */
 export const mApp = (fn: MLTTTerm, arg: MLTTTerm): MLTTTerm => ({ kind: 'app', fn, arg });
+/** Tipo Σ dependiente `Σ bind:first. second`. */
 export const mSigma = (bind: string, first: MLTTTerm, second: MLTTTerm): MLTTTerm => ({
   kind: 'sigma',
   bind,
   first,
   second,
 });
+/** Par dependiente `⟨fst, snd⟩`. */
 export const mPair = (fst: MLTTTerm, snd: MLTTTerm): MLTTTerm => ({ kind: 'pair', fst, snd });
+/** Proyección izquierda `fst pair`. */
 export const mFst = (pair: MLTTTerm): MLTTTerm => ({ kind: 'fst', pair });
+/** Proyección derecha `snd pair`. */
 export const mSnd = (pair: MLTTTerm): MLTTTerm => ({ kind: 'snd', pair });
+/** Tipo identidad `Id(type, left, right)`. */
 export const mId = (type: MLTTTerm, left: MLTTTerm, right: MLTTTerm): MLTTTerm => ({
   kind: 'identity',
   type,
   left,
   right,
 });
+/** Prueba de reflexividad `refl(term)`. */
 export const mRefl = (term: MLTTTerm): MLTTTerm => ({ kind: 'refl', term });
+/** Tipo de los números naturales `Nat`. */
 export const mNat = (): MLTTTerm => ({ kind: 'nat' });
+/** Constructor `zero : Nat`. */
 export const mZero = (): MLTTTerm => ({ kind: 'zero' });
+/** Sucesor `succ(arg) : Nat`. */
 export const mSucc = (arg: MLTTTerm): MLTTTerm => ({ kind: 'succ', arg });
 
-// Arrow no-dependiente: Π (_ : A). B  con B sin referencia a _.
+/** Flecha no-dependiente `from → to` (azúcar: `Π _ : from. to`). */
 export const mArrow = (from: MLTTTerm, to: MLTTTerm): MLTTTerm => mPi('_', from, to);
 
 // ---------- Helpers de inspección ----------

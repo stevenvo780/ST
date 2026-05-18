@@ -14,6 +14,7 @@
 //   ⊥   (bottom)   →  falso
 //   atom           →  variable proposicional
 
+/** Tipo proposicional / tipo simple en la correspondencia Curry-Howard: átomo, flecha →, producto ∧, suma ∨ y ⊥. */
 export type PropType =
   | { kind: 'atom'; name: string }
   | { kind: 'arrow'; from: PropType; to: PropType }
@@ -21,6 +22,7 @@ export type PropType =
   | { kind: 'sum'; left: PropType; right: PropType }
   | { kind: 'bottom' };
 
+/** Término del λ-cálculo con tipos simples (Curry-Howard): variable, aplicación, abstracción, pares, sumas y absurdo. */
 export type LambdaTerm =
   | { kind: 'var'; name: string }
   | { kind: 'app'; fn: LambdaTerm; arg: LambdaTerm }
@@ -40,10 +42,11 @@ export type LambdaTerm =
     }
   | { kind: 'absurd'; proofOfFalse: LambdaTerm; resultType: PropType };
 
-// Árbol de prueba en deducción natural.
-// Cada nodo lleva la fórmula que prueba (conclusion) y, según la regla,
-// uno o más sub-arboles (premises) y posibles supuestos descargados
-// (discharged) que ligan hipótesis a sub-arboles.
+/**
+ * Reglas de deducción natural del sistema proposicional (Curry-Howard).
+ * `'axiom'` = hipótesis del contexto; `'→I'`/`'→E'` = implicación; `'∧I'`/`'∧E-*'` = conjunción;
+ * `'∨I-*'`/`'∨E'` = disyunción; `'⊥E'` = ex falso quodlibet.
+ */
 export type ProofRule =
   | 'axiom' // hipótesis disponible en contexto (asunción no descargada aquí)
   | '→I' // implicación-intro (descarga A, deriva A→B desde B)
@@ -56,6 +59,7 @@ export type ProofRule =
   | '∨E' // eliminación de disyunción (case)
   | '⊥E'; // ex falso
 
+/** Árbol de prueba en deducción natural: cada nodo lleva la regla, la conclusión y sub-árboles (premisas). */
 export interface ProofTree {
   rule: ProofRule;
   conclusion: PropType;
@@ -67,44 +71,59 @@ export interface ProofTree {
   assumption?: string;
 }
 
+/** Contexto de tipado: mapa de nombres de variables a tipos proposicionales. */
 export type Context = Record<string, PropType>;
 
 // ---------- Constructores convenientes ----------
+/** Tipo atómico (variable proposicional). */
 export const atom = (name: string): PropType => ({ kind: 'atom', name });
+/** Tipo flecha `from → to` (implicación). */
 export const arrow = (from: PropType, to: PropType): PropType => ({ kind: 'arrow', from, to });
+/** Tipo producto `left ∧ right` (conjunción). */
 export const product = (left: PropType, right: PropType): PropType => ({
   kind: 'product',
   left,
   right,
 });
+/** Tipo suma `left ∨ right` (disyunción). */
 export const sum = (left: PropType, right: PropType): PropType => ({ kind: 'sum', left, right });
+/** Tipo bottom `⊥` (falsedad / tipo vacío). */
 export const bottom = (): PropType => ({ kind: 'bottom' });
 
+/** Variable λ. */
 export const vr = (name: string): LambdaTerm => ({ kind: 'var', name });
+/** Aplicación de función (modus ponens). */
 export const app = (fn: LambdaTerm, arg: LambdaTerm): LambdaTerm => ({ kind: 'app', fn, arg });
+/** Abstracción λ (implicación-intro): `λparam:paramType. body`. */
 export const abs = (param: string, paramType: PropType, body: LambdaTerm): LambdaTerm => ({
   kind: 'abs',
   param,
   paramType,
   body,
 });
+/** Par `⟨f, s⟩` (conjunción-intro). */
 export const pair = (f: LambdaTerm, s: LambdaTerm): LambdaTerm => ({
   kind: 'pair',
   fst: f,
   snd: s,
 });
+/** Proyección izquierda `fst(p)` (∧E-L). */
 export const fst = (p: LambdaTerm): LambdaTerm => ({ kind: 'fst', pair: p });
+/** Proyección derecha `snd(p)` (∧E-R). */
 export const snd = (p: LambdaTerm): LambdaTerm => ({ kind: 'snd', pair: p });
+/** Inyección izquierda `inl(left)` (∨I-L); requiere el tipo del lado derecho. */
 export const inl = (left: LambdaTerm, rightType: PropType): LambdaTerm => ({
   kind: 'inl',
   left,
   rightType,
 });
+/** Inyección derecha `inr(right)` (∨I-R); requiere el tipo del lado izquierdo. */
 export const inr = (right: LambdaTerm, leftType: PropType): LambdaTerm => ({
   kind: 'inr',
   right,
   leftType,
 });
+/** Eliminación de disyunción `case scrutinee of inl(lb)→leftBody | inr(rb)→rightBody` (∨E). */
 export const cse = (
   scrutinee: LambdaTerm,
   leftBind: string,
@@ -119,6 +138,7 @@ export const cse = (
   rightBind,
   rightBody,
 });
+/** Ex falso: dado `proofOfFalse : ⊥`, produce cualquier tipo `resultType` (⊥E). */
 export const absurd = (proofOfFalse: LambdaTerm, resultType: PropType): LambdaTerm => ({
   kind: 'absurd',
   proofOfFalse,
@@ -126,6 +146,7 @@ export const absurd = (proofOfFalse: LambdaTerm, resultType: PropType): LambdaTe
 });
 
 // ---------- Igualdad estructural de tipos ----------
+/** Igualdad estructural entre dos tipos proposicionales. */
 export function eqType(a: PropType, b: PropType): boolean {
   if (a.kind !== b.kind) return false;
   switch (a.kind) {
@@ -149,6 +170,7 @@ export function eqType(a: PropType, b: PropType): boolean {
 }
 
 // ---------- Serialización legible ----------
+/** Serializa un tipo proposicional a texto con notación estándar (→, ∧, ∨, ⊥). */
 export function typeToString(t: PropType): string {
   switch (t.kind) {
     case 'atom':
@@ -166,6 +188,7 @@ export function typeToString(t: PropType): string {
   }
 }
 
+/** Serializa un término λ a texto con notación estándar (λ, fst, snd, inl, inr, case, absurd). */
 export function termToString(t: LambdaTerm): string {
   switch (t.kind) {
     case 'var':

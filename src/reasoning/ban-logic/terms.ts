@@ -6,61 +6,76 @@ import type { BANFormula, BANTerm } from './types';
 
 /* ── Constructores de términos ── */
 
+/** Crea un principal BAN: agente con identidad nominal (e.g. Alice, Bob). */
 export const principal = (name: string): BANTerm => ({ kind: 'principal', name });
 
+/** Crea una clave BAN. Si `shared` = [A, B], representa la clave simétrica K_{AB} (= K_{BA}). */
 export const key = (name: string, shared?: [string, string]): BANTerm =>
   shared ? { kind: 'key', name, shared } : { kind: 'key', name };
 
+/** Crea un nonce BAN (número usado una vez, evidencia de frescura). */
 export const nonce = (name: string): BANTerm => ({ kind: 'nonce', name });
 
+/** Crea un átomo BAN (valor opaco / constante del dominio de mensajes). */
 export const atom = (name: string): BANTerm => ({ kind: 'atom', name });
 
+/** Crea un mensaje BAN compuesto de una lista de sub-términos. */
 export const message = (...content: BANTerm[]): BANTerm => ({ kind: 'message', content });
 
+/** Crea un término cifrado `{msg}_k`: el mensaje `msg` bajo la clave `k`. */
 export const encrypted = (msg: BANTerm, k: BANTerm): BANTerm => ({
   kind: 'encrypted',
   message: msg,
   key: k,
 });
 
+/** Crea un término hasheado `H(msg)`. */
 export const hashed = (msg: BANTerm): BANTerm => ({ kind: 'hashed', message: msg });
 
+/** Crea un término compuesto de partes (concatenación de mensajes). */
 export const compound = (...parts: BANTerm[]): BANTerm => ({ kind: 'compound', parts });
 
 /* ── Constructores de fórmulas ── */
 
+/** `p |≡ f` — el principal `p` cree la fórmula `f`. */
 export const believes = (p: BANTerm, f: BANFormula): BANFormula => ({
   kind: 'believes',
   principal: p,
   about: f,
 });
 
+/** `p ◁ w` — el principal `p` ve el término `w` (lo recibió en el mensaje). */
 export const sees = (p: BANTerm, w: BANTerm): BANFormula => ({
   kind: 'sees',
   principal: p,
   what: w,
 });
 
+/** `p |~ f` — el principal `p` alguna vez dijo la fórmula `f`. */
 export const said = (p: BANTerm, f: BANFormula): BANFormula => ({
   kind: 'said',
   principal: p,
   what: f,
 });
 
+/** `p |~ w` — el principal `p` alguna vez dijo el mensaje `w`. */
 export const saidMessage = (p: BANTerm, w: BANTerm): BANFormula => ({
   kind: 'said-message',
   principal: p,
   what: w,
 });
 
+/** `p |⇒ f` — el principal `p` tiene jurisdicción sobre la fórmula `f`. */
 export const jurisdiction = (p: BANTerm, f: BANFormula): BANFormula => ({
   kind: 'jurisdiction',
   principal: p,
   over: f,
 });
 
+/** `#(w)` — el término `w` es fresco (generado en esta sesión de protocolo). */
 export const fresh = (w: BANTerm): BANFormula => ({ kind: 'fresh', what: w });
 
+/** `a ↔K b` — `k` es la clave compartida entre los agentes `a` y `b` (simétrico). */
 export const sharedKey = (a: BANTerm, b: BANTerm, k: BANTerm): BANFormula => ({
   kind: 'sharedKey',
   a,
@@ -68,12 +83,14 @@ export const sharedKey = (a: BANTerm, b: BANTerm, k: BANTerm): BANFormula => ({
   key: k,
 });
 
+/** `|→k p` — `k` es la clave pública del principal `p`. */
 export const publicKey = (p: BANTerm, k: BANTerm): BANFormula => ({
   kind: 'publicKey',
   principal: p,
   key: k,
 });
 
+/** `a ⇌s b` — `s` es el secreto compartido entre los agentes `a` y `b` (simétrico). */
 export const sharedSecret = (a: BANTerm, b: BANTerm, s: BANTerm): BANFormula => ({
   kind: 'sharedSecret',
   a,
@@ -81,12 +98,14 @@ export const sharedSecret = (a: BANTerm, b: BANTerm, s: BANTerm): BANFormula => 
   secret: s,
 });
 
+/** `p |⇒ f` — el principal `p` controla (tiene autoridad sobre) la fórmula `f`. */
 export const controls = (p: BANTerm, f: BANFormula): BANFormula => ({
   kind: 'controls',
   principal: p,
   statement: f,
 });
 
+/** Conjunción de dos fórmulas BAN: `left ∧ right`. */
 export const formulaAnd = (left: BANFormula, right: BANFormula): BANFormula => ({
   kind: 'formula-and',
   left,
@@ -95,6 +114,7 @@ export const formulaAnd = (left: BANFormula, right: BANFormula): BANFormula => (
 
 /* ── Igualdad estructural ── */
 
+/** Igualdad estructural entre dos términos BAN. Las claves compartidas son simétricas: K_{AB} = K_{BA}. */
 export function termEquals(a: BANTerm, b: BANTerm): boolean {
   if (a.kind !== b.kind) return false;
   switch (a.kind) {
@@ -146,6 +166,7 @@ export function termEquals(a: BANTerm, b: BANTerm): boolean {
   }
 }
 
+/** Igualdad estructural entre dos fórmulas BAN. Los predicados sharedKey y sharedSecret son simétricos en sus agentes. */
 export function formulaEquals(a: BANFormula, b: BANFormula): boolean {
   if (a.kind !== b.kind) return false;
   switch (a.kind) {
@@ -201,12 +222,14 @@ export function formulaEquals(a: BANFormula, b: BANFormula): boolean {
   }
 }
 
+/** Comprueba si `target` está en la lista de fórmulas BAN `state` (usando igualdad estructural). */
 export function hasFormula(state: ReadonlyArray<BANFormula>, target: BANFormula): boolean {
   return state.some((f) => formulaEquals(f, target));
 }
 
 /* ── Pretty printing ── */
 
+/** Serializa un término BAN a su representación textual estándar. */
 export function termToString(t: BANTerm): string {
   switch (t.kind) {
     case 'principal':
@@ -226,6 +249,7 @@ export function termToString(t: BANTerm): string {
   }
 }
 
+/** Serializa una fórmula BAN a su representación textual estándar. */
 export function formulaToString(f: BANFormula): string {
   switch (f.kind) {
     case 'believes':
