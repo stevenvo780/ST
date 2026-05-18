@@ -4,7 +4,7 @@
 
 ## `isCorrect`
 
-> Function · `proof-systems/proof-nets/correctness.ts:191`
+> Function · `proof-systems/proof-nets/correctness.ts:200`
 
 ```ts
 export function isCorrect(net: ProofNet): boolean

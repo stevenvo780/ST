@@ -158,7 +158,7 @@ caller passes parallel arrays; we form the graph from Kuratowski pairs.
 No validation here — call `isValidFunction` afterwards if you need it.
 
 ```ts
-export function makeFunction( domain: HFSet, codomain: HFSet, mapping: ReadonlyArray<readonly [HFSet, HFSet]> ): HFFunction
+export function makeFunction( domain: HFSet, codomain: HFSet, mapping: ReadonlyArray<readonly [HFSet, HFSet]>, ): HFFunction
 ```
 
 ### Parameters

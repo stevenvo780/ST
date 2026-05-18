@@ -14,7 +14,7 @@ Importa así:
 
 ## `textLayer`
 
-> Const · `namespaces/semantics.ts:33`
+> Const · `namespaces/semantics.ts:27`
 
 ```ts
 const textLayer

@@ -193,7 +193,7 @@ export function findTranslationPath(from: Profile, to: Profile): Profile[] | nul
 
 ## `translateFormula`
 
-> Function · `logic/profile-bridge/index.ts:386`
+> Function · `logic/profile-bridge/index.ts:387`
 
 Traduce una fórmula genérica al perfil `target` siguiendo el camino
 de traducciones más corto disponible.

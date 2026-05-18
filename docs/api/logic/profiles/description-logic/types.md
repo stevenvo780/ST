@@ -1,6 +1,6 @@
 # `logic/profiles/description-logic/types.ts`
 
-============================================================ ST Description Logic — ALC types ============================================================ ALC: el fragmento base de OWL/DL. Conceptos C, roles R (binarios), individuos a.   ⊤ ⊥   top / bottom   ¬C    complemento   C ⊓ D intersección   C ⊔ D unión   ∃R.C  restricción existencial   ∀R.C  restricción de valor ============================================================
+Variantes sintácticas de un concepto ALC.
 
 ## Contents
 
@@ -25,7 +25,9 @@
 
 ## `DLConceptKind`
 
-> Type · `logic/profiles/description-logic/types.ts:14`
+> Type · `logic/profiles/description-logic/types.ts:15`
+
+Variantes sintácticas de un concepto ALC.
 
 ```ts
 export type DLConceptKind = | 'top' | 'bottom' | 'atomic' | 'not' | 'and' | 'or' | 'exists' | 'forall';
@@ -34,7 +36,7 @@ export type DLConceptKind = | 'top' | 'bottom' | 'atomic' | 'not' | 'and' | 'or'
 
 ## `DLConcept`
 
-> Interface · `logic/profiles/description-logic/types.ts:24`
+> Interface · `logic/profiles/description-logic/types.ts:25`
 
 ```ts
 export interface DLConcept
@@ -43,7 +45,9 @@ export interface DLConcept
 
 ## `DLAxiomKind`
 
-> Type · `logic/profiles/description-logic/types.ts:36`
+> Type · `logic/profiles/description-logic/types.ts:38`
+
+Variantes de axioma ALC: subsunción, equivalencia y aserciones de instancia.
 
 ```ts
 export type DLAxiomKind = 'subsumes' | 'equivalent' | 'instance' | 'role-instance';
@@ -52,7 +56,7 @@ export type DLAxiomKind = 'subsumes' | 'equivalent' | 'instance' | 'role-instanc
 
 ## `DLAxiom`
 
-> Interface · `logic/profiles/description-logic/types.ts:38`
+> Interface · `logic/profiles/description-logic/types.ts:40`
 
 ```ts
 export interface DLAxiom
@@ -61,7 +65,7 @@ export interface DLAxiom
 
 ## `DLKnowledgeBase`
 
-> Interface · `logic/profiles/description-logic/types.ts:51`
+> Interface · `logic/profiles/description-logic/types.ts:53`
 
 ```ts
 export interface DLKnowledgeBase
@@ -70,7 +74,9 @@ export interface DLKnowledgeBase
 
 ## `TOP`
 
-> Const · `logic/profiles/description-logic/types.ts:60`
+> Const · `logic/profiles/description-logic/types.ts:63`
+
+Concepto universal ⊤ (todo individuo lo satisface).
 
 ```ts
 const TOP: DLConcept
@@ -79,7 +85,9 @@ const TOP: DLConcept
 
 ## `BOTTOM`
 
-> Const · `logic/profiles/description-logic/types.ts:61`
+> Const · `logic/profiles/description-logic/types.ts:65`
+
+Concepto vacío ⊥ (ningún individuo lo satisface).
 
 ```ts
 const BOTTOM: DLConcept
@@ -88,7 +96,9 @@ const BOTTOM: DLConcept
 
 ## `atomic`
 
-> Function · `logic/profiles/description-logic/types.ts:63`
+> Function · `logic/profiles/description-logic/types.ts:68`
+
+Crea un concepto atómico con el nombre dado.
 
 ```ts
 export function atomic(name: string): DLConcept
@@ -107,7 +117,9 @@ export function atomic(name: string): DLConcept
 
 ## `not`
 
-> Function · `logic/profiles/description-logic/types.ts:67`
+> Function · `logic/profiles/description-logic/types.ts:73`
+
+Negación de un concepto: ¬C.
 
 ```ts
 export function not(c: DLConcept): DLConcept
@@ -126,7 +138,9 @@ export function not(c: DLConcept): DLConcept
 
 ## `and`
 
-> Function · `logic/profiles/description-logic/types.ts:71`
+> Function · `logic/profiles/description-logic/types.ts:78`
+
+Intersección de conceptos: C ⊓ D. Sin argumentos devuelve ⊤.
 
 ```ts
 export function and(...args: DLConcept[]): DLConcept
@@ -145,7 +159,9 @@ export function and(...args: DLConcept[]): DLConcept
 
 ## `or`
 
-> Function · `logic/profiles/description-logic/types.ts:77`
+> Function · `logic/profiles/description-logic/types.ts:85`
+
+Unión de conceptos: C ⊔ D. Sin argumentos devuelve ⊥.
 
 ```ts
 export function or(...args: DLConcept[]): DLConcept
@@ -164,7 +180,9 @@ export function or(...args: DLConcept[]): DLConcept
 
 ## `exists`
 
-> Function · `logic/profiles/description-logic/types.ts:83`
+> Function · `logic/profiles/description-logic/types.ts:92`
+
+Restricción existencial: ∃role.C.
 
 ```ts
 export function exists(role: string, c: DLConcept): DLConcept
@@ -184,7 +202,9 @@ export function exists(role: string, c: DLConcept): DLConcept
 
 ## `forall`
 
-> Function · `logic/profiles/description-logic/types.ts:87`
+> Function · `logic/profiles/description-logic/types.ts:97`
+
+Restricción de valor: ∀role.C.
 
 ```ts
 export function forall(role: string, c: DLConcept): DLConcept
@@ -204,7 +224,9 @@ export function forall(role: string, c: DLConcept): DLConcept
 
 ## `subsumes`
 
-> Function · `logic/profiles/description-logic/types.ts:91`
+> Function · `logic/profiles/description-logic/types.ts:102`
+
+Axioma TBox de subsunción: left ⊑ right.
 
 ```ts
 export function subsumes(left: DLConcept, right: DLConcept): DLAxiom
@@ -224,7 +246,9 @@ export function subsumes(left: DLConcept, right: DLConcept): DLAxiom
 
 ## `equivalent`
 
-> Function · `logic/profiles/description-logic/types.ts:95`
+> Function · `logic/profiles/description-logic/types.ts:107`
+
+Axioma TBox de equivalencia: left ≡ right.
 
 ```ts
 export function equivalent(left: DLConcept, right: DLConcept): DLAxiom
@@ -244,7 +268,9 @@ export function equivalent(left: DLConcept, right: DLConcept): DLAxiom
 
 ## `instance`
 
-> Function · `logic/profiles/description-logic/types.ts:99`
+> Function · `logic/profiles/description-logic/types.ts:112`
+
+Aserción ABox: `individual` pertenece a `concept`.
 
 ```ts
 export function instance(individual: string, concept: DLConcept): DLAxiom
@@ -264,7 +290,9 @@ export function instance(individual: string, concept: DLConcept): DLAxiom
 
 ## `roleInstance`
 
-> Function · `logic/profiles/description-logic/types.ts:103`
+> Function · `logic/profiles/description-logic/types.ts:117`
+
+Aserción de rol ABox: (from, to) ∈ role.
 
 ```ts
 export function roleInstance(from: string, role: string, to: string): DLAxiom
@@ -285,7 +313,9 @@ export function roleInstance(from: string, role: string, to: string): DLAxiom
 
 ## `emptyKB`
 
-> Function · `logic/profiles/description-logic/types.ts:107`
+> Function · `logic/profiles/description-logic/types.ts:122`
+
+Devuelve una base de conocimiento vacía (TBox y ABox vacíos).
 
 ```ts
 export function emptyKB(): DLKnowledgeBase

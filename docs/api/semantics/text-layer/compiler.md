@@ -19,7 +19,9 @@ ST Text Layer — Compilador texto -> formula/claim
 
 ## `createTextLayerState`
 
-> Function · `semantics/text-layer/compiler.ts:18`
+> Function · `semantics/text-layer/compiler.ts:19`
+
+Crea un `TextLayerState` vacío listo para recibir passages, claims y definiciones.
 
 ```ts
 export function createTextLayerState(): TextLayerState
@@ -32,7 +34,10 @@ export function createTextLayerState(): TextLayerState
 
 ## `parseAnchorPath`
 
-> Function · `semantics/text-layer/compiler.ts:38`
+> Function · `semantics/text-layer/compiler.ts:43`
+
+Parsea una ruta de anchor con formato `"archivo.md#fragmento"` en un `Anchor`.
+Infiere el tipo (`heading`, `paragraph`, `range`, `block`) a partir del fragmento.
 
 ```ts
 export function parseAnchorPath(raw: string): Anchor
@@ -51,7 +56,9 @@ export function parseAnchorPath(raw: string): Anchor
 
 ## `registerPassage`
 
-> Function · `semantics/text-layer/compiler.ts:74`
+> Function · `semantics/text-layer/compiler.ts:82`
+
+Registra un passage en el estado, parseando `anchorPath` con `parseAnchorPath`.
 
 ```ts
 export function registerPassage( state: TextLayerState, name: string, anchorPath: string, ): Diagnostic[]
@@ -67,12 +74,15 @@ export function registerPassage( state: TextLayerState, name: string, anchorPath
 
 ### Returns
 
-`Diagnostic[]` — 
+`Diagnostic[]` — Diagnósticos de error si el anchor es inválido; vacío en caso de éxito.
 
 
 ## `registerFormalization`
 
-> Function · `semantics/text-layer/compiler.ts:91`
+> Function · `semantics/text-layer/compiler.ts:102`
+
+Registra una formalización (passage + fórmula) en el estado.
+Emite un warning si el passage referenciado no existe aún.
 
 ```ts
 export function registerFormalization( state: TextLayerState, name: string, passageName: string, formula: Formula, ): Diagnostic[]
@@ -94,7 +104,10 @@ export function registerFormalization( state: TextLayerState, name: string, pass
 
 ## `registerClaim`
 
-> Function · `semantics/text-layer/compiler.ts:111`
+> Function · `semantics/text-layer/compiler.ts:125`
+
+Registra un claim con fórmula directa o referencia a una formalización.
+Emite un warning si `formalizationRef` no apunta a ningún pasaje o formalización conocida.
 
 ```ts
 export function registerClaim( state: TextLayerState, name: string, formula?: Formula, formalizationRef?: string, ): Diagnostic[]
@@ -116,7 +129,10 @@ export function registerClaim( state: TextLayerState, name: string, formula?: Fo
 
 ## `registerSupport`
 
-> Function · `semantics/text-layer/compiler.ts:135`
+> Function · `semantics/text-layer/compiler.ts:152`
+
+Asocia una fuente bibliográfica (`sourceName`) como soporte de un claim.
+Emite un warning si el claim no existe en el estado.
 
 ```ts
 export function registerSupport( state: TextLayerState, claimName: string, sourceName: string, ): Diagnostic[]
@@ -137,7 +153,9 @@ export function registerSupport( state: TextLayerState, claimName: string, sourc
 
 ## `registerConfidence`
 
-> Function · `semantics/text-layer/compiler.ts:161`
+> Function · `semantics/text-layer/compiler.ts:181`
+
+Registra el nivel de confianza `value ∈ [0,1]` para un claim.
 
 ```ts
 export function registerConfidence( state: TextLayerState, claimName: string, value: number, ): Diagnostic[]
@@ -153,12 +171,15 @@ export function registerConfidence( state: TextLayerState, claimName: string, va
 
 ### Returns
 
-`Diagnostic[]` — 
+`Diagnostic[]` — Error si `value` está fuera de rango; warning si el claim no existe.
 
 
 ## `registerContext`
 
-> Function · `semantics/text-layer/compiler.ts:193`
+> Function · `semantics/text-layer/compiler.ts:216`
+
+Registra texto de contexto libre asociado a un claim.
+Emite un warning si el claim no existe en el estado.
 
 ```ts
 export function registerContext( state: TextLayerState, claimName: string, text: string, ): Diagnostic[]
@@ -179,7 +200,9 @@ export function registerContext( state: TextLayerState, claimName: string, text:
 
 ## `compileClaimsToTheory`
 
-> Function · `semantics/text-layer/compiler.ts:218`
+> Function · `semantics/text-layer/compiler.ts:244`
+
+Copia todos los claims con fórmula (directa o vía formalización) a `theory.claims`.
 
 ```ts
 export function compileClaimsToTheory(state: TextLayerState, theory: Theory): Diagnostic[]
@@ -194,12 +217,15 @@ export function compileClaimsToTheory(state: TextLayerState, theory: Theory): Di
 
 ### Returns
 
-`Diagnostic[]` — 
+`Diagnostic[]` — Diagnósticos de error para claims con referencia a formalización inexistente.
 
 
 ## `registerDefinition`
 
-> Function · `semantics/text-layer/compiler.ts:242`
+> Function · `semantics/text-layer/compiler.ts:271`
+
+Registra una entrada de definición formal en el estado (v3).
+Emite un warning si el nombre ya fue definido anteriormente.
 
 ```ts
 export function registerDefinition(state: TextLayerState, entry: DefinitionEntry): Diagnostic[]
@@ -219,7 +245,10 @@ export function registerDefinition(state: TextLayerState, entry: DefinitionEntry
 
 ## `registerSource`
 
-> Function · `semantics/text-layer/compiler.ts:255`
+> Function · `semantics/text-layer/compiler.ts:287`
+
+Registra una fuente bibliográfica en el estado (v3).
+Emite un warning si el `source.id` ya fue registrado.
 
 ```ts
 export function registerSource(state: TextLayerState, source: SourceInfo): Diagnostic[]
@@ -239,7 +268,10 @@ export function registerSource(state: TextLayerState, source: SourceInfo): Diagn
 
 ## `registerInterpretation`
 
-> Function · `semantics/text-layer/compiler.ts:268`
+> Function · `semantics/text-layer/compiler.ts:303`
+
+Registra una entrada de interpretación semántica bajo la clave `key` (v3).
+Sobreescribe silenciosamente si la clave ya existe.
 
 ```ts
 export function registerInterpretation( state: TextLayerState, key: string, entry: InterpretationEntry, ): Diagnostic[]

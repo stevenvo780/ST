@@ -1,5 +1,8 @@
 # `proof-systems/fol-prover/types.ts`
 
+A first-order term: variable, constant, or function application.
+`args` is present (and may be empty) only when `kind === 'func'`.
+
 ## Contents
 
 - [`FOLTerm`](#folterm) — Interface
@@ -18,7 +21,10 @@
 
 ## `FOLTerm`
 
-> Interface · `proof-systems/fol-prover/types.ts:1`
+> Interface · `proof-systems/fol-prover/types.ts:5`
+
+A first-order term: variable, constant, or function application.
+`args` is present (and may be empty) only when `kind === 'func'`.
 
 ```ts
 export interface FOLTerm
@@ -27,7 +33,9 @@ export interface FOLTerm
 
 ## `FOLLiteral`
 
-> Interface · `proof-systems/fol-prover/types.ts:7`
+> Interface · `proof-systems/fol-prover/types.ts:12`
+
+A first-order literal: a (possibly negated) predicate applied to terms.
 
 ```ts
 export interface FOLLiteral
@@ -36,7 +44,9 @@ export interface FOLLiteral
 
 ## `FOLClause`
 
-> Type · `proof-systems/fol-prover/types.ts:13`
+> Type · `proof-systems/fol-prover/types.ts:19`
+
+A clause in CNF: a disjunction of literals. Empty clause represents ⊥.
 
 ```ts
 export type FOLClause = FOLLiteral[];
@@ -45,7 +55,9 @@ export type FOLClause = FOLLiteral[];
 
 ## `FOLResolutionStep`
 
-> Interface · `proof-systems/fol-prover/types.ts:15`
+> Interface · `proof-systems/fol-prover/types.ts:22`
+
+Records one resolution step: which two clauses were resolved and the result.
 
 ```ts
 export interface FOLResolutionStep
@@ -54,7 +66,9 @@ export interface FOLResolutionStep
 
 ## `FOLProveResult`
 
-> Interface · `proof-systems/fol-prover/types.ts:21`
+> Interface · `proof-systems/fol-prover/types.ts:29`
+
+Result returned by the FOL resolution prover.
 
 ```ts
 export interface FOLProveResult
@@ -63,7 +77,9 @@ export interface FOLProveResult
 
 ## `FOLProveOptions`
 
-> Interface · `proof-systems/fol-prover/types.ts:28`
+> Interface · `proof-systems/fol-prover/types.ts:37`
+
+Options controlling the FOL prover's search budget.
 
 ```ts
 export interface FOLProveOptions
@@ -72,7 +88,9 @@ export interface FOLProveOptions
 
 ## `mkVar`
 
-> Function · `proof-systems/fol-prover/types.ts:33`
+> Function · `proof-systems/fol-prover/types.ts:43`
+
+Creates a variable term.
 
 ```ts
 export function mkVar(name: string): FOLTerm
@@ -91,7 +109,9 @@ export function mkVar(name: string): FOLTerm
 
 ## `mkConst`
 
-> Function · `proof-systems/fol-prover/types.ts:37`
+> Function · `proof-systems/fol-prover/types.ts:48`
+
+Creates a constant term.
 
 ```ts
 export function mkConst(name: string): FOLTerm
@@ -110,7 +130,9 @@ export function mkConst(name: string): FOLTerm
 
 ## `mkFunc`
 
-> Function · `proof-systems/fol-prover/types.ts:41`
+> Function · `proof-systems/fol-prover/types.ts:53`
+
+Creates a function application term.
 
 ```ts
 export function mkFunc(name: string, args: FOLTerm[]): FOLTerm
@@ -130,7 +152,9 @@ export function mkFunc(name: string, args: FOLTerm[]): FOLTerm
 
 ## `mkLit`
 
-> Function · `proof-systems/fol-prover/types.ts:45`
+> Function · `proof-systems/fol-prover/types.ts:58`
+
+Creates a literal from its negation flag, predicate name, and argument terms.
 
 ```ts
 export function mkLit(negated: boolean, predicate: string, args: FOLTerm[]): FOLLiteral
@@ -151,7 +175,9 @@ export function mkLit(negated: boolean, predicate: string, args: FOLTerm[]): FOL
 
 ## `termToString`
 
-> Function · `proof-systems/fol-prover/types.ts:49`
+> Function · `proof-systems/fol-prover/types.ts:63`
+
+Renders a term as `name` (var/const) or `name(arg,...)` (func).
 
 ```ts
 export function termToString(t: FOLTerm): string
@@ -170,7 +196,9 @@ export function termToString(t: FOLTerm): string
 
 ## `literalToString`
 
-> Function · `proof-systems/fol-prover/types.ts:55`
+> Function · `proof-systems/fol-prover/types.ts:70`
+
+Renders a literal as `P(args)` or `¬P(args)`.
 
 ```ts
 export function literalToString(lit: FOLLiteral): string
@@ -189,7 +217,9 @@ export function literalToString(lit: FOLLiteral): string
 
 ## `clauseToString`
 
-> Function · `proof-systems/fol-prover/types.ts:61`
+> Function · `proof-systems/fol-prover/types.ts:77`
+
+Renders a clause as a disjunction of literals, or `⊥` for the empty clause.
 
 ```ts
 export function clauseToString(c: FOLClause): string

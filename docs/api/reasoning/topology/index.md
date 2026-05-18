@@ -1,6 +1,6 @@
 # `reasoning/topology/index.ts`
 
-============================================================ ST Topology — Complejos simpliciales y homología ============================================================ Implementa complejos simpliciales abstractos y el cómputo de su homología sobre coeficientes en Z/2 y en Z. Calcula característica de Euler, números de Betti y factores invariantes (torsión). Convenciones:   • Un simplex se representa como una lista ordenada estrictamente     creciente de vértices (índices enteros no negativos). La clave     canónica es `v0,v1,...,vk`.   • Un complejo es cerrado bajo caras: `addSimplex(K, s)` añade `s`     y todas sus subcaras al complejo.   • Orientación inducida: la orientación canónica del k-simplex     `[v_0,...,v_k]` es la dada por el orden creciente. La cara     que omite el vértice i-ésimo tiene signo `(-1)^i` (coeficientes Z)     y se usa el conteo de paridad de inversiones para reordenar.   • Sobre Z/2 los signos no importan y el operador borde es lineal     mod 2. Resultados clásicos verificados en tests:   • Triángulo (1-borde): χ = 0.   • Esfera S^2 (borde de tetraedro): β = [1,0,1], χ = 2.   • Toro T²: β_{Z/2} = [1,2,1], χ = 0.   • Plano proyectivo RP²: β_{Z/2} = [1,1,1], β_Z = [1,0,0]     con torsión Z/2 en dimensión 1. ------------------------------------------------------------ Tipos ------------------------------------------------------------ Un simplex es la lista ordenada ascendente de sus vértices.
+Simplex abstracto: lista ordenada ascendente de vértices (enteros).
 
 ## Contents
 
@@ -32,6 +32,8 @@
 
 > Type · `reasoning/topology/index.ts:34`
 
+Simplex abstracto: lista ordenada ascendente de vértices (enteros).
+
 ```ts
 export type Simplex = number[];
 ```
@@ -41,6 +43,8 @@ export type Simplex = number[];
 
 > Interface · `reasoning/topology/index.ts:37`
 
+Simplex con signo orientado, usado por el operador borde ∂ sobre Z.
+
 ```ts
 export interface SignedSimplex
 ```
@@ -48,7 +52,11 @@ export interface SignedSimplex
 
 ## `SimplicialComplex`
 
-> Interface · `reasoning/topology/index.ts:45`
+> Interface · `reasoning/topology/index.ts:47`
+
+Complejo simplicial abstracto.
+Internamente los simplices se indexan por dimensión (`k = |s|-1`) y se
+almacenan por su clave canónica `v0,v1,...,vk`.
 
 ```ts
 export interface SimplicialComplex
@@ -57,7 +65,11 @@ export interface SimplicialComplex
 
 ## `HomologyResult`
 
-> Interface · `reasoning/topology/index.ts:52`
+> Interface · `reasoning/topology/index.ts:58`
+
+Resultado de un cómputo de homología sobre un complejo simplicial.
+Incluye números de Betti, característica de Euler y, cuando se trabaja
+sobre Z, la torsión por dimensión.
 
 ```ts
 export interface HomologyResult
@@ -66,7 +78,9 @@ export interface HomologyResult
 
 ## `makeComplex`
 
-> Function · `reasoning/topology/index.ts:91`
+> Function · `reasoning/topology/index.ts:98`
+
+Crea un complejo simplicial vacío (sin vértices ni simplices).
 
 ```ts
 export function makeComplex(): SimplicialComplex
@@ -79,7 +93,10 @@ export function makeComplex(): SimplicialComplex
 
 ## `addSimplex`
 
-> Function · `reasoning/topology/index.ts:100`
+> Function · `reasoning/topology/index.ts:111`
+
+Añade un simplex `s` y todas sus caras al complejo `K` (cierre hacia abajo).
+El simplex se normaliza a orden creciente antes de insertarse.
 
 ```ts
 export function addSimplex(K: SimplicialComplex, s: Simplex): void
@@ -99,7 +116,10 @@ export function addSimplex(K: SimplicialComplex, s: Simplex): void
 
 ## `faces`
 
-> Function · `reasoning/topology/index.ts:139`
+> Function · `reasoning/topology/index.ts:153`
+
+Devuelve las caras directas (codimensión 1) del k-simplex `s`.
+Un k-simplex tiene exactamente k+1 caras. Devuelve `[]` para 0-simplices.
 
 ```ts
 export function faces(s: Simplex): Simplex[]
@@ -118,7 +138,9 @@ export function faces(s: Simplex): Simplex[]
 
 ## `boundaryZ2`
 
-> Function · `reasoning/topology/index.ts:156`
+> Function · `reasoning/topology/index.ts:170`
+
+Operador borde ∂ sobre Z/2 (coeficientes en F₂): lista de caras sin signos.
 
 ```ts
 export function boundaryZ2(simplex: Simplex): Simplex[]
@@ -137,7 +159,10 @@ export function boundaryZ2(simplex: Simplex): Simplex[]
 
 ## `boundaryZ`
 
-> Function · `reasoning/topology/index.ts:162`
+> Function · `reasoning/topology/index.ts:178`
+
+Operador borde ∂ sobre Z: devuelve cada cara con signo `(-1)^i`, donde `i`
+es el índice del vértice omitido en el orden canónico del simplex.
 
 ```ts
 export function boundaryZ(simplex: Simplex): SignedSimplex[]
@@ -156,7 +181,9 @@ export function boundaryZ(simplex: Simplex): SignedSimplex[]
 
 ## `dimension`
 
-> Function · `reasoning/topology/index.ts:183`
+> Function · `reasoning/topology/index.ts:200`
+
+Dimensión del complejo simplicial (el mayor k tal que K contiene un k-simplex, o -1 si está vacío).
 
 ```ts
 export function dimension(K: SimplicialComplex): number
@@ -175,7 +202,9 @@ export function dimension(K: SimplicialComplex): number
 
 ## `fVector`
 
-> Function · `reasoning/topology/index.ts:188`
+> Function · `reasoning/topology/index.ts:208`
+
+f-vector del complejo: `f[i]` = número de i-simplices, para i = 0..dim.
 
 ```ts
 export function fVector(K: SimplicialComplex): number[]
@@ -191,10 +220,19 @@ export function fVector(K: SimplicialComplex): number[]
 
 `number[]` — 
 
+### Examples
+
+```ts
+fVector(nSimplex(2)) // [3, 3, 1] (triángulo lleno)
+```
+
 
 ## `eulerCharacteristic`
 
-> Function · `reasoning/topology/index.ts:197`
+> Function · `reasoning/topology/index.ts:220`
+
+Característica de Euler: χ = ∑ (-1)^i f_i.
+Invariante topológico (S² → 2, T² → 0, RP² → 1).
 
 ```ts
 export function eulerCharacteristic(K: SimplicialComplex): number
@@ -213,7 +251,9 @@ export function eulerCharacteristic(K: SimplicialComplex): number
 
 ## `rankBoundaryZ2`
 
-> Function · `reasoning/topology/index.ts:301`
+> Function · `reasoning/topology/index.ts:324`
+
+Rango del operador borde ∂_d : C_d → C_{d-1} sobre F₂.
 
 ```ts
 export function rankBoundaryZ2(K: SimplicialComplex, dim: number): number
@@ -233,7 +273,10 @@ export function rankBoundaryZ2(K: SimplicialComplex, dim: number): number
 
 ## `bettiNumberZ2`
 
-> Function · `reasoning/topology/index.ts:310`
+> Function · `reasoning/topology/index.ts:334`
+
+Número de Betti β_d sobre Z/2 (F₂).
+β_d = dim ker ∂_d − dim im ∂_{d+1} = n_d − rank ∂_d − rank ∂_{d+1}.
 
 ```ts
 export function bettiNumberZ2(K: SimplicialComplex, dim: number): number
@@ -253,7 +296,12 @@ export function bettiNumberZ2(K: SimplicialComplex, dim: number): number
 
 ## `smithNormalForm`
 
-> Function · `reasoning/topology/index.ts:367`
+> Function · `reasoning/topology/index.ts:390`
+
+Forma Normal de Smith sobre Z para una matriz entera.
+Devuelve la SNF (diagonal con factores invariantes d₁ | d₂ | … | dᵣ, resto ceros),
+el rango (número de pivotes no nulos) y la dimensión del kernel (cols − rankIm).
+Algoritmo: reducción iterativa estilo Bareiss/Euclídea sobre filas y columnas.
 
 ```ts
 export function smithNormalForm(matrix: number[][]):
@@ -272,7 +320,10 @@ export function smithNormalForm(matrix: number[][]):
 
 ## `bettiNumberZ`
 
-> Function · `reasoning/topology/index.ts:580`
+> Function · `reasoning/topology/index.ts:605`
+
+Número de Betti β_d sobre Z (parte libre de la homología H_d).
+β_d = rank ker ∂_d − rank im ∂_{d+1}, equivalente a contar copias de Z en H_d.
 
 ```ts
 export function bettiNumberZ(K: SimplicialComplex, dim: number): number
@@ -292,7 +343,11 @@ export function bettiNumberZ(K: SimplicialComplex, dim: number): number
 
 ## `torsionZ`
 
-> Function · `reasoning/topology/index.ts:594`
+> Function · `reasoning/topology/index.ts:621`
+
+Factores invariantes (> 1) de la torsión de H_d sobre Z.
+H_d = Z^{β_d} ⊕ ⊕ᵢ Z/dᵢ, con d₁ | d₂ | … | dₖ, dᵢ > 1.
+Ejemplo: RP² tiene torsión [2] en dimensión 1.
 
 ```ts
 export function torsionZ(K: SimplicialComplex, dim: number): number[]
@@ -312,7 +367,10 @@ export function torsionZ(K: SimplicialComplex, dim: number): number[]
 
 ## `nSimplex`
 
-> Function · `reasoning/topology/index.ts:608`
+> Function · `reasoning/topology/index.ts:637`
+
+Complejo del n-simplex completo: todos los subconjuntos no vacíos de {0,…,n}.
+`nSimplex(2)` da un triángulo relleno (2-cara incluida), no solo su borde.
 
 ```ts
 export function nSimplex(n: number): SimplicialComplex
@@ -331,7 +389,10 @@ export function nSimplex(n: number): SimplicialComplex
 
 ## `spheres`
 
-> Function · `reasoning/topology/index.ts:619`
+> Function · `reasoning/topology/index.ts:650`
+
+Triangulación canónica de la esfera S^n (frontera del (n+1)-simplex).
+`spheres(2)` = borde del tetraedro: 4 vértices, 6 aristas, 4 triángulos; χ = 2.
 
 ```ts
 export function spheres(n: number): SimplicialComplex
@@ -350,7 +411,10 @@ export function spheres(n: number): SimplicialComplex
 
 ## `torus2`
 
-> Function · `reasoning/topology/index.ts:644`
+> Function · `reasoning/topology/index.ts:672`
+
+Triangulación del toro T² (cuadrado 3×3 con identificaciones a b a⁻¹ b⁻¹).
+9 vértices, 27 aristas, 18 triángulos. χ = 0, β_{Z/2} = [1,2,1].
 
 ```ts
 export function torus2(): SimplicialComplex
@@ -363,7 +427,10 @@ export function torus2(): SimplicialComplex
 
 ## `projectivePlane`
 
-> Function · `reasoning/topology/index.ts:665`
+> Function · `reasoning/topology/index.ts:694`
+
+Triangulación mínima del plano proyectivo real RP² (6 vértices, 15 aristas, 10 triángulos).
+β_Z = [1,0,0] con torsión Z/2 en dimensión 1; β_{Z/2} = [1,1,1]; χ = 1.
 
 ```ts
 export function projectivePlane(): SimplicialComplex
@@ -376,7 +443,10 @@ export function projectivePlane(): SimplicialComplex
 
 ## `kleinBottle`
 
-> Function · `reasoning/topology/index.ts:691`
+> Function · `reasoning/topology/index.ts:716`
+
+Triangulación de la botella de Klein (cuadrado 3×3 con identificaciones a b a b⁻¹).
+9 vértices; χ = 0; β_Z = [1,1,0]; torsión Z/2 en dim 1.
 
 ```ts
 export function kleinBottle(): SimplicialComplex
@@ -389,7 +459,10 @@ export function kleinBottle(): SimplicialComplex
 
 ## `computeHomology`
 
-> Function · `reasoning/topology/index.ts:728`
+> Function · `reasoning/topology/index.ts:758`
+
+Cómputo completo de homología de `K` con coeficientes en Z/2 o Z.
+Devuelve números de Betti, característica de Euler y (si Z) la torsión por dimensión.
 
 ```ts
 export function computeHomology( K: SimplicialComplex, coefficients: 'Z2' | 'Z' = 'Z2', ): HomologyResult
@@ -400,7 +473,7 @@ export function computeHomology( K: SimplicialComplex, coefficients: 'Z2' | 'Z' 
 | Name | Type | Optional | Description |
 | ---- | ---- | -------- | ----------- |
 | `K` | `SimplicialComplex` | no |  |
-| `coefficients` | `'Z2' \| 'Z'` | yes |  |
+| `coefficients` | `'Z2' \| 'Z'` | yes | `'Z2'` para F₂ (defecto) o `'Z'` para coeficientes enteros. |
 
 ### Returns
 

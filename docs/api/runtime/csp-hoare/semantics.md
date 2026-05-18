@@ -23,7 +23,9 @@
 
 ## `STOP`
 
-> Const · `runtime/csp-hoare/semantics.ts:24`
+> Const · `runtime/csp-hoare/semantics.ts:25`
+
+The deadlocked process: offers no events and never terminates.
 
 ```ts
 const STOP: Process
@@ -32,7 +34,9 @@ const STOP: Process
 
 ## `SKIP`
 
-> Const · `runtime/csp-hoare/semantics.ts:25`
+> Const · `runtime/csp-hoare/semantics.ts:27`
+
+The successfully terminated process: offers only the tick event `✓`.
 
 ```ts
 const SKIP: Process
@@ -41,7 +45,9 @@ const SKIP: Process
 
 ## `prefix`
 
-> Function · `runtime/csp-hoare/semantics.ts:27`
+> Function · `runtime/csp-hoare/semantics.ts:30`
+
+Creates a prefixed process `event → cont`.
 
 ```ts
 export function prefix(event: Event, cont: Process): Process
@@ -61,7 +67,9 @@ export function prefix(event: Event, cont: Process): Process
 
 ## `choice`
 
-> Function · `runtime/csp-hoare/semantics.ts:30`
+> Function · `runtime/csp-hoare/semantics.ts:34`
+
+Creates an external (deterministic) choice `left □ right`.
 
 ```ts
 export function choice(left: Process, right: Process): Process
@@ -81,7 +89,9 @@ export function choice(left: Process, right: Process): Process
 
 ## `internal`
 
-> Function · `runtime/csp-hoare/semantics.ts:33`
+> Function · `runtime/csp-hoare/semantics.ts:38`
+
+Creates an internal (non-deterministic) choice `left ⊓ right`.
 
 ```ts
 export function internal(left: Process, right: Process): Process
@@ -101,7 +111,9 @@ export function internal(left: Process, right: Process): Process
 
 ## `parallel`
 
-> Function · `runtime/csp-hoare/semantics.ts:36`
+> Function · `runtime/csp-hoare/semantics.ts:42`
+
+Creates a parallel composition synchronized on the given `alphabet`.
 
 ```ts
 export function parallel(left: Process, right: Process, alphabet: Event[]): Process
@@ -122,7 +134,9 @@ export function parallel(left: Process, right: Process, alphabet: Event[]): Proc
 
 ## `interleave`
 
-> Function · `runtime/csp-hoare/semantics.ts:39`
+> Function · `runtime/csp-hoare/semantics.ts:46`
+
+Creates an interleaving composition (synchronized only on `✓`).
 
 ```ts
 export function interleave(left: Process, right: Process): Process
@@ -142,7 +156,9 @@ export function interleave(left: Process, right: Process): Process
 
 ## `sequence`
 
-> Function · `runtime/csp-hoare/semantics.ts:42`
+> Function · `runtime/csp-hoare/semantics.ts:50`
+
+Creates a sequential composition: `right` starts after `left` terminates.
 
 ```ts
 export function sequence(left: Process, right: Process): Process
@@ -162,7 +178,9 @@ export function sequence(left: Process, right: Process): Process
 
 ## `hide`
 
-> Function · `runtime/csp-hoare/semantics.ts:45`
+> Function · `runtime/csp-hoare/semantics.ts:54`
+
+Creates a hiding operator that conceals `events` from the environment.
 
 ```ts
 export function hide(process: Process, events: Event[]): Process
@@ -182,7 +200,9 @@ export function hide(process: Process, events: Event[]): Process
 
 ## `rename`
 
-> Function · `runtime/csp-hoare/semantics.ts:48`
+> Function · `runtime/csp-hoare/semantics.ts:58`
+
+Creates a renaming operator that maps events according to `mapping`.
 
 ```ts
 export function rename(process: Process, mapping: Map<Event, Event>): Process
@@ -202,7 +222,9 @@ export function rename(process: Process, mapping: Map<Event, Event>): Process
 
 ## `recursion`
 
-> Function · `runtime/csp-hoare/semantics.ts:51`
+> Function · `runtime/csp-hoare/semantics.ts:62`
+
+Creates a recursive process `μname.body`.
 
 ```ts
 export function recursion(name: string, body: Process): Process
@@ -222,7 +244,9 @@ export function recursion(name: string, body: Process): Process
 
 ## `processVar`
 
-> Function · `runtime/csp-hoare/semantics.ts:54`
+> Function · `runtime/csp-hoare/semantics.ts:66`
+
+Creates a process variable reference (for use inside `recursion` bodies).
 
 ```ts
 export function processVar(name: string): Process
@@ -241,7 +265,7 @@ export function processVar(name: string): Process
 
 ## `alphabet`
 
-> Function · `runtime/csp-hoare/semantics.ts:66`
+> Function · `runtime/csp-hoare/semantics.ts:78`
 
 Conjunto de eventos visibles mencionados sintácticamente en `p`.
 Los eventos renombrados aportan tanto la fuente como el destino
@@ -265,7 +289,7 @@ export function alphabet(p: Process): Set<Event>
 
 ## `nextEvents`
 
-> Function · `runtime/csp-hoare/semantics.ts:190`
+> Function · `runtime/csp-hoare/semantics.ts:202`
 
 Eventos visibles que `p` puede ofrecer inmediatamente como su primer
 evento (tomando todas las resoluciones internas). No incluye τ (los
@@ -290,7 +314,7 @@ export function nextEvents(p: Process): Set<Event>
 
 ## `step`
 
-> Function · `runtime/csp-hoare/semantics.ts:311`
+> Function · `runtime/csp-hoare/semantics.ts:323`
 
 `step(P, a)` aplica una transición visible etiquetada con `a` y devuelve
 el continuante, o `null` si `a` no está habilitado. Para procesos no-
@@ -316,7 +340,7 @@ export function step(p: Process, event: Event): Process | null
 
 ## `internalResolutions`
 
-> Function · `runtime/csp-hoare/semantics.ts:446`
+> Function · `runtime/csp-hoare/semantics.ts:458`
 
 Enumera todos los estados "estables" alcanzables desde `p` resolviendo
 elecciones internas (`⊓`) y desplegando recursiones inmediatas, sin

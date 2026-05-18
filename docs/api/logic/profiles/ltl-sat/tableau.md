@@ -16,7 +16,9 @@
 
 ## `toNNF`
 
-> Function · `logic/profiles/ltl-sat/tableau.ts:26`
+> Function · `logic/profiles/ltl-sat/tableau.ts:27`
+
+Convierte una fórmula LTL a Negation Normal Form (NNF): negaciones empujadas hasta átomos.
 
 ```ts
 export function toNNF(f: LTLFormula): LTLFormula
@@ -35,7 +37,10 @@ export function toNNF(f: LTLFormula): LTLFormula
 
 ## `closure`
 
-> Function · `logic/profiles/ltl-sat/tableau.ts:92`
+> Function · `logic/profiles/ltl-sat/tableau.ts:97`
+
+Calcula la clausura de subfórmulas de `f` (incluyendo duales de F, G, U, R via X).
+El conjunto resultado es el universo de fórmulas sobre el que se construyen los atoms.
 
 ```ts
 export function closure(f: LTLFormula): LTLFormula[]
@@ -54,7 +59,10 @@ export function closure(f: LTLFormula): LTLFormula[]
 
 ## `Atom`
 
-> Interface · `logic/profiles/ltl-sat/tableau.ts:141`
+> Interface · `logic/profiles/ltl-sat/tableau.ts:150`
+
+Subconjunto de la clausura localmente consistente con las reglas de tableau.
+Cada `Atom` representa un estado posible del autómata de Büchi implícito.
 
 ```ts
 export interface Atom
@@ -63,7 +71,11 @@ export interface Atom
 
 ## `enumerateAtoms`
 
-> Function · `logic/profiles/ltl-sat/tableau.ts:233`
+> Function · `logic/profiles/ltl-sat/tableau.ts:248`
+
+Genera todos los atoms localmente consistentes a partir de la clausura dada.
+Usa backtracking con poda de contradicciones átomo/¬átomo.
+Límite de seguridad: 200 000 atoms para evitar explosión exponencial.
 
 ```ts
 export function enumerateAtoms(closureFormulas: LTLFormula[]): Atom[]
@@ -82,7 +94,10 @@ export function enumerateAtoms(closureFormulas: LTLFormula[]): Atom[]
 
 ## `transitions`
 
-> Function · `logic/profiles/ltl-sat/tableau.ts:308`
+> Function · `logic/profiles/ltl-sat/tableau.ts:328`
+
+Construye la relación de transición entre atoms.
+A → B sii para toda Xφ ∈ A se cumple φ ∈ B.
 
 ```ts
 export function transitions(atoms: Atom[]): Map<number, number[]>
@@ -96,12 +111,15 @@ export function transitions(atoms: Atom[]): Map<number, number[]>
 
 ### Returns
 
-`Map<number, number[]>` — 
+`Map<number, number[]>` — Mapa de id de atom origen a lista de ids de atoms destino.
 
 
 ## `Eventuality`
 
-> Interface · `logic/profiles/ltl-sat/tableau.ts:339`
+> Interface · `logic/profiles/ltl-sat/tableau.ts:363`
+
+Eventualidad LTL que debe cumplirse dentro del lazo aceptante.
+F ψ y φ U ψ son eventualidades; se satisfacen cuando ψ aparece en algún estado del ciclo.
 
 ```ts
 export interface Eventuality
@@ -110,7 +128,9 @@ export interface Eventuality
 
 ## `eventualitiesIn`
 
-> Function · `logic/profiles/ltl-sat/tableau.ts:346`
+> Function · `logic/profiles/ltl-sat/tableau.ts:371`
+
+Extrae todas las eventualidades (F ψ y φ U ψ) presentes en un atom.
 
 ```ts
 export function eventualitiesIn(atom: Atom): Eventuality[]
@@ -129,7 +149,9 @@ export function eventualitiesIn(atom: Atom): Eventuality[]
 
 ## `describeAtom`
 
-> Function · `logic/profiles/ltl-sat/tableau.ts:358`
+> Function · `logic/profiles/ltl-sat/tableau.ts:384`
+
+Describe un atom por sus literales: "p,¬q" o "∅" si está vacío.
 
 ```ts
 export function describeAtom(a: Atom): string
@@ -148,7 +170,9 @@ export function describeAtom(a: Atom): string
 
 ## `describeFormula`
 
-> Function · `logic/profiles/ltl-sat/tableau.ts:365`
+> Function · `logic/profiles/ltl-sat/tableau.ts:392`
+
+Alias de `formulaToString` para uso en contextos de depuración del tableau.
 
 ```ts
 export function describeFormula(f: LTLFormula): string

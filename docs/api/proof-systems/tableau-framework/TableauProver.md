@@ -4,7 +4,7 @@
 
 ## `TableauProver`
 
-> Class · `proof-systems/tableau-framework/TableauProver.ts:23`
+> Class · `proof-systems/tableau-framework/TableauProver.ts:17`
 
 ```ts
 export class TableauProver<F>

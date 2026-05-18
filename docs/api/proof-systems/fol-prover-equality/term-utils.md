@@ -25,7 +25,9 @@
 
 ## `isEqualityLiteral`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:4`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:5`
+
+Returns `true` when `lit` is an equality literal (predicate `=` with exactly 2 args).
 
 ```ts
 export function isEqualityLiteral(lit: FOLLiteral): boolean
@@ -44,7 +46,11 @@ export function isEqualityLiteral(lit: FOLLiteral): boolean
 
 ## `termKey`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:8`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:14`
+
+Produces a canonical string key for a term, suitable for equality checks and
+set membership. Variables are prefixed with `?`, constants with `#`,
+functions use `name(arg,arg,...)`.
 
 ```ts
 export function termKey(t: FOLTerm): string
@@ -63,7 +69,10 @@ export function termKey(t: FOLTerm): string
 
 ## `literalKey`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:14`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:24`
+
+Produces a canonical string key for a literal.
+Negated literals are prefixed with `!`.
 
 ```ts
 export function literalKey(lit: FOLLiteral): string
@@ -82,7 +91,10 @@ export function literalKey(lit: FOLLiteral): string
 
 ## `clauseKey`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:19`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:33`
+
+Produces a canonical string key for a clause by sorting its literal keys.
+Suitable for deduplication of resolved clauses.
 
 ```ts
 export function clauseKey(c: FOLClause): string
@@ -101,7 +113,9 @@ export function clauseKey(c: FOLClause): string
 
 ## `termsEqual`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:23`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:38`
+
+Returns `true` when two terms are structurally equal (via their canonical keys).
 
 ```ts
 export function termsEqual(a: FOLTerm, b: FOLTerm): boolean
@@ -121,7 +135,9 @@ export function termsEqual(a: FOLTerm, b: FOLTerm): boolean
 
 ## `cloneTerm`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:27`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:43`
+
+Returns a deep copy of a term.
 
 ```ts
 export function cloneTerm(t: FOLTerm): FOLTerm
@@ -140,7 +156,9 @@ export function cloneTerm(t: FOLTerm): FOLTerm
 
 ## `cloneLiteral`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:33`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:50`
+
+Returns a deep copy of a literal, cloning all argument terms.
 
 ```ts
 export function cloneLiteral(lit: FOLLiteral): FOLLiteral
@@ -159,7 +177,9 @@ export function cloneLiteral(lit: FOLLiteral): FOLLiteral
 
 ## `cloneClause`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:41`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:59`
+
+Returns a deep copy of a clause (array of literals).
 
 ```ts
 export function cloneClause(c: FOLClause): FOLClause
@@ -178,7 +198,10 @@ export function cloneClause(c: FOLClause): FOLClause
 
 ## `termSize`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:45`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:67`
+
+Counts the number of nodes in the term tree (variables and constants count as 1,
+function nodes add 1 plus the size of each argument).
 
 ```ts
 export function termSize(t: FOLTerm): number
@@ -197,7 +220,9 @@ export function termSize(t: FOLTerm): number
 
 ## `collectVars`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:53`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:80`
+
+Accumulates all variable names reachable from `t` into `out`.
 
 ```ts
 export function collectVars(t: FOLTerm, out: Set<string>): void
@@ -207,8 +232,8 @@ export function collectVars(t: FOLTerm, out: Set<string>): void
 
 | Name | Type | Optional | Description |
 | ---- | ---- | -------- | ----------- |
-| `t` | `FOLTerm` | no |  |
-| `out` | `Set<string>` | no |  |
+| `t` | `FOLTerm` | no | The term to inspect. |
+| `out` | `Set<string>` | no | Set that receives variable names (mutated in place). |
 
 ### Returns
 
@@ -217,7 +242,9 @@ export function collectVars(t: FOLTerm, out: Set<string>): void
 
 ## `termVars`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:62`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:90`
+
+Returns the set of variable names that appear anywhere in `t`.
 
 ```ts
 export function termVars(t: FOLTerm): Set<string>
@@ -236,7 +263,7 @@ export function termVars(t: FOLTerm): Set<string>
 
 ## `termAt`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:72`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:100`
 
 Returns the subterm of `t` at the given position. Position [] returns t itself;
 position [i, j, ...] descends into args[i], then args[j], etc.
@@ -259,7 +286,7 @@ export function termAt(t: FOLTerm, pos: number[]): FOLTerm | null
 
 ## `replaceAt`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:89`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:117`
 
 Returns a new term equal to `t` but with the subterm at `pos` replaced by `replacement`.
 If pos is invalid returns `t` unchanged.
@@ -283,7 +310,7 @@ export function replaceAt(t: FOLTerm, pos: number[], replacement: FOLTerm): FOLT
 
 ## `allPositions`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:105`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:133`
 
 Enumerate every (non-empty) position inside the term tree, including the root.
 Variables and constants only yield their own position; functions also yield children.
@@ -305,7 +332,7 @@ export function allPositions(t: FOLTerm): number[][]
 
 ## `allLiteralPositions`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:124`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:152`
 
 Enumerate positions for a literal as (argIndex, ...termPath). Useful for paramodulation
 targets that point inside a literal's args.
@@ -327,7 +354,11 @@ export function allLiteralPositions(lit: FOLLiteral): number[][]
 
 ## `getLiteralSubterm`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:136`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:169`
+
+Returns the subterm of `lit` addressed by `pos`, where `pos[0]` selects the
+argument index and the remaining path descends into that term.
+Returns `null` if the position is out of range or empty.
 
 ```ts
 export function getLiteralSubterm(lit: FOLLiteral, pos: number[]): FOLTerm | null
@@ -347,7 +378,11 @@ export function getLiteralSubterm(lit: FOLLiteral, pos: number[]): FOLTerm | nul
 
 ## `replaceLiteralSubterm`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:145`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:183`
+
+Returns a new literal with the subterm at `pos` replaced by `replacement`.
+`pos[0]` selects the argument; remaining path is forwarded to `replaceAt`.
+Returns a clone of `lit` unchanged if `pos` is empty or invalid.
 
 ```ts
 export function replaceLiteralSubterm( lit: FOLLiteral, pos: number[], replacement: FOLTerm, ): FOLLiteral
@@ -368,7 +403,7 @@ export function replaceLiteralSubterm( lit: FOLLiteral, pos: number[], replaceme
 
 ## `compareTerms`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:165`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:203`
 
 Lexicographic path ordering–ish comparison used for orienting equations and
 for selecting which side rewrites the other in demodulation. Strictly compares
@@ -392,7 +427,10 @@ export function compareTerms(a: FOLTerm, b: FOLTerm): number
 
 ## `freshenClause`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:178`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:220`
+
+Returns a copy of `c` with every variable renamed to a globally unique name,
+preventing variable-capture during paramodulation/resolution with other clauses.
 
 ```ts
 export function freshenClause(c: FOLClause): FOLClause
@@ -411,7 +449,10 @@ export function freshenClause(c: FOLClause): FOLClause
 
 ## `substToRecordTerm`
 
-> Function · `proof-systems/fol-prover-equality/term-utils.ts:200`
+> Function · `proof-systems/fol-prover-equality/term-utils.ts:246`
+
+Converts a substitution Map to a plain Record, deep-cloning each term.
+Useful for serialization and interop with result types that expect plain objects.
 
 ```ts
 export function substToRecordTerm(s: Map<string, FOLTerm>): Record<string, FOLTerm>

@@ -42,7 +42,7 @@ export interface CReal
 
 ## `fromInt`
 
-> Function · `reasoning/constructive-reals/index.ts:145`
+> Function · `reasoning/constructive-reals/index.ts:143`
 
 ```ts
 export function fromInt(n: number | bigint): CReal
@@ -61,7 +61,7 @@ export function fromInt(n: number | bigint): CReal
 
 ## `fromRational`
 
-> Function · `reasoning/constructive-reals/index.ts:156`
+> Function · `reasoning/constructive-reals/index.ts:154`
 
 ```ts
 export function fromRational(p: number | bigint, q: number | bigint): CReal
@@ -81,7 +81,7 @@ export function fromRational(p: number | bigint, q: number | bigint): CReal
 
 ## `neg`
 
-> Function · `reasoning/constructive-reals/index.ts:183`
+> Function · `reasoning/constructive-reals/index.ts:179`
 
 ```ts
 export function neg(a: CReal): CReal
@@ -100,7 +100,7 @@ export function neg(a: CReal): CReal
 
 ## `abs`
 
-> Function · `reasoning/constructive-reals/index.ts:188`
+> Function · `reasoning/constructive-reals/index.ts:184`
 
 ```ts
 export function abs(a: CReal): CReal
@@ -119,7 +119,7 @@ export function abs(a: CReal): CReal
 
 ## `add`
 
-> Function · `reasoning/constructive-reals/index.ts:204`
+> Function · `reasoning/constructive-reals/index.ts:200`
 
 add(a,b) a precisión p:
   pedimos a y b a precisión p+2.
@@ -146,7 +146,7 @@ export function add(a: CReal, b: CReal): CReal
 
 ## `sub`
 
-> Function · `reasoning/constructive-reals/index.ts:214`
+> Function · `reasoning/constructive-reals/index.ts:210`
 
 ```ts
 export function sub(a: CReal, b: CReal): CReal
@@ -166,7 +166,7 @@ export function sub(a: CReal, b: CReal): CReal
 
 ## `mul`
 
-> Function · `reasoning/constructive-reals/index.ts:240`
+> Function · `reasoning/constructive-reals/index.ts:236`
 
 mul(a,b) a precisión p:
   Necesitamos cotas sobre |a| y |b|. Tomamos una aproximación gruesa
@@ -201,7 +201,7 @@ export function mul(a: CReal, b: CReal): CReal
 
 ## `div`
 
-> Function · `reasoning/constructive-reals/index.ts:295`
+> Function · `reasoning/constructive-reals/index.ts:291`
 
 div(a,b) a precisión p (b ≠ 0).
   Encontramos k tal que |b| ≥ 2^{-k}.
@@ -233,7 +233,7 @@ export function div(a: CReal, b: CReal): CReal
 
 ## `sqrt`
 
-> Function · `reasoning/constructive-reals/index.ts:330`
+> Function · `reasoning/constructive-reals/index.ts:326`
 
 sqrt(a) para a ≥ 0. Si a < 0 (detectado con cota), lanza.
 Implementación: Newton-Raphson en bigint sobre x² = N donde
@@ -257,7 +257,7 @@ export function sqrt(a: CReal): CReal
 
 ## `compareWithEpsilon`
 
-> Function · `reasoning/constructive-reals/index.ts:385`
+> Function · `reasoning/constructive-reals/index.ts:381`
 
 compareWithEpsilon(a, b, epsPrec):
   Si |a - b| < 2^{-epsPrec}, devuelve 0 (indistinguibles).
@@ -292,7 +292,7 @@ export function compareWithEpsilon(a: CReal, b: CReal, epsilonPrecision: number)
 
 ## `toString`
 
-> Function · `reasoning/constructive-reals/index.ts:406`
+> Function · `reasoning/constructive-reals/index.ts:402`
 
 toString(r, digits): representación decimal con `digits` dígitos
 después del punto. Usa precisión binaria suficiente:
@@ -317,7 +317,7 @@ export function toString(r: CReal, digits: number): string
 
 ## `exp`
 
-> Function · `reasoning/constructive-reals/index.ts:443`
+> Function · `reasoning/constructive-reals/index.ts:439`
 
 exp(x) = Σ x^k / k!. Para que la serie converja rápido reducimos
 primero el argumento: escribimos x = q · ln(2) + r con |r| ≤ ln(2)/2
@@ -345,7 +345,7 @@ export function exp(x: CReal): CReal
 
 ## `log`
 
-> Function · `reasoning/constructive-reals/index.ts:504`
+> Function · `reasoning/constructive-reals/index.ts:500`
 
 ```ts
 export function log(x: CReal): CReal
@@ -364,7 +364,7 @@ export function log(x: CReal): CReal
 
 ## `sin`
 
-> Function · `reasoning/constructive-reals/index.ts:591`
+> Function · `reasoning/constructive-reals/index.ts:585`
 
 ```ts
 export function sin(x: CReal): CReal
@@ -383,7 +383,7 @@ export function sin(x: CReal): CReal
 
 ## `cos`
 
-> Function · `reasoning/constructive-reals/index.ts:610`
+> Function · `reasoning/constructive-reals/index.ts:604`
 
 ```ts
 export function cos(x: CReal): CReal
@@ -402,7 +402,7 @@ export function cos(x: CReal): CReal
 
 ## `pow`
 
-> Function · `reasoning/constructive-reals/index.ts:632`
+> Function · `reasoning/constructive-reals/index.ts:626`
 
 pow(a, b) = exp(b · log(a)) para a > 0.
 Caso especial: si b es un entero, hacemos exponenciación rápida
@@ -426,7 +426,7 @@ export function pow(a: CReal, b: CReal | number): CReal
 
 ## `PI`
 
-> Const · `reasoning/constructive-reals/index.ts:694`
+> Const · `reasoning/constructive-reals/index.ts:688`
 
 ```ts
 const PI: CReal
@@ -435,7 +435,7 @@ const PI: CReal
 
 ## `E`
 
-> Const · `reasoning/constructive-reals/index.ts:713`
+> Const · `reasoning/constructive-reals/index.ts:707`
 
 ```ts
 const E: CReal
@@ -444,7 +444,7 @@ const E: CReal
 
 ## `SQRT2`
 
-> Const · `reasoning/constructive-reals/index.ts:725`
+> Const · `reasoning/constructive-reals/index.ts:719`
 
 ```ts
 const SQRT2: CReal
@@ -453,7 +453,7 @@ const SQRT2: CReal
 
 ## `fromFloat`
 
-> Function · `reasoning/constructive-reals/index.ts:743`
+> Function · `reasoning/constructive-reals/index.ts:737`
 
 Crea un CReal desde un número racional (float). Usa fromInt para enteros.
 
@@ -474,7 +474,7 @@ export function fromFloat(q: number): CReal
 
 ## `toNumber`
 
-> Function · `reasoning/constructive-reals/index.ts:757`
+> Function · `reasoning/constructive-reals/index.ts:751`
 
 Extrae el valor numérico de un CReal.
 `precision` es el número de bits fraccionarios solicitados (como pasa `x.approx(p)`).
@@ -499,7 +499,7 @@ export function toNumber(x: CReal, precision = 53): number
 
 ## `approxLT`
 
-> Function · `reasoning/constructive-reals/index.ts:767`
+> Function · `reasoning/constructive-reals/index.ts:761`
 
 Retorna true si podemos demostrar constructivamente que x < y
 a la precisión dada (bits fraccionarios).
@@ -523,7 +523,7 @@ export function approxLT(x: CReal, y: CReal, precision: number): boolean
 
 ## `approxEq`
 
-> Function · `reasoning/constructive-reals/index.ts:778`
+> Function · `reasoning/constructive-reals/index.ts:772`
 
 Retorna true si |x - y| < 2^{-precision+1} (aproximadamente iguales
 a la precisión dada).
@@ -547,7 +547,7 @@ export function approxEq(x: CReal, y: CReal, precision: number): boolean
 
 ## `zero`
 
-> Const · `reasoning/constructive-reals/index.ts:784`
+> Const · `reasoning/constructive-reals/index.ts:778`
 
 El real constructivo cero.
 
@@ -558,7 +558,7 @@ const zero: CReal
 
 ## `one`
 
-> Const · `reasoning/constructive-reals/index.ts:787`
+> Const · `reasoning/constructive-reals/index.ts:781`
 
 El real constructivo uno.
 

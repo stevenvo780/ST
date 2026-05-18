@@ -196,7 +196,7 @@ export function fullNNF(f: Formula): Formula
 
 ## `ExpandResult`
 
-> Interface · `logic/profiles/shared/tableau-engine.ts:486`
+> Interface · `logic/profiles/shared/tableau-engine.ts:468`
 
 ```ts
 export interface ExpandResult
@@ -205,7 +205,7 @@ export interface ExpandResult
 
 ## `makeBranch`
 
-> Function · `logic/profiles/shared/tableau-engine.ts:757`
+> Function · `logic/profiles/shared/tableau-engine.ts:739`
 
 ```ts
 export function makeBranch(nodes: LabeledNode[]): Branch
@@ -224,7 +224,7 @@ export function makeBranch(nodes: LabeledNode[]): Branch
 
 ## `checkTableau`
 
-> Function · `logic/profiles/shared/tableau-engine.ts:765`
+> Function · `logic/profiles/shared/tableau-engine.ts:747`
 
 ```ts
 export function checkTableau( formula: Formula, rules: FrameRules, isValidityCheck: boolean, ): ExpandResult
@@ -245,7 +245,7 @@ export function checkTableau( formula: Formula, rules: FrameRules, isValidityChe
 
 ## `isValid`
 
-> Function · `logic/profiles/shared/tableau-engine.ts:794`
+> Function · `logic/profiles/shared/tableau-engine.ts:776`
 
 ```ts
 export function isValid(formula: Formula, rules: FrameRules): boolean
@@ -265,7 +265,7 @@ export function isValid(formula: Formula, rules: FrameRules): boolean
 
 ## `isSatisfiable`
 
-> Function · `logic/profiles/shared/tableau-engine.ts:798`
+> Function · `logic/profiles/shared/tableau-engine.ts:780`
 
 ```ts
 export function isSatisfiable(formula: Formula, rules: FrameRules): boolean

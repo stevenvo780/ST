@@ -38,7 +38,9 @@ export function formulaKey(f: NKFormula): string
 
 ## `formulaEquals`
 
-> Function · `logic/profiles/natural-deduction-nk/formula.ts:31`
+> Function · `logic/profiles/natural-deduction-nk/formula.ts:32`
+
+Igualdad sintáctica entre dos fórmulas NK por comparación de claves.
 
 ```ts
 export function formulaEquals(a: NKFormula, b: NKFormula): boolean
@@ -58,7 +60,9 @@ export function formulaEquals(a: NKFormula, b: NKFormula): boolean
 
 ## `formulaToString`
 
-> Function · `logic/profiles/natural-deduction-nk/formula.ts:35`
+> Function · `logic/profiles/natural-deduction-nk/formula.ts:37`
+
+Renderiza una fórmula NK en notación textual (¬, ∧, ∨, →, ⊥).
 
 ```ts
 export function formulaToString(f: NKFormula): string
@@ -77,7 +81,7 @@ export function formulaToString(f: NKFormula): string
 
 ## `collectAtoms`
 
-> Function · `logic/profiles/natural-deduction-nk/formula.ts:60`
+> Function · `logic/profiles/natural-deduction-nk/formula.ts:62`
 
 Recolecta los átomos proposicionales que aparecen en `f`.
 
@@ -99,7 +103,9 @@ export function collectAtoms(f: NKFormula, out: Set<string> = new Set()): Set<st
 
 ## `atom`
 
-> Const · `logic/profiles/natural-deduction-nk/formula.ts:79`
+> Const · `logic/profiles/natural-deduction-nk/formula.ts:82`
+
+Átomo proposicional clásico.
 
 ```ts
 const atom
@@ -108,7 +114,9 @@ const atom
 
 ## `bottom`
 
-> Const · `logic/profiles/natural-deduction-nk/formula.ts:80`
+> Const · `logic/profiles/natural-deduction-nk/formula.ts:84`
+
+Constante de falsedad ⊥.
 
 ```ts
 const bottom
@@ -117,7 +125,9 @@ const bottom
 
 ## `not`
 
-> Const · `logic/profiles/natural-deduction-nk/formula.ts:81`
+> Const · `logic/profiles/natural-deduction-nk/formula.ts:86`
+
+Negación: ¬φ.
 
 ```ts
 const not
@@ -126,7 +136,9 @@ const not
 
 ## `and`
 
-> Const · `logic/profiles/natural-deduction-nk/formula.ts:82`
+> Const · `logic/profiles/natural-deduction-nk/formula.ts:88`
+
+Conjunción: left ∧ right.
 
 ```ts
 const and
@@ -135,7 +147,9 @@ const and
 
 ## `or`
 
-> Const · `logic/profiles/natural-deduction-nk/formula.ts:87`
+> Const · `logic/profiles/natural-deduction-nk/formula.ts:94`
+
+Disyunción: left ∨ right.
 
 ```ts
 const or
@@ -144,7 +158,9 @@ const or
 
 ## `implies`
 
-> Const · `logic/profiles/natural-deduction-nk/formula.ts:92`
+> Const · `logic/profiles/natural-deduction-nk/formula.ts:100`
+
+Implicación: left → right.
 
 ```ts
 const implies

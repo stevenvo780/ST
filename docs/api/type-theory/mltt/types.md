@@ -1,6 +1,7 @@
 # `type-theory/mltt/types.ts`
 
-============================================================ Martin-Löf Type Theory (MLTT) — Términos y tipos dependientes ============================================================ Sistema base con:   - Universos jerárquicos:        Type 0 : Type 1 : Type 2 : ...   - Funciones dependientes:       Π (x : A). B(x)   - Pares dependientes:           Σ (x : A). B(x)   - Tipo identidad:               Id(A, a, b), constructor refl(a)   - Naturales como tipo base:     Nat, zero, succ En MLTT no hay distinción sintáctica entre términos y tipos: los tipos *son* términos (de algún universo). Por eso un solo constructor `MLTTTerm` cubre ambos roles. Convenciones:   - `bind` es el nombre del binder (Π, Σ, lam).   - `domain` es el tipo del binder.   - `codomain` (Π) y `second` (Σ) pueden depender de `bind`.   - α-equivalencia se trata vía sustitución capture-avoiding.
+Término de Martin-Löf Type Theory (MLTT): tipos y términos comparten el mismo universo.
+Cubre variables, universos jerárquicos, Π, Σ, λ, app, pares, identidad, Nat y constructores numéricos.
 
 ## Contents
 
@@ -26,7 +27,10 @@
 
 ## `MLTTTerm`
 
-> Type · `type-theory/mltt/types.ts:22`
+> Type · `type-theory/mltt/types.ts:26`
+
+Término de Martin-Löf Type Theory (MLTT): tipos y términos comparten el mismo universo.
+Cubre variables, universos jerárquicos, Π, Σ, λ, app, pares, identidad, Nat y constructores numéricos.
 
 ```ts
 export type MLTTTerm = | { kind: 'var'; name: string } | { kind: 'universe'; level: number } | { kind: 'pi'; bind: string; domain: MLTTTerm; codomain: MLTTTerm } | { kind: 'lam'; bind: string; domain: MLTTTerm; body: MLTTTerm } | { kind: 'app'; fn: MLTTTerm; arg: MLTTTerm } | { kind: 'sigma'; bind: string; first: MLTTTerm; second: MLTTTerm } | { kind: 'pair'; fst: MLTTTerm; snd: MLTTTerm } | { kind: 'fst'; pair: MLTTTerm } | { kind: 'snd'; pair: MLTTTerm } | { kind: 'identity'; type: MLTTTerm; left: MLTTTerm; right: MLTTTerm } | { kind: 'refl'; term: MLTTTerm } | { kind: 'nat' } | { kind: 'zero' } | { kind: 'succ'; arg: MLTTTerm };
@@ -35,7 +39,9 @@ export type MLTTTerm = | { kind: 'var'; name: string } | { kind: 'universe'; lev
 
 ## `mVar`
 
-> Const · `type-theory/mltt/types.ts:40`
+> Const · `type-theory/mltt/types.ts:45`
+
+Variable.
 
 ```ts
 const mVar
@@ -44,7 +50,9 @@ const mVar
 
 ## `mUniverse`
 
-> Const · `type-theory/mltt/types.ts:41`
+> Const · `type-theory/mltt/types.ts:47`
+
+Universo `Type level`.
 
 ```ts
 const mUniverse
@@ -53,7 +61,9 @@ const mUniverse
 
 ## `mPi`
 
-> Const · `type-theory/mltt/types.ts:42`
+> Const · `type-theory/mltt/types.ts:49`
+
+Tipo Π dependiente `Π bind:domain. codomain`.
 
 ```ts
 const mPi
@@ -62,7 +72,9 @@ const mPi
 
 ## `mLam`
 
-> Const · `type-theory/mltt/types.ts:48`
+> Const · `type-theory/mltt/types.ts:56`
+
+Abstracción dependiente `λ bind:domain. body`.
 
 ```ts
 const mLam
@@ -71,7 +83,9 @@ const mLam
 
 ## `mApp`
 
-> Const · `type-theory/mltt/types.ts:54`
+> Const · `type-theory/mltt/types.ts:63`
+
+Aplicación `fn arg`.
 
 ```ts
 const mApp
@@ -80,7 +94,9 @@ const mApp
 
 ## `mSigma`
 
-> Const · `type-theory/mltt/types.ts:55`
+> Const · `type-theory/mltt/types.ts:65`
+
+Tipo Σ dependiente `Σ bind:first. second`.
 
 ```ts
 const mSigma
@@ -89,7 +105,9 @@ const mSigma
 
 ## `mPair`
 
-> Const · `type-theory/mltt/types.ts:61`
+> Const · `type-theory/mltt/types.ts:72`
+
+Par dependiente `⟨fst, snd⟩`.
 
 ```ts
 const mPair
@@ -98,7 +116,9 @@ const mPair
 
 ## `mFst`
 
-> Const · `type-theory/mltt/types.ts:62`
+> Const · `type-theory/mltt/types.ts:74`
+
+Proyección izquierda `fst pair`.
 
 ```ts
 const mFst
@@ -107,7 +127,9 @@ const mFst
 
 ## `mSnd`
 
-> Const · `type-theory/mltt/types.ts:63`
+> Const · `type-theory/mltt/types.ts:76`
+
+Proyección derecha `snd pair`.
 
 ```ts
 const mSnd
@@ -116,7 +138,9 @@ const mSnd
 
 ## `mId`
 
-> Const · `type-theory/mltt/types.ts:64`
+> Const · `type-theory/mltt/types.ts:78`
+
+Tipo identidad `Id(type, left, right)`.
 
 ```ts
 const mId
@@ -125,7 +149,9 @@ const mId
 
 ## `mRefl`
 
-> Const · `type-theory/mltt/types.ts:70`
+> Const · `type-theory/mltt/types.ts:85`
+
+Prueba de reflexividad `refl(term)`.
 
 ```ts
 const mRefl
@@ -134,7 +160,9 @@ const mRefl
 
 ## `mNat`
 
-> Const · `type-theory/mltt/types.ts:71`
+> Const · `type-theory/mltt/types.ts:87`
+
+Tipo de los números naturales `Nat`.
 
 ```ts
 const mNat
@@ -143,7 +171,9 @@ const mNat
 
 ## `mZero`
 
-> Const · `type-theory/mltt/types.ts:72`
+> Const · `type-theory/mltt/types.ts:89`
+
+Constructor `zero : Nat`.
 
 ```ts
 const mZero
@@ -152,7 +182,9 @@ const mZero
 
 ## `mSucc`
 
-> Const · `type-theory/mltt/types.ts:73`
+> Const · `type-theory/mltt/types.ts:91`
+
+Sucesor `succ(arg) : Nat`.
 
 ```ts
 const mSucc
@@ -161,7 +193,9 @@ const mSucc
 
 ## `mArrow`
 
-> Const · `type-theory/mltt/types.ts:76`
+> Const · `type-theory/mltt/types.ts:94`
+
+Flecha no-dependiente `from → to` (azúcar: `Π _ : from. to`).
 
 ```ts
 const mArrow
@@ -170,7 +204,7 @@ const mArrow
 
 ## `occursFree`
 
-> Function · `type-theory/mltt/types.ts:81`
+> Function · `type-theory/mltt/types.ts:99`
 
 ¿`name` aparece libre en `term`?
 
@@ -192,7 +226,7 @@ export function occursFree(name: string, term: MLTTTerm): boolean
 
 ## `freeVars`
 
-> Function · `type-theory/mltt/types.ts:120`
+> Function · `type-theory/mltt/types.ts:138`
 
 Conjunto de variables libres.
 
@@ -214,7 +248,7 @@ export function freeVars(term: MLTTTerm, acc: Set<string> = new Set()): Set<stri
 
 ## `termToString`
 
-> Function · `type-theory/mltt/types.ts:175`
+> Function · `type-theory/mltt/types.ts:193`
 
 ```ts
 export function termToString(t: MLTTTerm): string

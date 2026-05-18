@@ -1,6 +1,7 @@
 # `reasoning/hyperreal/index.ts`
 
-============================================================ ST Hyperreal — Lógica probabilística con infinitesimales ============================================================ Modela valores como números hiperreales de primer orden:   x = standard + infinitesimal · ε donde ε es un infinitesimal formal con ε² ≈ 0. Esto permite:   • distinguir 1 y 1 + ε (probabilidad "casi 1" pero no exacta).   • razonar sobre diferencias infinitamente pequeñas sin colapsar     al límite estándar.   • propagar incertidumbre con cotas inferior/superior conservadoras     bajo operadores booleanos probabilísticos. Aritmética (sólo primer orden en ε; los términos ε² se descartan):   (a_s + a_i ε) + (b_s + b_i ε) = (a_s + b_s) + (a_i + b_i) ε   (a_s + a_i ε) - (b_s + b_i ε) = (a_s - b_s) + (a_i - b_i) ε   (a_s + a_i ε) · (b_s + b_i ε) = a_s b_s + (a_s b_i + a_i b_s) ε                                    [+ a_i b_i ε² → 0] Orden total (lexicográfico standard primero, después infinitesimal):   a < b  ⇔  a_s < b_s  ∨  (a_s = b_s ∧ a_i < b_i) Lógica probabilística hiperreal:   p ∧ q = p · q   p ∨ q = p + q − p·q       (inclusión-exclusión)   ¬p     = 1 − p   p → q = ¬p ∨ q = 1 − p + p·q Propagación de cotas [lower, upper]:   AND y OR son monótonas crecientes en ambas variables.   NOT invierte y refleja la cota.   IMPLIES es decreciente en p y creciente en q ⇒ la cota inferior   sale del lado conservador (upper_p, lower_q) y viceversa. ============================================================
+A first-order hyperreal number `standard + infinitesimal · ε`,
+where ε is a formal infinitesimal (ε² ≈ 0).
 
 ## Contents
 
@@ -27,7 +28,10 @@
 
 ## `Hyperreal`
 
-> Interface · `reasoning/hyperreal/index.ts:37`
+> Interface · `reasoning/hyperreal/index.ts:41`
+
+A first-order hyperreal number `standard + infinitesimal · ε`,
+where ε is a formal infinitesimal (ε² ≈ 0).
 
 ```ts
 export interface Hyperreal
@@ -36,7 +40,10 @@ export interface Hyperreal
 
 ## `hr`
 
-> Function · `reasoning/hyperreal/index.ts:42`
+> Function · `reasoning/hyperreal/index.ts:50`
+
+Constructs a {@link Hyperreal} from its standard and optional infinitesimal parts.
+`hr(x)` produces the standard real `x + 0ε`.
 
 ```ts
 export function hr(standard: number, infinitesimal: number = 0): Hyperreal
@@ -56,7 +63,9 @@ export function hr(standard: number, infinitesimal: number = 0): Hyperreal
 
 ## `HR_ZERO`
 
-> Const · `reasoning/hyperreal/index.ts:46`
+> Const · `reasoning/hyperreal/index.ts:55`
+
+The hyperreal zero: 0 + 0ε.
 
 ```ts
 const HR_ZERO: Hyperreal
@@ -65,7 +74,9 @@ const HR_ZERO: Hyperreal
 
 ## `HR_ONE`
 
-> Const · `reasoning/hyperreal/index.ts:47`
+> Const · `reasoning/hyperreal/index.ts:57`
+
+The hyperreal one: 1 + 0ε.
 
 ```ts
 const HR_ONE: Hyperreal
@@ -74,7 +85,9 @@ const HR_ONE: Hyperreal
 
 ## `HR_EPSILON`
 
-> Const · `reasoning/hyperreal/index.ts:48`
+> Const · `reasoning/hyperreal/index.ts:59`
+
+The formal infinitesimal ε: 0 + 1ε.
 
 ```ts
 const HR_EPSILON: Hyperreal
@@ -83,7 +96,9 @@ const HR_EPSILON: Hyperreal
 
 ## `add`
 
-> Function · `reasoning/hyperreal/index.ts:52`
+> Function · `reasoning/hyperreal/index.ts:64`
+
+Returns `a + b` (component-wise addition).
 
 ```ts
 export function add(a: Hyperreal, b: Hyperreal): Hyperreal
@@ -103,7 +118,9 @@ export function add(a: Hyperreal, b: Hyperreal): Hyperreal
 
 ## `sub`
 
-> Function · `reasoning/hyperreal/index.ts:59`
+> Function · `reasoning/hyperreal/index.ts:72`
+
+Returns `a - b` (component-wise subtraction).
 
 ```ts
 export function sub(a: Hyperreal, b: Hyperreal): Hyperreal
@@ -123,7 +140,10 @@ export function sub(a: Hyperreal, b: Hyperreal): Hyperreal
 
 ## `mul`
 
-> Function · `reasoning/hyperreal/index.ts:66`
+> Function · `reasoning/hyperreal/index.ts:83`
+
+Returns `a * b`, discarding O(ε²) terms:
+`(a.s + a.i ε)(b.s + b.i ε) = a.s·b.s + (a.s·b.i + a.i·b.s)·ε`.
 
 ```ts
 export function mul(a: Hyperreal, b: Hyperreal): Hyperreal
@@ -143,7 +163,7 @@ export function mul(a: Hyperreal, b: Hyperreal): Hyperreal
 
 ## `compare`
 
-> Function · `reasoning/hyperreal/index.ts:82`
+> Function · `reasoning/hyperreal/index.ts:99`
 
 Compara dos hiperreales lexicográficamente: primero la parte estándar,
 luego la infinitesimal. Devuelve -1, 0 o 1.
@@ -170,7 +190,9 @@ export function compare(a: Hyperreal, b: Hyperreal): -1 | 0 | 1
 
 ## `eq`
 
-> Function · `reasoning/hyperreal/index.ts:93`
+> Function · `reasoning/hyperreal/index.ts:111`
+
+Returns `true` when `a` and `b` are equal under the lexicographic order.
 
 ```ts
 export function eq(a: Hyperreal, b: Hyperreal): boolean
@@ -190,7 +212,9 @@ export function eq(a: Hyperreal, b: Hyperreal): boolean
 
 ## `lt`
 
-> Function · `reasoning/hyperreal/index.ts:97`
+> Function · `reasoning/hyperreal/index.ts:116`
+
+Returns `true` when `a < b` in the hyperreal order.
 
 ```ts
 export function lt(a: Hyperreal, b: Hyperreal): boolean
@@ -210,7 +234,9 @@ export function lt(a: Hyperreal, b: Hyperreal): boolean
 
 ## `gt`
 
-> Function · `reasoning/hyperreal/index.ts:101`
+> Function · `reasoning/hyperreal/index.ts:121`
+
+Returns `true` when `a > b` in the hyperreal order.
 
 ```ts
 export function gt(a: Hyperreal, b: Hyperreal): boolean
@@ -230,7 +256,9 @@ export function gt(a: Hyperreal, b: Hyperreal): boolean
 
 ## `hrAnd`
 
-> Function · `reasoning/hyperreal/index.ts:107`
+> Function · `reasoning/hyperreal/index.ts:128`
+
+Probabilistic AND: `p ∧ q = p · q`.
 
 ```ts
 export function hrAnd(p: Hyperreal, q: Hyperreal): Hyperreal
@@ -250,7 +278,9 @@ export function hrAnd(p: Hyperreal, q: Hyperreal): Hyperreal
 
 ## `hrOr`
 
-> Function · `reasoning/hyperreal/index.ts:111`
+> Function · `reasoning/hyperreal/index.ts:133`
+
+Probabilistic OR (inclusion-exclusion): `p ∨ q = p + q − p·q`.
 
 ```ts
 export function hrOr(p: Hyperreal, q: Hyperreal): Hyperreal
@@ -270,7 +300,9 @@ export function hrOr(p: Hyperreal, q: Hyperreal): Hyperreal
 
 ## `hrNot`
 
-> Function · `reasoning/hyperreal/index.ts:115`
+> Function · `reasoning/hyperreal/index.ts:138`
+
+Probabilistic NOT: `¬p = 1 − p`.
 
 ```ts
 export function hrNot(p: Hyperreal): Hyperreal
@@ -289,7 +321,9 @@ export function hrNot(p: Hyperreal): Hyperreal
 
 ## `hrImplies`
 
-> Function · `reasoning/hyperreal/index.ts:119`
+> Function · `reasoning/hyperreal/index.ts:143`
+
+Probabilistic implication: `p → q = ¬p ∨ q`.
 
 ```ts
 export function hrImplies(p: Hyperreal, q: Hyperreal): Hyperreal
@@ -309,7 +343,9 @@ export function hrImplies(p: Hyperreal, q: Hyperreal): Hyperreal
 
 ## `UncertaintyBound`
 
-> Interface · `reasoning/hyperreal/index.ts:126`
+> Interface · `reasoning/hyperreal/index.ts:151`
+
+A closed interval `[lower, upper]` of hyperreal probabilities.
 
 ```ts
 export interface UncertaintyBound
@@ -318,7 +354,9 @@ export interface UncertaintyBound
 
 ## `bound`
 
-> Function · `reasoning/hyperreal/index.ts:131`
+> Function · `reasoning/hyperreal/index.ts:160`
+
+Constructs a validated {@link UncertaintyBound}.
 
 ```ts
 export function bound(lower: Hyperreal, upper: Hyperreal): UncertaintyBound
@@ -338,7 +376,7 @@ export function bound(lower: Hyperreal, upper: Hyperreal): UncertaintyBound
 
 ## `propagate`
 
-> Function · `reasoning/hyperreal/index.ts:150`
+> Function · `reasoning/hyperreal/index.ts:179`
 
 Propaga una operación lógica sobre cotas de incertidumbre.
 
@@ -368,7 +406,9 @@ export function propagate( b: UncertaintyBound, op: 'and' | 'or' | 'not' | 'impl
 
 ## `hrToString`
 
-> Function · `reasoning/hyperreal/index.ts:188`
+> Function · `reasoning/hyperreal/index.ts:218`
+
+Returns a human-readable string like `"0.9 + 3ε"` or `"1"` (when infinitesimal is 0).
 
 ```ts
 export function hrToString(x: Hyperreal): string

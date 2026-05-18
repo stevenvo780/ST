@@ -9,7 +9,7 @@
 
 ## `negateLiteral`
 
-> Function · `proof-systems/fol-prover-advanced/prover.ts:29`
+> Function · `proof-systems/fol-prover-advanced/prover.ts:25`
 
 Negación lógica de una literal (toggle del flag `negated`).
 Útil para construir el goal negado en una refutación.
@@ -31,7 +31,7 @@ export function negateLiteral(l: FOLLiteral): FOLLiteral
 
 ## `negateClause`
 
-> Function · `proof-systems/fol-prover-advanced/prover.ts:33`
+> Function · `proof-systems/fol-prover-advanced/prover.ts:29`
 
 ```ts
 export function negateClause(c: FOLClause): FOLClause[]
@@ -50,7 +50,7 @@ export function negateClause(c: FOLClause): FOLClause[]
 
 ## `proveAdvanced`
 
-> Function · `proof-systems/fol-prover-advanced/prover.ts:46`
+> Function · `proof-systems/fol-prover-advanced/prover.ts:42`
 
 Prover avanzado: refuta `premises ∧ ¬goal` aplicando el refinamiento
 elegido. Devuelve un `AdvancedProveResult` con las trazas.
@@ -60,7 +60,7 @@ con literales). El caller que quiera convertir fórmulas ricas a CNF debe
 hacerlo antes.
 
 ```ts
-export function proveAdvanced( premises: FOLClause[], goal: FOLClause, opts: AdvancedProveOptions ): AdvancedProveResult
+export function proveAdvanced( premises: FOLClause[], goal: FOLClause, opts: AdvancedProveOptions, ): AdvancedProveResult
 ```
 
 ### Parameters
@@ -78,7 +78,7 @@ export function proveAdvanced( premises: FOLClause[], goal: FOLClause, opts: Adv
 
 ## `strategyLabel`
 
-> Function · `proof-systems/fol-prover-advanced/prover.ts:242`
+> Function · `proof-systems/fol-prover-advanced/prover.ts:240`
 
 Helper que mapea `RefinementStrategy` a un short-name legible (sirve para
 logs y tests).

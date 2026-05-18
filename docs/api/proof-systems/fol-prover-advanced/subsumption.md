@@ -36,7 +36,7 @@ export function subsumes(c1: FOLClause, c2: FOLClause): boolean
 
 ## `removeSubsumed`
 
-> Function · `proof-systems/fol-prover-advanced/subsumption.ts:95`
+> Function · `proof-systems/fol-prover-advanced/subsumption.ts:99`
 
 Filtra cláusulas dejando sólo las no-subsumidas por otras del mismo set.
 Conserva orden de la primera aparición.
@@ -58,7 +58,7 @@ export function removeSubsumed(clauses: FOLClause[]): FOLClause[]
 
 ## `clausesAlphaEqual`
 
-> Function · `proof-systems/fol-prover-advanced/subsumption.ts:124`
+> Function · `proof-systems/fol-prover-advanced/subsumption.ts:128`
 
 Igualdad sintáctica módulo orden de literales y renombre de variables
 (alpha-equivalencia simple). Suficiente para detectar duplicados producidos
@@ -82,7 +82,7 @@ export function clausesAlphaEqual(a: FOLClause, b: FOLClause): boolean
 
 ## `unitPreference`
 
-> Function · `proof-systems/fol-prover-advanced/subsumption.ts:146`
+> Function · `proof-systems/fol-prover-advanced/subsumption.ts:150`
 
 Reordena cláusulas para que las unitarias (1 literal) vayan primero.
 Patrón "unit preference" — reduce drásticamente el espacio de búsqueda en

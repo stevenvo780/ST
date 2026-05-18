@@ -19,7 +19,9 @@
 
 ## `cst`
 
-> Function · `runtime/symbolic-diff/constructors.ts:3`
+> Function · `runtime/symbolic-diff/constructors.ts:4`
+
+Creates a numeric constant expression node.
 
 ```ts
 export function cst(value: number): Expr
@@ -38,7 +40,9 @@ export function cst(value: number): Expr
 
 ## `v`
 
-> Function · `runtime/symbolic-diff/constructors.ts:7`
+> Function · `runtime/symbolic-diff/constructors.ts:9`
+
+Creates a variable expression node with the given name.
 
 ```ts
 export function v(name: string): Expr
@@ -57,7 +61,10 @@ export function v(name: string): Expr
 
 ## `add`
 
-> Function · `runtime/symbolic-diff/constructors.ts:11`
+> Function · `runtime/symbolic-diff/constructors.ts:17`
+
+Creates an addition expression. With zero args returns `cst(0)`;
+with one arg returns it directly (no wrapper node).
 
 ```ts
 export function add(...args: Expr[]): Expr
@@ -76,7 +83,10 @@ export function add(...args: Expr[]): Expr
 
 ## `mul`
 
-> Function · `runtime/symbolic-diff/constructors.ts:21`
+> Function · `runtime/symbolic-diff/constructors.ts:31`
+
+Creates a multiplication expression. With zero args returns `cst(1)`;
+with one arg returns it directly (no wrapper node).
 
 ```ts
 export function mul(...args: Expr[]): Expr
@@ -95,7 +105,9 @@ export function mul(...args: Expr[]): Expr
 
 ## `sub`
 
-> Function · `runtime/symbolic-diff/constructors.ts:31`
+> Function · `runtime/symbolic-diff/constructors.ts:42`
+
+Creates a subtraction expression `left - right`.
 
 ```ts
 export function sub(left: Expr, right: Expr): Expr
@@ -115,7 +127,9 @@ export function sub(left: Expr, right: Expr): Expr
 
 ## `div`
 
-> Function · `runtime/symbolic-diff/constructors.ts:35`
+> Function · `runtime/symbolic-diff/constructors.ts:47`
+
+Creates a division expression `left / right`.
 
 ```ts
 export function div(left: Expr, right: Expr): Expr
@@ -135,7 +149,9 @@ export function div(left: Expr, right: Expr): Expr
 
 ## `pow`
 
-> Function · `runtime/symbolic-diff/constructors.ts:39`
+> Function · `runtime/symbolic-diff/constructors.ts:52`
+
+Creates a power expression `base ^ exp`.
 
 ```ts
 export function pow(base: Expr, exp: Expr): Expr
@@ -155,7 +171,9 @@ export function pow(base: Expr, exp: Expr): Expr
 
 ## `neg`
 
-> Function · `runtime/symbolic-diff/constructors.ts:43`
+> Function · `runtime/symbolic-diff/constructors.ts:57`
+
+Creates a unary negation expression `-arg`.
 
 ```ts
 export function neg(arg: Expr): Expr
@@ -174,7 +192,9 @@ export function neg(arg: Expr): Expr
 
 ## `fn`
 
-> Function · `runtime/symbolic-diff/constructors.ts:47`
+> Function · `runtime/symbolic-diff/constructors.ts:62`
+
+Creates a unary function expression for any supported `UnaryFn` name.
 
 ```ts
 export function fn(name: UnaryFn, arg: Expr): Expr
@@ -194,7 +214,9 @@ export function fn(name: UnaryFn, arg: Expr): Expr
 
 ## `sin`
 
-> Function · `runtime/symbolic-diff/constructors.ts:51`
+> Function · `runtime/symbolic-diff/constructors.ts:67`
+
+Creates a `sin(arg)` expression node.
 
 ```ts
 export function sin(arg: Expr): Expr
@@ -213,7 +235,9 @@ export function sin(arg: Expr): Expr
 
 ## `cos`
 
-> Function · `runtime/symbolic-diff/constructors.ts:55`
+> Function · `runtime/symbolic-diff/constructors.ts:72`
+
+Creates a `cos(arg)` expression node.
 
 ```ts
 export function cos(arg: Expr): Expr
@@ -232,7 +256,9 @@ export function cos(arg: Expr): Expr
 
 ## `tan`
 
-> Function · `runtime/symbolic-diff/constructors.ts:59`
+> Function · `runtime/symbolic-diff/constructors.ts:77`
+
+Creates a `tan(arg)` expression node.
 
 ```ts
 export function tan(arg: Expr): Expr
@@ -251,7 +277,9 @@ export function tan(arg: Expr): Expr
 
 ## `log`
 
-> Function · `runtime/symbolic-diff/constructors.ts:63`
+> Function · `runtime/symbolic-diff/constructors.ts:82`
+
+Creates a natural `log(arg)` expression node.
 
 ```ts
 export function log(arg: Expr): Expr
@@ -270,7 +298,9 @@ export function log(arg: Expr): Expr
 
 ## `exp`
 
-> Function · `runtime/symbolic-diff/constructors.ts:67`
+> Function · `runtime/symbolic-diff/constructors.ts:87`
+
+Creates an `exp(arg)` (i.e. e^arg) expression node.
 
 ```ts
 export function exp(arg: Expr): Expr

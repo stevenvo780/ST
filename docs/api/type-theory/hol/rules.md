@@ -18,7 +18,9 @@
 
 ## `refl`
 
-> Function · `type-theory/hol/rules.ts:69`
+> Function · `type-theory/hol/rules.ts:70`
+
+Regla REFL: produce el teorema `⊢ t = t` para cualquier término `t`.
 
 ```ts
 export function refl(t: HOLTerm): HOLTheorem
@@ -37,7 +39,9 @@ export function refl(t: HOLTerm): HOLTheorem
 
 ## `trans`
 
-> Function · `type-theory/hol/rules.ts:77`
+> Function · `type-theory/hol/rules.ts:82`
+
+Regla TRANS: dados `⊢ a = b` y `⊢ b = c` produce `⊢ a = c`.
 
 ```ts
 export function trans(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheorem
@@ -57,7 +61,9 @@ export function trans(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheorem
 
 ## `mkCombRule`
 
-> Function · `type-theory/hol/rules.ts:96`
+> Function · `type-theory/hol/rules.ts:105`
+
+Regla MK_COMB: dados `⊢ f = g` y `⊢ x = y` produce `⊢ f x = g y`.
 
 ```ts
 export function mkCombRule(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheorem
@@ -77,7 +83,10 @@ export function mkCombRule(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheorem
 
 ## `abs`
 
-> Function · `type-theory/hol/rules.ts:120`
+> Function · `type-theory/hol/rules.ts:134`
+
+Regla ABS: dado `⊢ s = t` produce `⊢ (λv.s) = (λv.t)`.
+`v` no puede aparecer libre en las hipótesis de `thm1`.
 
 ```ts
 export function abs(v: HOLTerm, thm1: HOLTheorem): HOLTheorem
@@ -97,7 +106,10 @@ export function abs(v: HOLTerm, thm1: HOLTheorem): HOLTheorem
 
 ## `beta`
 
-> Function · `type-theory/hol/rules.ts:145`
+> Function · `type-theory/hol/rules.ts:164`
+
+Regla BETA: dado `(λv.t) v` produce `⊢ (λv.t) v = t`.
+Solo acepta la forma exacta donde el argumento es el propio binder; usar INST para otros.
 
 ```ts
 export function beta(t: HOLTerm): HOLTheorem
@@ -116,7 +128,9 @@ export function beta(t: HOLTerm): HOLTheorem
 
 ## `assume`
 
-> Function · `type-theory/hol/rules.ts:163`
+> Function · `type-theory/hol/rules.ts:186`
+
+Regla ASSUME: produce `p ⊢ p` (hipótesis no descargada).
 
 ```ts
 export function assume(p: HOLTerm): HOLTheorem
@@ -135,7 +149,9 @@ export function assume(p: HOLTerm): HOLTheorem
 
 ## `eqMp`
 
-> Function · `type-theory/hol/rules.ts:173`
+> Function · `type-theory/hol/rules.ts:200`
+
+Regla EQ_MP: dados `⊢ p = q` y `⊢ p` produce `⊢ q` (modus ponens vía igualdad booleana).
 
 ```ts
 export function eqMp(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheorem
@@ -155,7 +171,10 @@ export function eqMp(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheorem
 
 ## `deductAntisymRule`
 
-> Function · `type-theory/hol/rules.ts:195`
+> Function · `type-theory/hol/rules.ts:227`
+
+Regla DEDUCT_ANTISYM_RULE: dados `A ⊢ p` y `B ⊢ q` produce
+`(A \ {q}) ∪ (B \ {p}) ⊢ p ↔ q`.
 
 ```ts
 export function deductAntisymRule(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheorem
@@ -175,7 +194,10 @@ export function deductAntisymRule(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheore
 
 ## `instType`
 
-> Function · `type-theory/hol/rules.ts:210`
+> Function · `type-theory/hol/rules.ts:246`
+
+Regla INST_TYPE: instancia variables de tipo en `thm1` según `subst`.
+Deduplica hipótesis que colapsen tras la sustitución.
 
 ```ts
 export function instType(subst: Record<string, HOLType>, thm1: HOLTheorem): HOLTheorem
@@ -195,7 +217,7 @@ export function instType(subst: Record<string, HOLType>, thm1: HOLTheorem): HOLT
 
 ## `inst`
 
-> Function · `type-theory/hol/rules.ts:235`
+> Function · `type-theory/hol/rules.ts:271`
 
 Sustituye variables libres en `thm1` según `subst`. El mapa
 usa keys `name::typeString` para distinguir variables con
@@ -219,7 +241,7 @@ export function inst(subst: Record<string, HOLTerm>, thm1: HOLTheorem): HOLTheor
 
 ## `instTyped`
 
-> Function · `type-theory/hol/rules.ts:254`
+> Function · `type-theory/hol/rules.ts:290`
 
 Variante explícita: cada entrada especifica `{ name, type, value }`.
 Necesaria si dos variables comparten nombre pero distinto tipo.

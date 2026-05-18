@@ -9,7 +9,7 @@
 
 ## `modelCheckCTL`
 
-> Function · `logic/profiles/ctl/check.ts:345`
+> Function · `logic/profiles/ctl/check.ts:351`
 
 Model checking de Computation Tree Logic.
 Devuelve un mapa `stateId → φ se cumple en ese estado`.
@@ -32,7 +32,7 @@ export function modelCheckCTL(M: KripkeStructure, phi: CTLFormula): Map<string, 
 
 ## `satisfiesCTL`
 
-> Function · `logic/profiles/ctl/check.ts:355`
+> Function · `logic/profiles/ctl/check.ts:361`
 
 `M ⊨ φ` cuando φ se cumple en todos los estados iniciales.
 Si `initial` está vacío, devuelve `true` por vacuidad (consistente con

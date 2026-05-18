@@ -67,7 +67,9 @@ export interface HybridFrame
 
 ## `atom`
 
-> Function · `logic/profiles/hybrid-logic/types.ts:68`
+> Function · `logic/profiles/hybrid-logic/types.ts:69`
+
+Crea un átomo proposicional híbrido.
 
 ```ts
 export function atom(name: string): HybridFormula
@@ -86,7 +88,9 @@ export function atom(name: string): HybridFormula
 
 ## `nominal`
 
-> Function · `logic/profiles/hybrid-logic/types.ts:72`
+> Function · `logic/profiles/hybrid-logic/types.ts:74`
+
+Crea un nominal (proposición que denota un único mundo).
 
 ```ts
 export function nominal(name: string): HybridFormula
@@ -105,7 +109,9 @@ export function nominal(name: string): HybridFormula
 
 ## `not`
 
-> Function · `logic/profiles/hybrid-logic/types.ts:76`
+> Function · `logic/profiles/hybrid-logic/types.ts:79`
+
+Negación: ¬φ.
 
 ```ts
 export function not(arg: HybridFormula): HybridFormula
@@ -124,7 +130,9 @@ export function not(arg: HybridFormula): HybridFormula
 
 ## `and`
 
-> Function · `logic/profiles/hybrid-logic/types.ts:80`
+> Function · `logic/profiles/hybrid-logic/types.ts:87`
+
+Conjunción n-aria: φ₁ ∧ … ∧ φₙ.
 
 ```ts
 export function and(...args: HybridFormula[]): HybridFormula
@@ -143,7 +151,9 @@ export function and(...args: HybridFormula[]): HybridFormula
 
 ## `or`
 
-> Function · `logic/profiles/hybrid-logic/types.ts:86`
+> Function · `logic/profiles/hybrid-logic/types.ts:97`
+
+Disyunción n-aria: φ₁ ∨ … ∨ φₙ.
 
 ```ts
 export function or(...args: HybridFormula[]): HybridFormula
@@ -162,7 +172,9 @@ export function or(...args: HybridFormula[]): HybridFormula
 
 ## `implies`
 
-> Function · `logic/profiles/hybrid-logic/types.ts:92`
+> Function · `logic/profiles/hybrid-logic/types.ts:104`
+
+Implicación: left → right.
 
 ```ts
 export function implies(left: HybridFormula, right: HybridFormula): HybridFormula
@@ -182,7 +194,9 @@ export function implies(left: HybridFormula, right: HybridFormula): HybridFormul
 
 ## `box`
 
-> Function · `logic/profiles/hybrid-logic/types.ts:96`
+> Function · `logic/profiles/hybrid-logic/types.ts:109`
+
+Operador □ (necesidad modal).
 
 ```ts
 export function box(arg: HybridFormula): HybridFormula
@@ -201,7 +215,9 @@ export function box(arg: HybridFormula): HybridFormula
 
 ## `diamond`
 
-> Function · `logic/profiles/hybrid-logic/types.ts:100`
+> Function · `logic/profiles/hybrid-logic/types.ts:114`
+
+Operador ◇ (posibilidad modal).
 
 ```ts
 export function diamond(arg: HybridFormula): HybridFormula
@@ -220,7 +236,9 @@ export function diamond(arg: HybridFormula): HybridFormula
 
 ## `at`
 
-> Function · `logic/profiles/hybrid-logic/types.ts:104`
+> Function · `logic/profiles/hybrid-logic/types.ts:119`
+
+Operador de satisfacción: @i φ ("φ en el mundo i").
 
 ```ts
 export function at(nominalName: string, arg: HybridFormula): HybridFormula
@@ -240,7 +258,9 @@ export function at(nominalName: string, arg: HybridFormula): HybridFormula
 
 ## `down`
 
-> Function · `logic/profiles/hybrid-logic/types.ts:108`
+> Function · `logic/profiles/hybrid-logic/types.ts:124`
+
+Operador de ligadura: ↓bind. φ (bind el mundo actual).
 
 ```ts
 export function down(bind: string, arg: HybridFormula): HybridFormula
@@ -260,7 +280,9 @@ export function down(bind: string, arg: HybridFormula): HybridFormula
 
 ## `existsWorld`
 
-> Function · `logic/profiles/hybrid-logic/types.ts:112`
+> Function · `logic/profiles/hybrid-logic/types.ts:129`
+
+Cuantificador de mundo: ∃bind. φ (existe un mundo bind donde φ).
 
 ```ts
 export function existsWorld(bind: string, arg: HybridFormula): HybridFormula
@@ -280,7 +302,7 @@ export function existsWorld(bind: string, arg: HybridFormula): HybridFormula
 
 ## `formulaToString`
 
-> Function · `logic/profiles/hybrid-logic/types.ts:117`
+> Function · `logic/profiles/hybrid-logic/types.ts:134`
 
 Renderiza una fórmula híbrida en notación textual estándar.
 

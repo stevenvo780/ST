@@ -32,7 +32,7 @@ export function* nats(max: number): Generator<number>
 > Function · `tooling/test-harness/generators.ts:9`
 
 ```ts
-export function* range( start: number, end: number, step?: number ): Generator<number>
+export function* range(start: number, end: number, step?: number): Generator<number>
 ```
 
 ### Parameters
@@ -50,10 +50,10 @@ export function* range( start: number, end: number, step?: number ): Generator<n
 
 ## `randomInts`
 
-> Function · `tooling/test-harness/generators.ts:38`
+> Function · `tooling/test-harness/generators.ts:34`
 
 ```ts
-export function* randomInts( seed: number, count: number, max: number ): Generator<number>
+export function* randomInts(seed: number, count: number, max: number): Generator<number>
 ```
 
 ### Parameters
@@ -71,7 +71,7 @@ export function* randomInts( seed: number, count: number, max: number ): Generat
 
 ## `take`
 
-> Function · `tooling/test-harness/generators.ts:51`
+> Function · `tooling/test-harness/generators.ts:43`
 
 ```ts
 export function take<T>(gen: Iterable<T>, n: number): T[]
@@ -91,7 +91,7 @@ export function take<T>(gen: Iterable<T>, n: number): T[]
 
 ## `toArray`
 
-> Function · `tooling/test-harness/generators.ts:63`
+> Function · `tooling/test-harness/generators.ts:55`
 
 ```ts
 export function toArray<T>(gen: Iterable<T>): T[]

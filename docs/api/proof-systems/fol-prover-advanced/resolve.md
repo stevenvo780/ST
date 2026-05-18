@@ -55,7 +55,7 @@ complementarias unificables. Devuelve cero o más resolventes (uno por par
 de literales complementarias que unifiquen).
 
 ```ts
-export function binaryResolve(a: FOLClause, b: FOLClause): Array<
+export function binaryResolve( a: FOLClause, b: FOLClause, ): Array<
 ```
 
 ### Parameters
@@ -106,7 +106,7 @@ export function hyperresolve(positive: FOLClause, nucleus: FOLClause): FOLClause
 > Function · `proof-systems/fol-prover-advanced/resolve.ts:97`
 
 ```ts
-export function hyperresolveMany( positives: FOLClause[], nucleus: FOLClause ): Array<
+export function hyperresolveMany( positives: FOLClause[], nucleus: FOLClause, ): Array<
 ```
 
 ### Parameters
@@ -123,7 +123,7 @@ export function hyperresolveMany( positives: FOLClause[], nucleus: FOLClause ): 
 
 ## `factor`
 
-> Function · `proof-systems/fol-prover-advanced/resolve.ts:211`
+> Function · `proof-systems/fol-prover-advanced/resolve.ts:213`
 
 Factoring: si dos literales del mismo signo unifican, colapsarlas reduce la
 cláusula. Indispensable para completar la resolución.
@@ -145,7 +145,7 @@ export function factor(c: FOLClause): FOLClause[]
 
 ## `dedupLiterals`
 
-> Function · `proof-systems/fol-prover-advanced/resolve.ts:236`
+> Function · `proof-systems/fol-prover-advanced/resolve.ts:235`
 
 ```ts
 export function dedupLiterals(c: FOLClause): FOLClause
@@ -164,7 +164,7 @@ export function dedupLiterals(c: FOLClause): FOLClause
 
 ## `isTautology`
 
-> Function · `proof-systems/fol-prover-advanced/resolve.ts:245`
+> Function · `proof-systems/fol-prover-advanced/resolve.ts:244`
 
 Detecta cláusulas tautológicas (P ∨ ¬P).
 

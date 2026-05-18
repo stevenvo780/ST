@@ -27,7 +27,7 @@ The constructive MVT-approximation finds c in [a, b] with
 
 ## `intermediateValueTheorem`
 
-> Const · `reasoning/constructive-analysis/ivt.ts:43`
+> Const · `reasoning/constructive-analysis/ivt.ts:36`
 
 Returns a CReal `c` with |f(c) - target| < 1/precision, or null if no
 such c is bracketed in [a, b] at the given precision.
@@ -42,7 +42,7 @@ const intermediateValueTheorem
 
 ## `meanValueConstructive`
 
-> Const · `reasoning/constructive-analysis/ivt.ts:110`
+> Const · `reasoning/constructive-analysis/ivt.ts:103`
 
 Constructive mean value approximation: find c in [a, b] with
   |f(c) - (1/(b-a)) * ∫_a^b f(x) dx| < 1/precision,

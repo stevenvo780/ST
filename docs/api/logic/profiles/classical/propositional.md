@@ -16,7 +16,7 @@
 
 ## `collectAtoms`
 
-> Function · `logic/profiles/classical/propositional.ts:26`
+> Function · `logic/profiles/classical/propositional.ts:32`
 
 ```ts
 export function collectAtoms(f: Formula): Set<string>
@@ -35,7 +35,7 @@ export function collectAtoms(f: Formula): Set<string>
 
 ## `evaluateClassical`
 
-> Function · `logic/profiles/classical/propositional.ts:46`
+> Function · `logic/profiles/classical/propositional.ts:52`
 
 ```ts
 export function evaluateClassical(f: Formula, v: Valuation): boolean
@@ -55,7 +55,7 @@ export function evaluateClassical(f: Formula, v: Valuation): boolean
 
 ## `generateValuationsLazy`
 
-> Function · `logic/profiles/classical/propositional.ts:115`
+> Function · `logic/profiles/classical/propositional.ts:121`
 
 Generador lazy de valuaciones para streaming (usado por el intérprete para truth_table masivas).
 
@@ -76,7 +76,7 @@ export function* generateValuationsLazy(atoms: string[]): Generator<Valuation>
 
 ## `formulaToString`
 
-> Function · `logic/profiles/classical/propositional.ts:331`
+> Function · `logic/profiles/classical/propositional.ts:337`
 
 ```ts
 export function formulaToString(f: Formula): string
@@ -95,7 +95,7 @@ export function formulaToString(f: Formula): string
 
 ## `toNNF`
 
-> Function · `logic/profiles/classical/propositional.ts:445`
+> Function · `logic/profiles/classical/propositional.ts:451`
 
 ```ts
 export function toNNF(f: Formula): Formula
@@ -114,7 +114,7 @@ export function toNNF(f: Formula): Formula
 
 ## `toCNF`
 
-> Function · `logic/profiles/classical/propositional.ts:599`
+> Function · `logic/profiles/classical/propositional.ts:605`
 
 ```ts
 export function toCNF(f: Formula): Formula
@@ -133,7 +133,7 @@ export function toCNF(f: Formula): Formula
 
 ## `toDNF`
 
-> Function · `logic/profiles/classical/propositional.ts:630`
+> Function · `logic/profiles/classical/propositional.ts:636`
 
 ```ts
 export function toDNF(f: Formula): Formula
@@ -152,7 +152,7 @@ export function toDNF(f: Formula): Formula
 
 ## `extractClauses`
 
-> Function · `logic/profiles/classical/propositional.ts:638`
+> Function · `logic/profiles/classical/propositional.ts:644`
 
 Extracts clauses from a CNF formula for resolution analysis (#28)
 Returns an array of clauses, where each clause is an array of literals.
@@ -174,7 +174,7 @@ export function extractClauses(f: Formula): string[][]
 
 ## `ClassicalPropositional`
 
-> Class · `logic/profiles/classical/propositional.ts:2595`
+> Class · `logic/profiles/classical/propositional.ts:2601`
 
 ```ts
 export class ClassicalPropositional implements LogicProfile

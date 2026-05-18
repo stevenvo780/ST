@@ -9,7 +9,7 @@
 
 ## `modelCheck`
 
-> Function · `logic/profiles/mu-calculus/check.ts:162`
+> Function · `logic/profiles/mu-calculus/check.ts:164`
 
 Model checking de modal μ-calculus.
 Devuelve el conjunto de estados que satisfacen φ.
@@ -36,7 +36,7 @@ export function modelCheck(K: KripkeStructure, phi: MuFormula): Set<string>
 
 ## `satisfiesAt`
 
-> Function · `logic/profiles/mu-calculus/check.ts:170`
+> Function · `logic/profiles/mu-calculus/check.ts:172`
 
 `K, s ⊨ φ` para un estado puntual. Conveniencia sobre `modelCheck`.
 

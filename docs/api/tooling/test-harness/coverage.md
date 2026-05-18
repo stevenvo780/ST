@@ -5,7 +5,7 @@
 > Function · `tooling/test-harness/coverage.ts:3`
 
 ```ts
-export async function runWithCoverage<T>( suite: TestSuite<T>, runner: (c: TestCase<T>) => Promise<boolean> ): Promise<CoverageReport>
+export async function runWithCoverage<T>( suite: TestSuite<T>, runner: (c: TestCase<T>) => Promise<boolean>, ): Promise<CoverageReport>
 ```
 
 ### Parameters

@@ -64,7 +64,7 @@ export function isLimit<O, M>( cat: Category<O, M>, diagram: Diagram<O, M>, cone
 
 ## `product`
 
-> Function · `semantics/categorical/limits.ts:122`
+> Function · `semantics/categorical/limits.ts:124`
 
 Producto binario en FinSet: A×B con proyecciones π1, π2.
 Construye el objeto producto como un nuevo `FinSetObj` con
@@ -97,7 +97,7 @@ export function product( cat: Category<FinSetObj, FinSetMor>, a: FinSetObj, b: F
 
 ## `coproduct`
 
-> Function · `semantics/categorical/limits.ts:156`
+> Function · `semantics/categorical/limits.ts:158`
 
 Coproducto binario en FinSet: unión disjunta A⊔B. Usa prefijos
 `L:` y `R:` para tag-ear los elementos y produce las inyecciones
@@ -122,7 +122,7 @@ export function coproduct( cat: Category<FinSetObj, FinSetMor>, a: FinSetObj, b:
 
 ## `equalizer`
 
-> Function · `semantics/categorical/limits.ts:188`
+> Function · `semantics/categorical/limits.ts:190`
 
 Igualador en FinSet de un par paralelo `f, g : A → B`. El igualador
 es el subconjunto `E = { x ∈ A | f(x) = g(x) }` con inclusión `eq : E ↪ A`.
@@ -146,7 +146,7 @@ export function equalizer( cat: Category<FinSetObj, FinSetMor>, f: FinSetMor, g:
 
 ## `coequalizer`
 
-> Function · `semantics/categorical/limits.ts:216`
+> Function · `semantics/categorical/limits.ts:218`
 
 Coigualador (colimite dual): cociente A/~ donde x ~ y si existe
 z ∈ S con f(z)=x ∧ g(z)=y (cierre transitivo-simétrico).

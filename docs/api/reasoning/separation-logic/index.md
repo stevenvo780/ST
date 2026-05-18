@@ -186,7 +186,9 @@ export function asLoc(v: SLValue): number | null
 
 ## `Heap`
 
-> Interface · `reasoning/separation-logic/index.ts:67`
+> Interface · `reasoning/separation-logic/index.ts:68`
+
+Heap finito de separación: mapa inmutable de direcciones (number) a valores SL.
 
 ```ts
 export interface Heap
@@ -195,7 +197,9 @@ export interface Heap
 
 ## `newHeap`
 
-> Function · `reasoning/separation-logic/index.ts:119`
+> Function · `reasoning/separation-logic/index.ts:121`
+
+Crea un heap vacío.
 
 ```ts
 export function newHeap(): Heap
@@ -208,7 +212,9 @@ export function newHeap(): Heap
 
 ## `fromMap`
 
-> Function · `reasoning/separation-logic/index.ts:123`
+> Function · `reasoning/separation-logic/index.ts:126`
+
+Crea un heap a partir de una lista de pares `[dirección, valor]`.
 
 ```ts
 export function fromMap(entries: Array<[number, SLValue]>): Heap
@@ -227,7 +233,7 @@ export function fromMap(entries: Array<[number, SLValue]>): Heap
 
 ## `disjoint`
 
-> Function · `reasoning/separation-logic/index.ts:128`
+> Function · `reasoning/separation-logic/index.ts:131`
 
 Dos heaps son disjuntos sii sus dominios no se intersectan.
 
@@ -249,7 +255,7 @@ export function disjoint(h1: Heap, h2: Heap): boolean
 
 ## `combine`
 
-> Function · `reasoning/separation-logic/index.ts:138`
+> Function · `reasoning/separation-logic/index.ts:141`
 
 Unión disjunta `h1 ⊎ h2`. Devuelve null si los heaps comparten alguna
 dirección — la unión disjunta sólo está definida cuando son disjoint.
@@ -272,7 +278,7 @@ export function combine(h1: Heap, h2: Heap): Heap | null
 
 ## `heapEquals`
 
-> Function · `reasoning/separation-logic/index.ts:146`
+> Function · `reasoning/separation-logic/index.ts:149`
 
 Igualdad estructural de heaps.
 
@@ -294,7 +300,7 @@ export function heapEquals(h1: Heap, h2: Heap): boolean
 
 ## `splits`
 
-> Function · `reasoning/separation-logic/index.ts:159`
+> Function · `reasoning/separation-logic/index.ts:162`
 
 Enumera todas las particiones del heap en `(h1, h2)` con `h1 ⊎ h2 = h`.
 
@@ -315,7 +321,9 @@ export function splits(h: Heap): Array<
 
 ## `SLFormula`
 
-> Type · `reasoning/separation-logic/index.ts:181`
+> Type · `reasoning/separation-logic/index.ts:185`
+
+Fórmula de separación lógica (SL). Cubre emp, pointsTo, star (*), magic wand (-*), cuantificadores y lógica proposicional pura.
 
 ```ts
 export type SLFormula = | { kind: 'emp' } | { kind: 'pointsTo'; loc: SLValue; val: SLValue } | { kind: 'star'; left: SLFormula; right: SLFormula } | { kind: 'magicWand'; left: SLFormula; right: SLFormula } | { kind: 'pure'; expression: string; predicate: PurePredicate } | { kind: 'and'; left: SLFormula; right: SLFormula } | { kind: 'or'; left: SLFormula; right: SLFormula } | { kind: 'implies'; left: SLFormula; right: SLFormula } | { kind: 'not'; body: SLFormula } | { kind: 'exists'; bind: string; body: SLFormula } | { kind: 'forall'; bind: string; body: SLFormula };
@@ -324,7 +332,9 @@ export type SLFormula = | { kind: 'emp' } | { kind: 'pointsTo'; loc: SLValue; va
 
 ## `PurePredicate`
 
-> Type · `reasoning/separation-logic/index.ts:194`
+> Type · `reasoning/separation-logic/index.ts:199`
+
+Predicado puro de SL: función JavaScript que evalúa una condición sobre la valuación de variables.
 
 ```ts
 export type PurePredicate = (val: SLValuation) => boolean;
@@ -333,7 +343,9 @@ export type PurePredicate = (val: SLValuation) => boolean;
 
 ## `emp`
 
-> Const · `reasoning/separation-logic/index.ts:196`
+> Const · `reasoning/separation-logic/index.ts:202`
+
+Heap vacío: `emp`. La fórmula que vale sobre el heap vacío.
 
 ```ts
 const emp
@@ -342,7 +354,9 @@ const emp
 
 ## `pointsTo`
 
-> Const · `reasoning/separation-logic/index.ts:198`
+> Const · `reasoning/separation-logic/index.ts:205`
+
+`loc ↦ val` — `loc` apunta a `val` (heap de un solo celda).
 
 ```ts
 const pointsTo
@@ -351,7 +365,9 @@ const pointsTo
 
 ## `star`
 
-> Const · `reasoning/separation-logic/index.ts:204`
+> Const · `reasoning/separation-logic/index.ts:212`
+
+Conjunción separante `P * Q`: `P` y `Q` valen sobre sub-heaps disjuntos cuya unión es el heap total.
 
 ```ts
 const star
@@ -360,7 +376,9 @@ const star
 
 ## `magicWand`
 
-> Const · `reasoning/separation-logic/index.ts:210`
+> Const · `reasoning/separation-logic/index.ts:219`
+
+Magic wand `P -* Q`: para cualquier heap disjunto que satisfaga `P`, la unión satisface `Q`.
 
 ```ts
 const magicWand
@@ -369,7 +387,9 @@ const magicWand
 
 ## `pure`
 
-> Const · `reasoning/separation-logic/index.ts:216`
+> Const · `reasoning/separation-logic/index.ts:226`
+
+Fórmula pura `[expr]`: condición sin acceso al heap, evaluada por `predicate`.
 
 ```ts
 const pure
@@ -378,7 +398,9 @@ const pure
 
 ## `andF`
 
-> Const · `reasoning/separation-logic/index.ts:222`
+> Const · `reasoning/separation-logic/index.ts:233`
+
+Conjunción clásica de dos fórmulas SL (no separante).
 
 ```ts
 const andF
@@ -387,7 +409,9 @@ const andF
 
 ## `orF`
 
-> Const · `reasoning/separation-logic/index.ts:228`
+> Const · `reasoning/separation-logic/index.ts:240`
+
+Disyunción de dos fórmulas SL.
 
 ```ts
 const orF
@@ -396,7 +420,9 @@ const orF
 
 ## `impliesF`
 
-> Const · `reasoning/separation-logic/index.ts:234`
+> Const · `reasoning/separation-logic/index.ts:247`
+
+Implicación clásica entre dos fórmulas SL.
 
 ```ts
 const impliesF
@@ -405,7 +431,9 @@ const impliesF
 
 ## `notF`
 
-> Const · `reasoning/separation-logic/index.ts:240`
+> Const · `reasoning/separation-logic/index.ts:254`
+
+Negación de una fórmula SL.
 
 ```ts
 const notF
@@ -414,7 +442,9 @@ const notF
 
 ## `existsF`
 
-> Const · `reasoning/separation-logic/index.ts:242`
+> Const · `reasoning/separation-logic/index.ts:257`
+
+Cuantificador existencial sobre una variable de valuación.
 
 ```ts
 const existsF
@@ -423,7 +453,9 @@ const existsF
 
 ## `forallF`
 
-> Const · `reasoning/separation-logic/index.ts:248`
+> Const · `reasoning/separation-logic/index.ts:264`
+
+Cuantificador universal sobre una variable de valuación.
 
 ```ts
 const forallF
@@ -432,7 +464,9 @@ const forallF
 
 ## `formulaToString`
 
-> Function · `reasoning/separation-logic/index.ts:256`
+> Function · `reasoning/separation-logic/index.ts:273`
+
+Serializa una fórmula SL a su representación textual estándar.
 
 ```ts
 export function formulaToString(f: SLFormula): string
@@ -451,7 +485,9 @@ export function formulaToString(f: SLFormula): string
 
 ## `valueToString`
 
-> Function · `reasoning/separation-logic/index.ts:283`
+> Function · `reasoning/separation-logic/index.ts:301`
+
+Serializa un valor SL (int, addr, null) a texto legible.
 
 ```ts
 export function valueToString(v: SLValue): string
@@ -470,7 +506,9 @@ export function valueToString(v: SLValue): string
 
 ## `SLValuation`
 
-> Interface · `reasoning/separation-logic/index.ts:291`
+> Interface · `reasoning/separation-logic/index.ts:310`
+
+Mapa de variables de SL a valores; permite atar variables lógicas durante la evaluación.
 
 ```ts
 export interface SLValuation
@@ -479,7 +517,7 @@ export interface SLValuation
 
 ## `bind`
 
-> Function · `reasoning/separation-logic/index.ts:296`
+> Function · `reasoning/separation-logic/index.ts:315`
 
 Devuelve una copia del valuation con `name → v`.
 
@@ -502,7 +540,7 @@ export function bind(val: SLValuation, name: string, v: SLValue): SLValuation
 
 ## `satisfies`
 
-> Function · `reasoning/separation-logic/index.ts:303`
+> Function · `reasoning/separation-logic/index.ts:322`
 
 `satisfies(P, h, ν)` — el modelo `(h, ν)` satisface la fórmula P.
 
@@ -525,7 +563,9 @@ export function satisfies(formula: SLFormula, heap: Heap, val: SLValuation): boo
 
 ## `SLCommand`
 
-> Interface · `reasoning/separation-logic/index.ts:454`
+> Interface · `reasoning/separation-logic/index.ts:474`
+
+Comando de SL: operación de heap que puede modificar el heap y/o la valuación de variables.
 
 ```ts
 export interface SLCommand
@@ -534,7 +574,9 @@ export interface SLCommand
 
 ## `SLTriple`
 
-> Interface · `reasoning/separation-logic/index.ts:464`
+> Interface · `reasoning/separation-logic/index.ts:485`
+
+Tripla de Hoare para SL: `{ pre } cmd { post }`.
 
 ```ts
 export interface SLTriple
@@ -543,7 +585,7 @@ export interface SLTriple
 
 ## `ExecResult`
 
-> Interface · `reasoning/separation-logic/index.ts:471`
+> Interface · `reasoning/separation-logic/index.ts:492`
 
 Resultado de ejecutar un comando paso-a-paso sobre `(heap, val)`.
 
@@ -554,7 +596,7 @@ export interface ExecResult
 
 ## `executeCommand`
 
-> Function · `reasoning/separation-logic/index.ts:481`
+> Function · `reasoning/separation-logic/index.ts:502`
 
 Ejecuta un único comando de forma small-step.
 
@@ -577,7 +619,9 @@ export function executeCommand(cmd: SLCommand, heap: Heap, val: SLValuation): Ex
 
 ## `CheckTripleOptions`
 
-> Interface · `reasoning/separation-logic/index.ts:552`
+> Interface · `reasoning/separation-logic/index.ts:574`
+
+Opciones para `checkTriple`: heaps candidatos, tamaño de muestreo y semilla RNG.
 
 ```ts
 export interface CheckTripleOptions
@@ -586,7 +630,9 @@ export interface CheckTripleOptions
 
 ## `CheckTripleResult`
 
-> Interface · `reasoning/separation-logic/index.ts:561`
+> Interface · `reasoning/separation-logic/index.ts:584`
+
+Resultado de `checkTriple`: validez (o contraejemplo encontrado) y cantidad de modelos evaluados.
 
 ```ts
 export interface CheckTripleResult
@@ -595,7 +641,7 @@ export interface CheckTripleResult
 
 ## `checkTriple`
 
-> Function · `reasoning/separation-logic/index.ts:571`
+> Function · `reasoning/separation-logic/index.ts:594`
 
 Verifica una tripla `{P} c {Q}` por muestreo finito: enumera modelos
 (heap, val) que satisfagan P, los ejecuta y comprueba Q sobre el
@@ -620,7 +666,7 @@ export function checkTriple(triple: SLTriple, options: CheckTripleOptions =
 
 ## `isListSegment`
 
-> Function · `reasoning/separation-logic/index.ts:667`
+> Function · `reasoning/separation-logic/index.ts:690`
 
 `ls(x, y)` — list-segment de x a y. Definido por:
   ls(x, y) ≡ (x = y ∧ emp) ∨ ∃z. (x ↦ z * ls(z, y))
@@ -648,7 +694,7 @@ export function isListSegment(start: SLValue, end: SLValue, heap: Heap): boolean
 
 ## `listSegment`
 
-> Function · `reasoning/separation-logic/index.ts:689`
+> Function · `reasoning/separation-logic/index.ts:712`
 
 Predicado SL para list-segment `ls(start, end)`. Se evalúa como
 predicado puro sobre el heap (cumple `satisfies`).
@@ -671,7 +717,7 @@ export function listSegment(start: SLValue, end: SLValue): SLFormula
 
 ## `satisfiesShape`
 
-> Function · `reasoning/separation-logic/index.ts:714`
+> Function · `reasoning/separation-logic/index.ts:737`
 
 Evalúa una fórmula con soporte de predicados inductivos sobre forma de
 heap (ls, tree). Se usa cuando la fórmula contiene `listSegment` o
@@ -696,7 +742,7 @@ export function satisfiesShape(formula: SLFormula, heap: Heap, val: SLValuation)
 
 ## `tree`
 
-> Function · `reasoning/separation-logic/index.ts:773`
+> Function · `reasoning/separation-logic/index.ts:796`
 
 `tree(root)` — el heap representa un árbol binario con raíz `root`.
   tree(x) ≡ (x = null ∧ emp) ∨ ∃l, r. (x ↦ l * x.next ↦ r * tree(l) * tree(r))
@@ -721,7 +767,9 @@ export function tree(root: SLValue): SLFormula
 
 ## `isTree`
 
-> Function · `reasoning/separation-logic/index.ts:781`
+> Function · `reasoning/separation-logic/index.ts:805`
+
+Comprueba si `heap` representa un árbol binario con raíz `root` (nodos de 2 celdas contiguas).
 
 ```ts
 export function isTree(root: SLValue, heap: Heap): boolean
@@ -741,7 +789,7 @@ export function isTree(root: SLValue, heap: Heap): boolean
 
 ## `frame`
 
-> Function · `reasoning/separation-logic/index.ts:812`
+> Function · `reasoning/separation-logic/index.ts:836`
 
 Frame rule: si `{P} c {Q}` y `c` no modifica las variables libres de
 `R`, entonces `{P * R} c {Q * R}`. Esta función construye la tripla
@@ -765,7 +813,9 @@ export function frame(triple: SLTriple, frameFormula: SLFormula): SLTriple
 
 ## `Cmd`
 
-> Const · `reasoning/separation-logic/index.ts:822`
+> Const · `reasoning/separation-logic/index.ts:847`
+
+Constructores convenientes para `SLCommand` (skip, assign, alloc, free, load, store).
 
 ```ts
 const Cmd

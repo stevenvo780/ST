@@ -1,6 +1,9 @@
 # `logic/profiles/ltl-sat/types.ts`
 
-============================================================ ST LTL-SAT — Tipos para el procedimiento de decisión de LTL ============================================================ AST nativo de LTL para el decisor por tableau:   atom, not, and, or, X (next), F (eventually), G (globally),   U (until), R (release). La operación derivada W (weak until) se traduce a R en la normalización: φ W ψ ≡ ψ R (φ ∨ ψ) ≡ (G φ) ∨ (φ U ψ). ============================================================
+AST de fórmulas LTL.
+
+Operadores temporales: X (next), F (eventually), G (globally),
+U (until), R (release). W (weak-until) se codifica como `or(until, globally)`.
 
 ## Contents
 
@@ -23,7 +26,12 @@
 
 ## `LTLFormula`
 
-> Type · `logic/profiles/ltl-sat/types.ts:12`
+> Type · `logic/profiles/ltl-sat/types.ts:18`
+
+AST de fórmulas LTL.
+
+Operadores temporales: X (next), F (eventually), G (globally),
+U (until), R (release). W (weak-until) se codifica como `or(until, globally)`.
 
 ```ts
 export type LTLFormula = | { kind: 'atom'; name: string } | { kind: 'not'; arg: LTLFormula } | { kind: 'and'; args: LTLFormula[] } | { kind: 'or'; args: LTLFormula[] } | { kind: 'X'; arg: LTLFormula } | { kind: 'F'; arg: LTLFormula } | { kind: 'G'; arg: LTLFormula } | { kind: 'U'; left: LTLFormula; right: LTLFormula } | { kind: 'R'; left: LTLFormula; right: LTLFormula };
@@ -32,7 +40,7 @@ export type LTLFormula = | { kind: 'atom'; name: string } | { kind: 'not'; arg: 
 
 ## `atom`
 
-> Const · `logic/profiles/ltl-sat/types.ts:24`
+> Const · `logic/profiles/ltl-sat/types.ts:30`
 
 ```ts
 const atom
@@ -41,7 +49,7 @@ const atom
 
 ## `not`
 
-> Const · `logic/profiles/ltl-sat/types.ts:25`
+> Const · `logic/profiles/ltl-sat/types.ts:31`
 
 ```ts
 const not
@@ -50,7 +58,7 @@ const not
 
 ## `and`
 
-> Const · `logic/profiles/ltl-sat/types.ts:26`
+> Const · `logic/profiles/ltl-sat/types.ts:32`
 
 ```ts
 const and
@@ -59,7 +67,7 @@ const and
 
 ## `or`
 
-> Const · `logic/profiles/ltl-sat/types.ts:27`
+> Const · `logic/profiles/ltl-sat/types.ts:33`
 
 ```ts
 const or
@@ -68,7 +76,7 @@ const or
 
 ## `next`
 
-> Const · `logic/profiles/ltl-sat/types.ts:28`
+> Const · `logic/profiles/ltl-sat/types.ts:34`
 
 ```ts
 const next
@@ -77,7 +85,7 @@ const next
 
 ## `eventually`
 
-> Const · `logic/profiles/ltl-sat/types.ts:29`
+> Const · `logic/profiles/ltl-sat/types.ts:35`
 
 ```ts
 const eventually
@@ -86,7 +94,7 @@ const eventually
 
 ## `globally`
 
-> Const · `logic/profiles/ltl-sat/types.ts:30`
+> Const · `logic/profiles/ltl-sat/types.ts:36`
 
 ```ts
 const globally
@@ -95,7 +103,7 @@ const globally
 
 ## `until`
 
-> Const · `logic/profiles/ltl-sat/types.ts:31`
+> Const · `logic/profiles/ltl-sat/types.ts:37`
 
 ```ts
 const until
@@ -104,7 +112,7 @@ const until
 
 ## `release`
 
-> Const · `logic/profiles/ltl-sat/types.ts:36`
+> Const · `logic/profiles/ltl-sat/types.ts:42`
 
 ```ts
 const release
@@ -113,7 +121,7 @@ const release
 
 ## `weakUntil`
 
-> Const · `logic/profiles/ltl-sat/types.ts:42`
+> Const · `logic/profiles/ltl-sat/types.ts:48`
 
 ```ts
 const weakUntil
@@ -122,7 +130,7 @@ const weakUntil
 
 ## `implies`
 
-> Const · `logic/profiles/ltl-sat/types.ts:46`
+> Const · `logic/profiles/ltl-sat/types.ts:52`
 
 ```ts
 const implies
@@ -131,7 +139,9 @@ const implies
 
 ## `Witness`
 
-> Interface · `logic/profiles/ltl-sat/types.ts:48`
+> Interface · `logic/profiles/ltl-sat/types.ts:55`
+
+Modelo lasso que satisface una fórmula LTL: prefijo + lazo infinito.
 
 ```ts
 export interface Witness
@@ -140,7 +150,10 @@ export interface Witness
 
 ## `SatResult`
 
-> Interface · `logic/profiles/ltl-sat/types.ts:53`
+> Interface · `logic/profiles/ltl-sat/types.ts:66`
+
+Resultado de la decisión de satisfacibilidad LTL.
+Si `sat` es verdadero, `witness` contiene un modelo lasso.
 
 ```ts
 export interface SatResult
@@ -149,7 +162,9 @@ export interface SatResult
 
 ## `formulaToString`
 
-> Function · `logic/profiles/ltl-sat/types.ts:58`
+> Function · `logic/profiles/ltl-sat/types.ts:72`
+
+Renderiza una fórmula LTL en notación textual estándar.
 
 ```ts
 export function formulaToString(f: LTLFormula): string
@@ -168,7 +183,9 @@ export function formulaToString(f: LTLFormula): string
 
 ## `formulaKey`
 
-> Function · `logic/profiles/ltl-sat/types.ts:88`
+> Function · `logic/profiles/ltl-sat/types.ts:102`
+
+Clave canónica determinista de una fórmula LTL, usada para hashing en sets/maps.
 
 ```ts
 export function formulaKey(f: LTLFormula): string

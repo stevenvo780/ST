@@ -21,7 +21,9 @@
 
 ## `atom`
 
-> Const · `logic/profiles/modal-frame-axioms/formula.ts:39`
+> Const · `logic/profiles/modal-frame-axioms/formula.ts:40`
+
+Crea un átomo proposicional modal.
 
 ```ts
 const atom
@@ -30,7 +32,9 @@ const atom
 
 ## `not`
 
-> Const · `logic/profiles/modal-frame-axioms/formula.ts:41`
+> Const · `logic/profiles/modal-frame-axioms/formula.ts:43`
+
+Negación: ¬φ.
 
 ```ts
 const not
@@ -39,7 +43,9 @@ const not
 
 ## `and`
 
-> Const · `logic/profiles/modal-frame-axioms/formula.ts:43`
+> Const · `logic/profiles/modal-frame-axioms/formula.ts:46`
+
+Conjunción: φ ∧ ψ.
 
 ```ts
 const and
@@ -48,7 +54,9 @@ const and
 
 ## `or`
 
-> Const · `logic/profiles/modal-frame-axioms/formula.ts:50`
+> Const · `logic/profiles/modal-frame-axioms/formula.ts:54`
+
+Disyunción: φ ∨ ψ.
 
 ```ts
 const or
@@ -57,7 +65,9 @@ const or
 
 ## `implies`
 
-> Const · `logic/profiles/modal-frame-axioms/formula.ts:57`
+> Const · `logic/profiles/modal-frame-axioms/formula.ts:62`
+
+Implicación: φ → ψ.
 
 ```ts
 const implies
@@ -66,7 +76,9 @@ const implies
 
 ## `box`
 
-> Const · `logic/profiles/modal-frame-axioms/formula.ts:64`
+> Const · `logic/profiles/modal-frame-axioms/formula.ts:70`
+
+Operador □ (necesidad / box): □φ.
 
 ```ts
 const box
@@ -75,7 +87,9 @@ const box
 
 ## `diamond`
 
-> Const · `logic/profiles/modal-frame-axioms/formula.ts:66`
+> Const · `logic/profiles/modal-frame-axioms/formula.ts:73`
+
+Operador ◇ (posibilidad / diamond): ◇φ.
 
 ```ts
 const diamond
@@ -84,7 +98,7 @@ const diamond
 
 ## `formulaKey`
 
-> Function · `logic/profiles/modal-frame-axioms/formula.ts:79`
+> Function · `logic/profiles/modal-frame-axioms/formula.ts:86`
 
 Clave sintáctica determinista para deduplicación.
 
@@ -105,7 +119,9 @@ export function formulaKey(f: ModalFormula): string
 
 ## `formulaEquals`
 
-> Function · `logic/profiles/modal-frame-axioms/formula.ts:98`
+> Function · `logic/profiles/modal-frame-axioms/formula.ts:106`
+
+Igualdad sintáctica entre dos fórmulas modales.
 
 ```ts
 export function formulaEquals(a: ModalFormula, b: ModalFormula): boolean
@@ -125,7 +141,9 @@ export function formulaEquals(a: ModalFormula, b: ModalFormula): boolean
 
 ## `formulaToString`
 
-> Function · `logic/profiles/modal-frame-axioms/formula.ts:102`
+> Function · `logic/profiles/modal-frame-axioms/formula.ts:111`
+
+Renderiza una fórmula modal en notación textual (¬, ∧, ∨, →, □, ◇).
 
 ```ts
 export function formulaToString(f: ModalFormula): string
@@ -144,7 +162,9 @@ export function formulaToString(f: ModalFormula): string
 
 ## `collectAtoms`
 
-> Function · `logic/profiles/modal-frame-axioms/formula.ts:134`
+> Function · `logic/profiles/modal-frame-axioms/formula.ts:144`
+
+Recolecta todos los nombres de átomos proposicionales que aparecen en `f`.
 
 ```ts
 export function collectAtoms(f: ModalFormula, out: Set<string> = new Set()): Set<string>
@@ -164,7 +184,7 @@ export function collectAtoms(f: ModalFormula, out: Set<string> = new Set()): Set
 
 ## `subUnary`
 
-> Const · `logic/profiles/modal-frame-axioms/formula.ts:153`
+> Const · `logic/profiles/modal-frame-axioms/formula.ts:163`
 
 ```ts
 const subUnary
@@ -173,7 +193,7 @@ const subUnary
 
 ## `subLeft`
 
-> Const · `logic/profiles/modal-frame-axioms/formula.ts:154`
+> Const · `logic/profiles/modal-frame-axioms/formula.ts:164`
 
 ```ts
 const subLeft
@@ -182,7 +202,7 @@ const subLeft
 
 ## `subRight`
 
-> Const · `logic/profiles/modal-frame-axioms/formula.ts:155`
+> Const · `logic/profiles/modal-frame-axioms/formula.ts:165`
 
 ```ts
 const subRight

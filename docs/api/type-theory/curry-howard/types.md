@@ -1,6 +1,6 @@
 # `type-theory/curry-howard/types.ts`
 
-============================================================ Curry-Howard — Tipos y términos ============================================================ Correspondencia Curry-Howard:   tipo            ↔  proposición   programa        ↔  prueba   β-reducción     ↔  normalización de pruebas Constructores soportados:   →   (arrow)    →  implicación   ∧   (product)  →  conjunción   ∨   (sum)      →  disyunción   ⊥   (bottom)   →  falso   atom           →  variable proposicional
+Tipo proposicional / tipo simple en la correspondencia Curry-Howard: átomo, flecha →, producto ∧, suma ∨ y ⊥.
 
 ## Contents
 
@@ -30,7 +30,9 @@
 
 ## `PropType`
 
-> Type · `type-theory/curry-howard/types.ts:17`
+> Type · `type-theory/curry-howard/types.ts:18`
+
+Tipo proposicional / tipo simple en la correspondencia Curry-Howard: átomo, flecha →, producto ∧, suma ∨ y ⊥.
 
 ```ts
 export type PropType = | { kind: 'atom'; name: string } | { kind: 'arrow'; from: PropType; to: PropType } | { kind: 'product'; left: PropType; right: PropType } | { kind: 'sum'; left: PropType; right: PropType } | { kind: 'bottom' };
@@ -39,7 +41,9 @@ export type PropType = | { kind: 'atom'; name: string } | { kind: 'arrow'; from:
 
 ## `LambdaTerm`
 
-> Type · `type-theory/curry-howard/types.ts:24`
+> Type · `type-theory/curry-howard/types.ts:26`
+
+Término del λ-cálculo con tipos simples (Curry-Howard): variable, aplicación, abstracción, pares, sumas y absurdo.
 
 ```ts
 export type LambdaTerm = | { kind: 'var'; name: string } | { kind: 'app'; fn: LambdaTerm; arg: LambdaTerm } | { kind: 'abs'; param: string; paramType: PropType; body: LambdaTerm } | { kind: 'pair'; fst: LambdaTerm; snd: LambdaTerm } | { kind: 'fst'; pair: LambdaTerm } | { kind: 'snd'; pair: LambdaTerm } | { kind: 'inl'; left: LambdaTerm; rightType: PropType } | { kind: 'inr'; right: LambdaTerm; leftType: PropType } | { kind: 'case'; scrutinee: LambdaTerm; leftBind: string; leftBody: LambdaTerm; rightBind: string; rightBody: LambdaTerm; } | { kind: 'absurd'; proofOfFalse: LambdaTerm; resultType: PropType };
@@ -48,7 +52,11 @@ export type LambdaTerm = | { kind: 'var'; name: string } | { kind: 'app'; fn: La
 
 ## `ProofRule`
 
-> Type · `type-theory/curry-howard/types.ts:47`
+> Type · `type-theory/curry-howard/types.ts:50`
+
+Reglas de deducción natural del sistema proposicional (Curry-Howard).
+`'axiom'` = hipótesis del contexto; `'→I'`/`'→E'` = implicación; `'∧I'`/`'∧E-*'` = conjunción;
+`'∨I-*'`/`'∨E'` = disyunción; `'⊥E'` = ex falso quodlibet.
 
 ```ts
 export type ProofRule = | 'axiom' // hipótesis disponible en contexto (asunción no descargada aquí) | '→I' // implicación-intro (descarga A, deriva A→B desde B) | '→E' // modus ponens | '∧I' // conjunción-intro | '∧E-L' // proyección izquierda | '∧E-R' // proyección derecha | '∨I-L' // disyunción-intro por izquierda | '∨I-R' // disyunción-intro por derecha | '∨E' // eliminación de disyunción (case) | '⊥E';
@@ -57,7 +65,9 @@ export type ProofRule = | 'axiom' // hipótesis disponible en contexto (asunció
 
 ## `ProofTree`
 
-> Interface · `type-theory/curry-howard/types.ts:59`
+> Interface · `type-theory/curry-howard/types.ts:63`
+
+Árbol de prueba en deducción natural: cada nodo lleva la regla, la conclusión y sub-árboles (premisas).
 
 ```ts
 export interface ProofTree
@@ -66,7 +76,9 @@ export interface ProofTree
 
 ## `Context`
 
-> Type · `type-theory/curry-howard/types.ts:70`
+> Type · `type-theory/curry-howard/types.ts:75`
+
+Contexto de tipado: mapa de nombres de variables a tipos proposicionales.
 
 ```ts
 export type Context = Record<string, PropType>;
@@ -75,7 +87,9 @@ export type Context = Record<string, PropType>;
 
 ## `atom`
 
-> Const · `type-theory/curry-howard/types.ts:73`
+> Const · `type-theory/curry-howard/types.ts:79`
+
+Tipo atómico (variable proposicional).
 
 ```ts
 const atom
@@ -84,7 +98,9 @@ const atom
 
 ## `arrow`
 
-> Const · `type-theory/curry-howard/types.ts:74`
+> Const · `type-theory/curry-howard/types.ts:81`
+
+Tipo flecha `from → to` (implicación).
 
 ```ts
 const arrow
@@ -93,7 +109,9 @@ const arrow
 
 ## `product`
 
-> Const · `type-theory/curry-howard/types.ts:75`
+> Const · `type-theory/curry-howard/types.ts:83`
+
+Tipo producto `left ∧ right` (conjunción).
 
 ```ts
 const product
@@ -102,7 +120,9 @@ const product
 
 ## `sum`
 
-> Const · `type-theory/curry-howard/types.ts:80`
+> Const · `type-theory/curry-howard/types.ts:89`
+
+Tipo suma `left ∨ right` (disyunción).
 
 ```ts
 const sum
@@ -111,7 +131,9 @@ const sum
 
 ## `bottom`
 
-> Const · `type-theory/curry-howard/types.ts:81`
+> Const · `type-theory/curry-howard/types.ts:91`
+
+Tipo bottom `⊥` (falsedad / tipo vacío).
 
 ```ts
 const bottom
@@ -120,7 +142,9 @@ const bottom
 
 ## `vr`
 
-> Const · `type-theory/curry-howard/types.ts:83`
+> Const · `type-theory/curry-howard/types.ts:94`
+
+Variable λ.
 
 ```ts
 const vr
@@ -129,7 +153,9 @@ const vr
 
 ## `app`
 
-> Const · `type-theory/curry-howard/types.ts:84`
+> Const · `type-theory/curry-howard/types.ts:96`
+
+Aplicación de función (modus ponens).
 
 ```ts
 const app
@@ -138,7 +164,9 @@ const app
 
 ## `abs`
 
-> Const · `type-theory/curry-howard/types.ts:85`
+> Const · `type-theory/curry-howard/types.ts:98`
+
+Abstracción λ (implicación-intro): `λparam:paramType. body`.
 
 ```ts
 const abs
@@ -147,7 +175,9 @@ const abs
 
 ## `pair`
 
-> Const · `type-theory/curry-howard/types.ts:91`
+> Const · `type-theory/curry-howard/types.ts:105`
+
+Par `⟨f, s⟩` (conjunción-intro).
 
 ```ts
 const pair
@@ -156,7 +186,9 @@ const pair
 
 ## `fst`
 
-> Const · `type-theory/curry-howard/types.ts:96`
+> Const · `type-theory/curry-howard/types.ts:111`
+
+Proyección izquierda `fst(p)` (∧E-L).
 
 ```ts
 const fst
@@ -165,7 +197,9 @@ const fst
 
 ## `snd`
 
-> Const · `type-theory/curry-howard/types.ts:97`
+> Const · `type-theory/curry-howard/types.ts:113`
+
+Proyección derecha `snd(p)` (∧E-R).
 
 ```ts
 const snd
@@ -174,7 +208,9 @@ const snd
 
 ## `inl`
 
-> Const · `type-theory/curry-howard/types.ts:98`
+> Const · `type-theory/curry-howard/types.ts:115`
+
+Inyección izquierda `inl(left)` (∨I-L); requiere el tipo del lado derecho.
 
 ```ts
 const inl
@@ -183,7 +219,9 @@ const inl
 
 ## `inr`
 
-> Const · `type-theory/curry-howard/types.ts:103`
+> Const · `type-theory/curry-howard/types.ts:121`
+
+Inyección derecha `inr(right)` (∨I-R); requiere el tipo del lado izquierdo.
 
 ```ts
 const inr
@@ -192,7 +230,9 @@ const inr
 
 ## `cse`
 
-> Const · `type-theory/curry-howard/types.ts:108`
+> Const · `type-theory/curry-howard/types.ts:127`
+
+Eliminación de disyunción `case scrutinee of inl(lb)→leftBody | inr(rb)→rightBody` (∨E).
 
 ```ts
 const cse
@@ -201,7 +241,9 @@ const cse
 
 ## `absurd`
 
-> Const · `type-theory/curry-howard/types.ts:122`
+> Const · `type-theory/curry-howard/types.ts:142`
+
+Ex falso: dado `proofOfFalse : ⊥`, produce cualquier tipo `resultType` (⊥E).
 
 ```ts
 const absurd
@@ -210,7 +252,9 @@ const absurd
 
 ## `eqType`
 
-> Function · `type-theory/curry-howard/types.ts:129`
+> Function · `type-theory/curry-howard/types.ts:150`
+
+Igualdad estructural entre dos tipos proposicionales.
 
 ```ts
 export function eqType(a: PropType, b: PropType): boolean
@@ -230,7 +274,9 @@ export function eqType(a: PropType, b: PropType): boolean
 
 ## `typeToString`
 
-> Function · `type-theory/curry-howard/types.ts:152`
+> Function · `type-theory/curry-howard/types.ts:174`
+
+Serializa un tipo proposicional a texto con notación estándar (→, ∧, ∨, ⊥).
 
 ```ts
 export function typeToString(t: PropType): string
@@ -249,7 +295,9 @@ export function typeToString(t: PropType): string
 
 ## `termToString`
 
-> Function · `type-theory/curry-howard/types.ts:169`
+> Function · `type-theory/curry-howard/types.ts:192`
+
+Serializa un término λ a texto con notación estándar (λ, fst, snd, inl, inr, case, absurd).
 
 ```ts
 export function termToString(t: LambdaTerm): string

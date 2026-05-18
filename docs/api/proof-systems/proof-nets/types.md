@@ -1,6 +1,6 @@
 # `proof-systems/proof-nets/types.ts`
 
-============================================================ Proof Nets — Tipos para MLL (Multiplicative Linear Logic) ============================================================ Proof nets de Girard: representación gráfica de pruebas en linear logic sin "bureaucracy" de orden estructural. Para MLL puro sólo aparecen dos conectivos:   ⊗  (tensor)  — multiplicativo positivo   ⅋  (par)     — multiplicativo negativo Los átomos llevan polaridad explícita (A vs A⊥); la dualidad satisface (A⊥)⊥ = A, (A⊗B)⊥ = A⊥ ⅋ B⊥, (A⅋B)⊥ = A⊥ ⊗ B⊥. Un nodo del net es la ocurrencia de una fórmula en algún punto del grafo. Un link une nodos con la semántica habitual:   axiom    : dos nodos duales, frescos como hojas del net.   cut      : dos nodos duales, no aportan a la conclusión.   tensor   : tres nodos {premisa-izq, premisa-der, conclusión}.   par      : tres nodos {premisa-izq, premisa-der, conclusión}. Las conclusiones del net son los ids de los nodos que viven en el "borde": ni premisa de tensor/par, ni participan en un cut.
+Polarity of an MLL atom: `'pos'` for A, `'neg'` for A⊥.
 
 ## Contents
 
@@ -20,7 +20,9 @@
 
 ## `Polarity`
 
-> Type · `proof-systems/proof-nets/types.ts:25`
+> Type · `proof-systems/proof-nets/types.ts:26`
+
+Polarity of an MLL atom: `'pos'` for A, `'neg'` for A⊥.
 
 ```ts
 export type Polarity = 'pos' | 'neg';
@@ -29,7 +31,11 @@ export type Polarity = 'pos' | 'neg';
 
 ## `MLLFormula`
 
-> Type · `proof-systems/proof-nets/types.ts:27`
+> Type · `proof-systems/proof-nets/types.ts:33`
+
+A formula in Multiplicative Linear Logic (MLL).
+Atoms carry explicit polarity; duality is involutive (A⊥)⊥ = A and
+distributes De Morgan: (A⊗B)⊥ = A⊥ ⅋ B⊥, (A⅋B)⊥ = A⊥ ⊗ B⊥.
 
 ```ts
 export type MLLFormula = | { kind: 'atom'; name: string; polarity: Polarity } | { kind: 'tensor'; left: MLLFormula; right: MLLFormula } | { kind: 'par'; left: MLLFormula; right: MLLFormula };
@@ -38,7 +44,9 @@ export type MLLFormula = | { kind: 'atom'; name: string; polarity: Polarity } | 
 
 ## `LinkKind`
 
-> Type · `proof-systems/proof-nets/types.ts:32`
+> Type · `proof-systems/proof-nets/types.ts:39`
+
+The four link types in a Girard proof net (axiom, cut, tensor, par).
 
 ```ts
 export type LinkKind = 'axiom' | 'cut' | 'tensor' | 'par';
@@ -47,7 +55,7 @@ export type LinkKind = 'axiom' | 'cut' | 'tensor' | 'par';
 
 ## `ProofNetLink`
 
-> Interface · `proof-systems/proof-nets/types.ts:39`
+> Interface · `proof-systems/proof-nets/types.ts:46`
 
 ```ts
 export interface ProofNetLink
@@ -56,7 +64,9 @@ export interface ProofNetLink
 
 ## `ProofNetNode`
 
-> Interface · `proof-systems/proof-nets/types.ts:44`
+> Interface · `proof-systems/proof-nets/types.ts:52`
+
+A single formula occurrence in a proof net, identified by a numeric id.
 
 ```ts
 export interface ProofNetNode
@@ -65,7 +75,10 @@ export interface ProofNetNode
 
 ## `ProofNet`
 
-> Interface · `proof-systems/proof-nets/types.ts:49`
+> Interface · `proof-systems/proof-nets/types.ts:61`
+
+A Girard proof net for MLL.
+`conclusions` holds the ids of border nodes (not premise of any tensor/par, not in a cut).
 
 ```ts
 export interface ProofNet
@@ -74,7 +87,9 @@ export interface ProofNet
 
 ## `atomPos`
 
-> Const · `proof-systems/proof-nets/types.ts:57`
+> Const · `proof-systems/proof-nets/types.ts:70`
+
+Creates a positive atom `A` (polarity `'pos'`).
 
 ```ts
 const atomPos
@@ -83,7 +98,9 @@ const atomPos
 
 ## `atomNeg`
 
-> Const · `proof-systems/proof-nets/types.ts:63`
+> Const · `proof-systems/proof-nets/types.ts:77`
+
+Creates a negative atom `A⊥` (polarity `'neg'`).
 
 ```ts
 const atomNeg
@@ -92,7 +109,9 @@ const atomNeg
 
 ## `tensor`
 
-> Const · `proof-systems/proof-nets/types.ts:69`
+> Const · `proof-systems/proof-nets/types.ts:84`
+
+Creates a tensor formula `A ⊗ B`.
 
 ```ts
 const tensor
@@ -101,7 +120,9 @@ const tensor
 
 ## `par`
 
-> Const · `proof-systems/proof-nets/types.ts:75`
+> Const · `proof-systems/proof-nets/types.ts:91`
+
+Creates a par formula `A ⅋ B`.
 
 ```ts
 const par
@@ -110,7 +131,7 @@ const par
 
 ## `dual`
 
-> Function · `proof-systems/proof-nets/types.ts:82`
+> Function · `proof-systems/proof-nets/types.ts:98`
 
 ```ts
 export function dual(f: MLLFormula): MLLFormula
@@ -129,7 +150,9 @@ export function dual(f: MLLFormula): MLLFormula
 
 ## `formulaEquals`
 
-> Function · `proof-systems/proof-nets/types.ts:93`
+> Function · `proof-systems/proof-nets/types.ts:110`
+
+Returns `true` when two MLL formulas are structurally equal.
 
 ```ts
 export function formulaEquals(a: MLLFormula, b: MLLFormula): boolean
@@ -149,7 +172,9 @@ export function formulaEquals(a: MLLFormula, b: MLLFormula): boolean
 
 ## `formulaToString`
 
-> Function · `proof-systems/proof-nets/types.ts:106`
+> Function · `proof-systems/proof-nets/types.ts:124`
+
+Renders an MLL formula as a human-readable string using ⊗, ⅋, and ⊥ notation.
 
 ```ts
 export function formulaToString(f: MLLFormula): string

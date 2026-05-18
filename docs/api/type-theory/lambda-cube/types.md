@@ -1,6 +1,6 @@
 # `type-theory/lambda-cube/types.ts`
 
-============================================================ Lambda Cube (Barendregt) — Términos como Pure Type System (PTS) ============================================================ El cubo λ de Barendregt presenta 8 sistemas de tipos puros como activaciones de 3 ejes ortogonales sobre el λ-cálculo simplemente tipado:        polymorphism             ──   ∀ sobre términos     (λ2, λω, λC ...)        type operators           ──   funciones a nivel tipo (λω, λC ...)        dependent types          ──   tipos que dependen de términos (λP, λC ...) Cada combinación es un PTS con dos sorts:        * (Set / Prop)     y     ◻ (Type / Kind) y un conjunto de reglas de formación (s1, s2) para Π. La sintaxis unificada usada en este módulo:        t ::= x            | s                 sort (* | ◻)            | Π x:t. t          producto dependiente            | λ x:t. t          abstracción            | t t               aplicación Las reglas de formación de cada vértice del cubo deciden qué abstracciones son legales. Por ejemplo:   λ→         (*, *)                              STLC   λ2         (*, *) (◻, *)                       System F   λω̄         (*, *) (◻, ◻)                       λω débil   λω         (*, *) (◻, *) (◻, ◻)                System Fω   λP         (*, *) (*, ◻)                       LF / λΠ   λP2        (*, *) (◻, *) (*, ◻)   λPω̄        (*, *) (*, ◻) (◻, ◻)   λC         (*, *) (◻, *) (*, ◻) (◻, ◻)         Calculus of Constructions
+Sort del cubo λ: `'*'` (tipo/proposición) o `'◻'` (kind/tipo de tipos).
 
 ## Contents
 
@@ -25,7 +25,9 @@
 
 ## `Sort`
 
-> Type · `type-theory/lambda-cube/types.ts:39`
+> Type · `type-theory/lambda-cube/types.ts:40`
+
+Sort del cubo λ: `'*'` (tipo/proposición) o `'◻'` (kind/tipo de tipos).
 
 ```ts
 export type Sort = '*' | '◻';
@@ -34,7 +36,9 @@ export type Sort = '*' | '◻';
 
 ## `CubeSystem`
 
-> Type · `type-theory/lambda-cube/types.ts:41`
+> Type · `type-theory/lambda-cube/types.ts:43`
+
+Uno de los 8 sistemas del cubo λ de Barendregt, identificado por su nombre canónico.
 
 ```ts
 export type CubeSystem = | 'lambda' | 'lambda2' | 'lambda-omega-bar' | 'lambda-omega' | 'lambda-P' | 'lambda-P2' | 'lambda-P-omega' | 'lambda-C';
@@ -43,7 +47,9 @@ export type CubeSystem = | 'lambda' | 'lambda2' | 'lambda-omega-bar' | 'lambda-o
 
 ## `CubeTerm`
 
-> Type · `type-theory/lambda-cube/types.ts:51`
+> Type · `type-theory/lambda-cube/types.ts:54`
+
+Término de un Pure Type System del cubo λ: variable, sort, Π-tipo, λ-abstracción o aplicación.
 
 ```ts
 export type CubeTerm = | { kind: 'var'; name: string } | { kind: 'sort'; sort: Sort } | { kind: 'pi'; bind: string; domain: CubeTerm; codomain: CubeTerm } | { kind: 'lam'; bind: string; domain: CubeTerm; body: CubeTerm } | { kind: 'app'; fn: CubeTerm; arg: CubeTerm };
@@ -52,7 +58,9 @@ export type CubeTerm = | { kind: 'var'; name: string } | { kind: 'sort'; sort: S
 
 ## `cVar`
 
-> Const · `type-theory/lambda-cube/types.ts:60`
+> Const · `type-theory/lambda-cube/types.ts:64`
+
+Variable de término o tipo.
 
 ```ts
 const cVar
@@ -61,7 +69,9 @@ const cVar
 
 ## `cSort`
 
-> Const · `type-theory/lambda-cube/types.ts:61`
+> Const · `type-theory/lambda-cube/types.ts:66`
+
+Sort arbitrario `'*'` o `'◻'`.
 
 ```ts
 const cSort
@@ -70,7 +80,9 @@ const cSort
 
 ## `cStar`
 
-> Const · `type-theory/lambda-cube/types.ts:62`
+> Const · `type-theory/lambda-cube/types.ts:68`
+
+Sort `*` (tipo/proposición).
 
 ```ts
 const cStar: CubeTerm
@@ -79,7 +91,9 @@ const cStar: CubeTerm
 
 ## `cBox`
 
-> Const · `type-theory/lambda-cube/types.ts:63`
+> Const · `type-theory/lambda-cube/types.ts:70`
+
+Sort `◻` (kind / tipo de tipos).
 
 ```ts
 const cBox: CubeTerm
@@ -88,7 +102,9 @@ const cBox: CubeTerm
 
 ## `cPi`
 
-> Const · `type-theory/lambda-cube/types.ts:64`
+> Const · `type-theory/lambda-cube/types.ts:72`
+
+Π-tipo dependiente `Π bind:domain. codomain`.
 
 ```ts
 const cPi
@@ -97,7 +113,9 @@ const cPi
 
 ## `cLam`
 
-> Const · `type-theory/lambda-cube/types.ts:70`
+> Const · `type-theory/lambda-cube/types.ts:79`
+
+Abstracción dependiente `λ bind:domain. body`.
 
 ```ts
 const cLam
@@ -106,7 +124,9 @@ const cLam
 
 ## `cApp`
 
-> Const · `type-theory/lambda-cube/types.ts:76`
+> Const · `type-theory/lambda-cube/types.ts:86`
+
+Aplicación `fn arg`.
 
 ```ts
 const cApp
@@ -115,7 +135,7 @@ const cApp
 
 ## `cArrow`
 
-> Const · `type-theory/lambda-cube/types.ts:79`
+> Const · `type-theory/lambda-cube/types.ts:89`
 
 Flecha no-dependiente: Π (_ : A). B, cuando B no menciona el binder.
 
@@ -126,7 +146,9 @@ const cArrow
 
 ## `occursFree`
 
-> Function · `type-theory/lambda-cube/types.ts:83`
+> Function · `type-theory/lambda-cube/types.ts:94`
+
+Devuelve `true` si `name` ocurre libre en `term`.
 
 ```ts
 export function occursFree(name: string, term: CubeTerm): boolean
@@ -146,7 +168,9 @@ export function occursFree(name: string, term: CubeTerm): boolean
 
 ## `freeVars`
 
-> Function · `type-theory/lambda-cube/types.ts:101`
+> Function · `type-theory/lambda-cube/types.ts:113`
+
+Acumula en `acc` (o devuelve un nuevo Set) el conjunto de variables libres del término.
 
 ```ts
 export function freeVars(term: CubeTerm, acc: Set<string> = new Set()): Set<string>
@@ -166,7 +190,9 @@ export function freeVars(term: CubeTerm, acc: Set<string> = new Set()): Set<stri
 
 ## `termToString`
 
-> Function · `type-theory/lambda-cube/types.ts:126`
+> Function · `type-theory/lambda-cube/types.ts:139`
+
+Serializa un término del cubo λ a texto legible (Π, λ, →, sorts).
 
 ```ts
 export function termToString(t: CubeTerm): string
@@ -185,7 +211,9 @@ export function termToString(t: CubeTerm): string
 
 ## `alphaEq`
 
-> Function · `type-theory/lambda-cube/types.ts:158`
+> Function · `type-theory/lambda-cube/types.ts:172`
+
+α-equivalencia entre dos términos del cubo λ (renombra binders a índices canónicos).
 
 ```ts
 export function alphaEq(a: CubeTerm, b: CubeTerm): boolean
@@ -205,7 +233,9 @@ export function alphaEq(a: CubeTerm, b: CubeTerm): boolean
 
 ## `CubeContext`
 
-> Type · `type-theory/lambda-cube/types.ts:209`
+> Type · `type-theory/lambda-cube/types.ts:224`
+
+Contexto de tipado del cubo λ: mapa de variables a sus tipos.
 
 ```ts
 export type CubeContext = Map<string, CubeTerm>;
@@ -214,7 +244,9 @@ export type CubeContext = Map<string, CubeTerm>;
 
 ## `emptyContext`
 
-> Function · `type-theory/lambda-cube/types.ts:211`
+> Function · `type-theory/lambda-cube/types.ts:227`
+
+Crea un contexto vacío para el cubo λ.
 
 ```ts
 export function emptyContext(): CubeContext
@@ -227,7 +259,9 @@ export function emptyContext(): CubeContext
 
 ## `extendContext`
 
-> Function · `type-theory/lambda-cube/types.ts:215`
+> Function · `type-theory/lambda-cube/types.ts:232`
+
+Extiende el contexto con `name : type`. Devuelve un nuevo mapa (no muta el original).
 
 ```ts
 export function extendContext(ctx: CubeContext, name: string, type: CubeTerm): CubeContext

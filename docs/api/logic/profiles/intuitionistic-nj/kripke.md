@@ -9,7 +9,7 @@
 
 ## `kripkeCounterModel`
 
-> Function · `logic/profiles/intuitionistic-nj/kripke.ts:190`
+> Function · `logic/profiles/intuitionistic-nj/kripke.ts:192`
 
 API pública: si `formula` NO es válida intuicionistamente,
 devuelve un modelo Kripke cuya raíz (w0) la refuta. Si es
@@ -35,7 +35,7 @@ export function kripkeCounterModel( formula: IntuitFormula, options: { maxWorlds
 
 ## `isIPCValid`
 
-> Function · `logic/profiles/intuitionistic-nj/kripke.ts:208`
+> Function · `logic/profiles/intuitionistic-nj/kripke.ts:210`
 
 Helper: ¿la fórmula es válida intuicionistamente bajo modelos
 de tamaño ≤ `maxWorlds`? Útil en tests para cruzar con el prover.

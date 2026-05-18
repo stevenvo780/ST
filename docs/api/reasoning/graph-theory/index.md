@@ -89,7 +89,9 @@ export function makeGraph<V>(directed = false): Graph<V>
 
 ## `addVertex`
 
-> Function · `reasoning/graph-theory/index.ts:72`
+> Function · `reasoning/graph-theory/index.ts:73`
+
+Añade el vértice `v` al grafo `G` (sin aristas).
 
 ```ts
 export function addVertex<V>(G: Graph<V>, v: V): void
@@ -109,7 +111,9 @@ export function addVertex<V>(G: Graph<V>, v: V): void
 
 ## `addEdge`
 
-> Function · `reasoning/graph-theory/index.ts:76`
+> Function · `reasoning/graph-theory/index.ts:78`
+
+Añade la arista `e` al grafo `G`, incluyendo sus extremos como vértices si es necesario.
 
 ```ts
 export function addEdge<V>(G: Graph<V>, e: Edge<V>): void
@@ -129,7 +133,9 @@ export function addEdge<V>(G: Graph<V>, e: Edge<V>): void
 
 ## `neighbors`
 
-> Function · `reasoning/graph-theory/index.ts:83`
+> Function · `reasoning/graph-theory/index.ts:85`
+
+Devuelve los vecinos salientes de `v` (en no dirigido, ambos extremos cuentan).
 
 ```ts
 export function neighbors<V>(G: Graph<V>, v: V): V[]
@@ -149,7 +155,9 @@ export function neighbors<V>(G: Graph<V>, v: V): V[]
 
 ## `inDegree`
 
-> Function · `reasoning/graph-theory/index.ts:92`
+> Function · `reasoning/graph-theory/index.ts:95`
+
+Grado de entrada de `v` (en grafo no dirigido, igual al grado total).
 
 ```ts
 export function inDegree<V>(G: Graph<V>, v: V): number
@@ -169,7 +177,9 @@ export function inDegree<V>(G: Graph<V>, v: V): number
 
 ## `outDegree`
 
-> Function · `reasoning/graph-theory/index.ts:99`
+> Function · `reasoning/graph-theory/index.ts:103`
+
+Grado de salida de `v` (en grafo no dirigido, igual al grado total).
 
 ```ts
 export function outDegree<V>(G: Graph<V>, v: V): number
@@ -189,7 +199,9 @@ export function outDegree<V>(G: Graph<V>, v: V): number
 
 ## `bfs`
 
-> Function · `reasoning/graph-theory/index.ts:143`
+> Function · `reasoning/graph-theory/index.ts:148`
+
+BFS desde `start`; devuelve los vértices en orden de visita. Llama `visit` por cada uno si se proporciona.
 
 ```ts
 export function bfs<V>(G: Graph<V>, start: V, visit?: (v: V) => void): V[]
@@ -210,7 +222,9 @@ export function bfs<V>(G: Graph<V>, start: V, visit?: (v: V) => void): V[]
 
 ## `dfs`
 
-> Function · `reasoning/graph-theory/index.ts:165`
+> Function · `reasoning/graph-theory/index.ts:171`
+
+DFS desde `start`; devuelve los vértices en orden de visita. Llama `visit` por cada uno si se proporciona.
 
 ```ts
 export function dfs<V>(G: Graph<V>, start: V, visit?: (v: V) => void): V[]
@@ -231,7 +245,9 @@ export function dfs<V>(G: Graph<V>, start: V, visit?: (v: V) => void): V[]
 
 ## `topologicalSort`
 
-> Function · `reasoning/graph-theory/index.ts:188`
+> Function · `reasoning/graph-theory/index.ts:194`
+
+Orden topológico vía Kahn. Devuelve `'has-cycle'` si el grafo no es un DAG.
 
 ```ts
 export function topologicalSort<V>(G: Graph<V>): V[] | 'has-cycle'
@@ -250,7 +266,9 @@ export function topologicalSort<V>(G: Graph<V>): V[] | 'has-cycle'
 
 ## `connectedComponents`
 
-> Function · `reasoning/graph-theory/index.ts:221`
+> Function · `reasoning/graph-theory/index.ts:228`
+
+Componentes conexos (débiles en dirigido) del grafo. Cada componente es una lista de vértices.
 
 ```ts
 export function connectedComponents<V>(G: Graph<V>): V[][]
@@ -269,7 +287,9 @@ export function connectedComponents<V>(G: Graph<V>): V[][]
 
 ## `isConnected`
 
-> Function · `reasoning/graph-theory/index.ts:248`
+> Function · `reasoning/graph-theory/index.ts:256`
+
+Devuelve `true` si el grafo tiene un solo componente conexo.
 
 ```ts
 export function isConnected<V>(G: Graph<V>): boolean
@@ -288,7 +308,9 @@ export function isConnected<V>(G: Graph<V>): boolean
 
 ## `stronglyConnectedComponents`
 
-> Function · `reasoning/graph-theory/index.ts:255`
+> Function · `reasoning/graph-theory/index.ts:262`
+
+Componentes fuertemente conexos (Tarjan, iterativo). En no dirigido cada SCC = componente conexo.
 
 ```ts
 export function stronglyConnectedComponents<V>(G: Graph<V>): V[][]
@@ -307,7 +329,9 @@ export function stronglyConnectedComponents<V>(G: Graph<V>): V[][]
 
 ## `articulationPoints`
 
-> Function · `reasoning/graph-theory/index.ts:325`
+> Function · `reasoning/graph-theory/index.ts:332`
+
+Puntos de articulación (corte) del grafo no dirigido, detectados vía DFS lowlink.
 
 ```ts
 export function articulationPoints<V>(G: Graph<V>): V[]
@@ -326,7 +350,9 @@ export function articulationPoints<V>(G: Graph<V>): V[]
 
 ## `bridges`
 
-> Function · `reasoning/graph-theory/index.ts:384`
+> Function · `reasoning/graph-theory/index.ts:391`
+
+Puentes del grafo no dirigido (DFS lowlink): aristas cuya eliminación desconecta el grafo.
 
 ```ts
 export function bridges<V>(G: Graph<V>): Array<
@@ -345,7 +371,9 @@ export function bridges<V>(G: Graph<V>): Array<
 
 ## `dijkstra`
 
-> Function · `reasoning/graph-theory/index.ts:493`
+> Function · `reasoning/graph-theory/index.ts:504`
+
+Dijkstra: caminos mínimos desde `start` (pesos no negativos).
 
 ```ts
 export function dijkstra<V>( G: Graph<V>, start: V, ):
@@ -365,7 +393,9 @@ export function dijkstra<V>( G: Graph<V>, start: V, ):
 
 ## `bellmanFord`
 
-> Function · `reasoning/graph-theory/index.ts:529`
+> Function · `reasoning/graph-theory/index.ts:541`
+
+Bellman-Ford: caminos mínimos desde `start` con detección de ciclos negativos.
 
 ```ts
 export function bellmanFord<V>( G: Graph<V>, start: V, ):
@@ -385,7 +415,9 @@ export function bellmanFord<V>( G: Graph<V>, start: V, ):
 
 ## `floydWarshall`
 
-> Function · `reasoning/graph-theory/index.ts:575`
+> Function · `reasoning/graph-theory/index.ts:588`
+
+Floyd-Warshall: distancias mínimas entre todos los pares de vértices O(n³).
 
 ```ts
 export function floydWarshall<V>(G: Graph<V>): Map<V, Map<V, number>>
@@ -404,7 +436,9 @@ export function floydWarshall<V>(G: Graph<V>): Map<V, Map<V, number>>
 
 ## `kruskal`
 
-> Function · `reasoning/graph-theory/index.ts:662`
+> Function · `reasoning/graph-theory/index.ts:676`
+
+Kruskal: árbol generador mínimo en grafo no dirigido (DSU + ordenación por peso).
 
 ```ts
 export function kruskal<V>(G: Graph<V>):
@@ -423,7 +457,9 @@ export function kruskal<V>(G: Graph<V>):
 
 ## `prim`
 
-> Function · `reasoning/graph-theory/index.ts:682`
+> Function · `reasoning/graph-theory/index.ts:697`
+
+Prim: árbol generador mínimo en grafo no dirigido (cola de prioridad).
 
 ```ts
 export function prim<V>( G: Graph<V>, start?: V, ):
@@ -443,7 +479,9 @@ export function prim<V>( G: Graph<V>, start?: V, ):
 
 ## `bipartiteMaximumMatching`
 
-> Function · `reasoning/graph-theory/index.ts:721`
+> Function · `reasoning/graph-theory/index.ts:736`
+
+Emparejamiento bipartito máximo vía DFS-aumento (algoritmo de Kuhn).
 
 ```ts
 export function bipartiteMaximumMatching<V>( G: Graph<V>, leftPartition: Set<V>, ): Array<
@@ -463,7 +501,9 @@ export function bipartiteMaximumMatching<V>( G: Graph<V>, leftPartition: Set<V>,
 
 ## `hopcroftKarp`
 
-> Function · `reasoning/graph-theory/index.ts:751`
+> Function · `reasoning/graph-theory/index.ts:766`
+
+Hopcroft-Karp: emparejamiento bipartito máximo con BFS por niveles + DFS de aumento (O(E√V)).
 
 ```ts
 export function hopcroftKarp<V>(G: Graph<V>, leftPartition: Set<V>): Array<
@@ -483,7 +523,9 @@ export function hopcroftKarp<V>(G: Graph<V>, leftPartition: Set<V>): Array<
 
 ## `greedyColoring`
 
-> Function · `reasoning/graph-theory/index.ts:836`
+> Function · `reasoning/graph-theory/index.ts:851`
+
+Coloreo greedy: ordena por grado descendente y asigna el primer color disponible.
 
 ```ts
 export function greedyColoring<V>(G: Graph<V>): Map<V, number>
@@ -502,7 +544,9 @@ export function greedyColoring<V>(G: Graph<V>): Map<V, number>
 
 ## `chromaticNumber`
 
-> Function · `reasoning/graph-theory/index.ts:855`
+> Function · `reasoning/graph-theory/index.ts:870`
+
+Número cromático χ(G) por backtracking con poda (intenta k = 1, 2, …). Solo apto para grafos pequeños.
 
 ```ts
 export function chromaticNumber<V>(G: Graph<V>): number
@@ -521,7 +565,9 @@ export function chromaticNumber<V>(G: Graph<V>): number
 
 ## `areIsomorphic`
 
-> Function · `reasoning/graph-theory/index.ts:919`
+> Function · `reasoning/graph-theory/index.ts:935`
+
+Devuelve `true` si los grafos `g1` y `g2` son isomorfos (estructuralmente equivalentes).
 
 ```ts
 export function areIsomorphic<V1, V2>(g1: Graph<V1>, g2: Graph<V2>): boolean
@@ -541,7 +587,9 @@ export function areIsomorphic<V1, V2>(g1: Graph<V1>, g2: Graph<V2>): boolean
 
 ## `findIsomorphism`
 
-> Function · `reasoning/graph-theory/index.ts:923`
+> Function · `reasoning/graph-theory/index.ts:940`
+
+Busca un isomorfismo entre `g1` y `g2`; devuelve el mapeo de vértices o `null` si no existe.
 
 ```ts
 export function findIsomorphism<V1, V2>(g1: Graph<V1>, g2: Graph<V2>): Map<V1, V2> | null

@@ -21,7 +21,7 @@ export type PropFormula = { kind: string; [k: string]: unknown; };
 
 ## `createPropositionalProver`
 
-> Function · `proof-systems/tableau-framework/propositional.ts:155`
+> Function · `proof-systems/tableau-framework/propositional.ts:151`
 
 ```ts
 export function createPropositionalProver(): TableauProver<PropFormula>

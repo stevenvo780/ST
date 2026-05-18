@@ -414,7 +414,7 @@ export function cross(a: Vector, b: Vector): Vector
 
 ## `rref`
 
-> Function · `reasoning/linear-algebra/index.ts:267`
+> Function · `reasoning/linear-algebra/index.ts:263`
 
 Reduce la matriz a forma escalonada reducida (RREF) por Gauss-Jordan. Devuelve la matriz reducida, el rango y las columnas pivot.
 
@@ -435,7 +435,7 @@ export function rref(M: Matrix):
 
 ## `rank`
 
-> Function · `reasoning/linear-algebra/index.ts:320`
+> Function · `reasoning/linear-algebra/index.ts:316`
 
 Calcula el rango de la matriz `M` mediante RREF.
 
@@ -456,7 +456,7 @@ export function rank(M: Matrix): number
 
 ## `determinant`
 
-> Function · `reasoning/linear-algebra/index.ts:325`
+> Function · `reasoning/linear-algebra/index.ts:321`
 
 Calcula el determinante de la matriz cuadrada `M` por eliminación de Gauss con pivoteo parcial.
 
@@ -477,7 +477,7 @@ export function determinant(M: Matrix): number
 
 ## `inverse`
 
-> Function · `reasoning/linear-algebra/index.ts:371`
+> Function · `reasoning/linear-algebra/index.ts:367`
 
 Devuelve la inversa de la matriz cuadrada `M`, o `null` si es singular.
 
@@ -498,7 +498,7 @@ export function inverse(M: Matrix): Matrix | null
 
 ## `solve`
 
-> Function · `reasoning/linear-algebra/index.ts:403`
+> Function · `reasoning/linear-algebra/index.ts:399`
 
 Resuelve el sistema lineal Ax = b. Devuelve `null` si no tiene solución única (sistema indeterminado o incompatible).
 
@@ -520,7 +520,7 @@ export function solve(A: Matrix, b: Vector): Vector | null
 
 ## `leastSquares`
 
-> Function · `reasoning/linear-algebra/index.ts:433`
+> Function · `reasoning/linear-algebra/index.ts:429`
 
 Calcula la solución de mínimos cuadrados de Ax ≈ b vía ecuaciones normales (AᵀAx = Aᵀb).
 
@@ -542,7 +542,7 @@ export function leastSquares(A: Matrix, b: Vector): Vector
 
 ## `LU`
 
-> Interface · `reasoning/linear-algebra/index.ts:452`
+> Interface · `reasoning/linear-algebra/index.ts:448`
 
 Resultado de una descomposición LU con pivoteo parcial: L, U y la permutación P.
 
@@ -553,7 +553,7 @@ export interface LU
 
 ## `decomposeLU`
 
-> Function · `reasoning/linear-algebra/index.ts:459`
+> Function · `reasoning/linear-algebra/index.ts:455`
 
 Descomposición LU con pivoteo parcial de la matriz cuadrada `M`. Devuelve `null` si es singular.
 
@@ -574,7 +574,7 @@ export function decomposeLU(M: Matrix): LU | null
 
 ## `permutationMatrix`
 
-> Function · `reasoning/linear-algebra/index.ts:510`
+> Function · `reasoning/linear-algebra/index.ts:506`
 
 Construye la matriz de permutación correspondiente al vector de permutación `P`.
 
@@ -595,7 +595,7 @@ export function permutationMatrix(P: number[]): Matrix
 
 ## `QR`
 
-> Interface · `reasoning/linear-algebra/index.ts:520`
+> Interface · `reasoning/linear-algebra/index.ts:516`
 
 Resultado de una descomposición QR: Q ortogonal y R triangular superior.
 
@@ -606,7 +606,7 @@ export interface QR
 
 ## `decomposeQR`
 
-> Function · `reasoning/linear-algebra/index.ts:526`
+> Function · `reasoning/linear-algebra/index.ts:522`
 
 Descomposición QR por Gram-Schmidt para matrices con `rows >= cols`.
 
@@ -627,7 +627,7 @@ export function decomposeQR(M: Matrix): QR
 
 ## `SVD`
 
-> Interface · `reasoning/linear-algebra/index.ts:565`
+> Interface · `reasoning/linear-algebra/index.ts:561`
 
 Resultado de una descomposición SVD: matrices U, V y valores singulares S.
 
@@ -665,7 +665,7 @@ export function decomposeSVD(M: Matrix, maxIter = 200): SVD
 Calcula el autovalor dominante y su autovector por el método de la potencia.
 
 ```ts
-export function powerIteration( M: Matrix, opts: { maxIter?: number; eps?: number } = {} ):
+export function powerIteration( M: Matrix, opts: { maxIter?: number; eps?: number } = {}, ):
 ```
 
 ### Parameters
@@ -687,7 +687,7 @@ export function powerIteration( M: Matrix, opts: { maxIter?: number; eps?: numbe
 Calcula los autovalores reales de la matriz cuadrada `M` (QR iterativo para asimétricas, Jacobi para simétricas).
 
 ```ts
-export function eigenvalues( M: Matrix, opts: { maxIter?: number; eps?: number } =
+export function eigenvalues(M: Matrix, opts: { maxIter?: number; eps?: number } =
 ```
 
 ### Parameters
@@ -704,12 +704,12 @@ export function eigenvalues( M: Matrix, opts: { maxIter?: number; eps?: number }
 
 ## `eigenvectors`
 
-> Function · `reasoning/linear-algebra/index.ts:795`
+> Function · `reasoning/linear-algebra/index.ts:792`
 
 Calcula autovalores y autovectores de la matriz simétrica `M` por el algoritmo de Jacobi.
 
 ```ts
-export function eigenvectors( M: Matrix, opts: { maxIter?: number; eps?: number } = {} ):
+export function eigenvectors( M: Matrix, opts: { maxIter?: number; eps?: number } = {}, ):
 ```
 
 ### Parameters
@@ -726,7 +726,7 @@ export function eigenvectors( M: Matrix, opts: { maxIter?: number; eps?: number 
 
 ## `nullSpace`
 
-> Function · `reasoning/linear-algebra/index.ts:828`
+> Function · `reasoning/linear-algebra/index.ts:825`
 
 Devuelve una base del espacio nulo (kernel) de `M` usando RREF.
 
@@ -747,7 +747,7 @@ export function nullSpace(M: Matrix): Vector[]
 
 ## `columnSpace`
 
-> Function · `reasoning/linear-algebra/index.ts:856`
+> Function · `reasoning/linear-algebra/index.ts:853`
 
 Devuelve una base del espacio columna (imagen) de `M` como las columnas pivot del original.
 
@@ -768,7 +768,7 @@ export function columnSpace(M: Matrix): Vector[]
 
 ## `gramSchmidt`
 
-> Function · `reasoning/linear-algebra/index.ts:871`
+> Function · `reasoning/linear-algebra/index.ts:868`
 
 Ortogonaliza y normaliza la lista de vectores mediante el proceso de Gram-Schmidt. Descarta vectores linealmente dependientes.
 
@@ -789,7 +789,7 @@ export function gramSchmidt(vectors: Vector[]): Vector[]
 
 ## `isLinearlyIndependent`
 
-> Function · `reasoning/linear-algebra/index.ts:906`
+> Function · `reasoning/linear-algebra/index.ts:903`
 
 Comprueba si la lista de vectores es linealmente independiente verificando que el rango de la matriz columna sea igual a su cantidad.
 

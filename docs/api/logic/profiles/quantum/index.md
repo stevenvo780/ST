@@ -488,7 +488,7 @@ export function findOrthogonalTriples( vectors: Vector[], eps: number = 1e-7, ):
 
 ## `isKSColorable`
 
-> Function · `logic/profiles/quantum/index.ts:465`
+> Function · `logic/profiles/quantum/index.ts:467`
 
 ¿Existe una coloración {0,1} de los vectores tal que:
  - dos vectores que generan el mismo rayo reciben el mismo color,
@@ -517,7 +517,7 @@ export function isKSColorable(config: KSConfiguration): boolean
 
 ## `kochenSpeckerTheorem3D`
 
-> Function · `logic/profiles/quantum/index.ts:611`
+> Function · `logic/profiles/quantum/index.ts:613`
 
 Configuración estilo-Peres: rayos en R^3 con coordenadas en
 { -1, 0, 1, ±√2 }, deduplicados por rayo. La cantidad exacta de
@@ -545,7 +545,7 @@ export function kochenSpeckerTheorem3D(): KSConfiguration
 
 ## `kochenSpeckerCabello18`
 
-> Function · `logic/profiles/quantum/index.ts:673`
+> Function · `logic/profiles/quantum/index.ts:675`
 
 Configuración Cabello-Estebaranz-García (1996): 18 vectores en
 R^4 que constituyen el menor conjunto Kochen-Specker conocido
@@ -581,7 +581,7 @@ export function kochenSpeckerCabello18():
 
 ## `isKSColorableContexts`
 
-> Function · `logic/profiles/quantum/index.ts:729`
+> Function · `logic/profiles/quantum/index.ts:731`
 
 Checker KS para contextos de cualquier aridad (no sólo R^3
 triples). Verifica que existe una asignación {0,1} a cada rayo

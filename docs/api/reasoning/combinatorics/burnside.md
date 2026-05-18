@@ -17,7 +17,7 @@ el conjunto X sobre el que actúa el grupo son las cadenas de longitud
 |X/G| = (1/|G|) * sum_{g in G} |X^g|
 
 ```ts
-export function burnsideCount<T>( items: T[], length: number, groupActions: Array<(x: T[]) => T[]> ): number
+export function burnsideCount<T>( items: T[], length: number, groupActions: Array<(x: T[]) => T[]>, ): number
 ```
 
 ### Parameters

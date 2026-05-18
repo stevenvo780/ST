@@ -89,7 +89,7 @@ export function bellNumber(n: number): bigint
 
 ## `eulerNumber`
 
-> Function · `reasoning/combinatorics/special-numbers.ts:85`
+> Function · `reasoning/combinatorics/special-numbers.ts:86`
 
 ```ts
 export function eulerNumber(n: number): bigint
@@ -108,7 +108,7 @@ export function eulerNumber(n: number): bigint
 
 ## `eulerianNumber`
 
-> Function · `reasoning/combinatorics/special-numbers.ts:110`
+> Function · `reasoning/combinatorics/special-numbers.ts:111`
 
 ```ts
 export function eulerianNumber(n: number, k: number): bigint

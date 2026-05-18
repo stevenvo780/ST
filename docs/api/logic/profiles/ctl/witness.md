@@ -4,7 +4,7 @@
 
 ## `generateWitness`
 
-> Function · `logic/profiles/ctl/witness.ts:83`
+> Function · `logic/profiles/ctl/witness.ts:84`
 
 Encuentra un camino testigo finito (`stateId[]`) que justifique
 que `phi` se cumple en `state`. Devuelve `null` si:

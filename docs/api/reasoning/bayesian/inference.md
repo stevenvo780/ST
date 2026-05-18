@@ -52,7 +52,7 @@ export function variableElimination( net: BayesianNetwork, queryVar: string, evi
 
 ## `query`
 
-> Function · `reasoning/bayesian/inference.ts:193`
+> Function · `reasoning/bayesian/inference.ts:197`
 
 ```ts
 export function query( net: BayesianNetwork, queryVar: string, evidence: Evidence =
@@ -73,7 +73,7 @@ export function query( net: BayesianNetwork, queryVar: string, evidence: Evidenc
 
 ## `mostProbableExplanation`
 
-> Function · `reasoning/bayesian/inference.ts:207`
+> Function · `reasoning/bayesian/inference.ts:211`
 
 ```ts
 export function mostProbableExplanation( net: BayesianNetwork, evidence: Evidence =

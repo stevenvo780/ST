@@ -26,7 +26,7 @@ both positive integers, encoding `1/eps -> 1/delta`. So
 
 ## `ConstructiveContinuous`
 
-> Interface · `reasoning/constructive-analysis/continuity.ts:27`
+> Interface · `reasoning/constructive-analysis/continuity.ts:20`
 
 ```ts
 export interface ConstructiveContinuous
@@ -35,7 +35,7 @@ export interface ConstructiveContinuous
 
 ## `isUniformlyContinuousOn`
 
-> Const · `reasoning/constructive-analysis/continuity.ts:46`
+> Const · `reasoning/constructive-analysis/continuity.ts:39`
 
 Sound sampling-based check that the modulus is correct on `[a, b]`.
 
@@ -51,7 +51,7 @@ const isUniformlyContinuousOn
 
 ## `composition`
 
-> Const · `reasoning/constructive-analysis/continuity.ts:93`
+> Const · `reasoning/constructive-analysis/continuity.ts:86`
 
 Composition of uniformly continuous functions.
 
@@ -68,7 +68,7 @@ const composition
 
 ## `constant`
 
-> Const · `reasoning/constructive-analysis/continuity.ts:104`
+> Const · `reasoning/constructive-analysis/continuity.ts:97`
 
 Constant function. Modulus is trivial (any positive integer works).
 
@@ -79,7 +79,7 @@ const constant
 
 ## `identity`
 
-> Const · `reasoning/constructive-analysis/continuity.ts:112`
+> Const · `reasoning/constructive-analysis/continuity.ts:105`
 
 Identity. Lipschitz-1, modulus(eps) = eps.
 
@@ -90,7 +90,7 @@ const identity
 
 ## `lipschitz`
 
-> Const · `reasoning/constructive-analysis/continuity.ts:123`
+> Const · `reasoning/constructive-analysis/continuity.ts:116`
 
 Lipschitz function from a JS callback with known Lipschitz constant L.
 Useful for tests. Modulus(eps) = ceil(L * eps).

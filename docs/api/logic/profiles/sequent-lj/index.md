@@ -1,6 +1,6 @@
 # `logic/profiles/sequent-lj/index.ts`
 
-============================================================ LJ Sequent Calculus — Calculo de secuentes intuicionista ============================================================ LJ de Gentzen (1934) para logica intuicionista proposicional. A diferencia de LK clasico, LJ admite a lo sumo UNA formula en el succedente: secuentes de la forma Γ ⊢ φ (con succedente no vacio) o Γ ⊢ (succedente vacio). Esta restriccion es lo que hace que LJ NO derive ¬¬P → P ni P ∨ ¬P (LEM/DNE clasicas). Reglas (proposicionales):   axiom   : A, Γ ⊢ A   cut     : Γ ⊢ A     A, Σ ⊢ C    ⟹   Γ, Σ ⊢ C   weakL   : Γ ⊢ C                  ⟹   A, Γ ⊢ C   contrL  : A, A, Γ ⊢ C            ⟹   A, Γ ⊢ C   exL     : permuta a la izquierda   notL    : Γ ⊢ A                  ⟹   ¬A, Γ ⊢ C   notR    : A, Γ ⊢                 ⟹   Γ ⊢ ¬A     (succedente vacio)   andL    : A, B, Γ ⊢ C            ⟹   A∧B, Γ ⊢ C   andR    : Γ ⊢ A   y   Γ ⊢ B      ⟹   Γ ⊢ A∧B   orL     : A, Γ ⊢ C  y  B, Γ ⊢ C  ⟹   A∨B, Γ ⊢ C   orR-l   : Γ ⊢ A                  ⟹   Γ ⊢ A∨B   orR-r   : Γ ⊢ B                  ⟹   Γ ⊢ A∨B   impL    : Γ ⊢ A   y   B, Γ ⊢ C   ⟹   A→B, Γ ⊢ C   impR    : A, Γ ⊢ B               ⟹   Γ ⊢ A→B   bottomL : ⊥, Γ ⊢ C               (ex falso quodlibet) Glivenko (1929): Γ ⊢_LK φ  sii  Γ ⊢_LJ ¬¬φ. La funcion `glivenkoEmbed` traduce una formula clasica a su lectura intuicionista doble-negada.   import { proveLJ, hasCut, eliminateCut, isValid, ljToLk, lkToLj, glivenkoEmbed }     from 'src/profiles/sequent-lj'; ============================================================ Sintaxis ============================================================
+AST de fórmulas proposicionales intuicionistas para el cálculo LJ.
 
 ## Contents
 
@@ -19,7 +19,9 @@
 
 ## `LJFormula`
 
-> Type · `logic/profiles/sequent-lj/index.ts:40`
+> Type · `logic/profiles/sequent-lj/index.ts:41`
+
+AST de fórmulas proposicionales intuicionistas para el cálculo LJ.
 
 ```ts
 export type LJFormula = | { kind: 'atom'; name: string } | { kind: 'not'; arg: LJFormula } | { kind: 'and'; left: LJFormula; right: LJFormula } | { kind: 'or'; left: LJFormula; right: LJFormula } | { kind: 'implies'; left: LJFormula; right: LJFormula } | { kind: 'bottom' };
@@ -28,7 +30,9 @@ export type LJFormula = | { kind: 'atom'; name: string } | { kind: 'not'; arg: L
 
 ## `LJRule`
 
-> Type · `logic/profiles/sequent-lj/index.ts:48`
+> Type · `logic/profiles/sequent-lj/index.ts:50`
+
+Nombres de las reglas del cálculo de secuentes LJ de Gentzen.
 
 ```ts
 export type LJRule = | 'axiom' | 'cut' | 'weakL' | 'contrL' | 'exL' | 'notL' | 'notR' | 'andL' | 'andR' | 'orL' | 'orR-l' | 'orR-r' | 'impL' | 'impR' | 'bottomL';
@@ -37,7 +41,7 @@ export type LJRule = | 'axiom' | 'cut' | 'weakL' | 'contrL' | 'exL' | 'notL' | '
 
 ## `LJSequent`
 
-> Interface · `logic/profiles/sequent-lj/index.ts:70`
+> Interface · `logic/profiles/sequent-lj/index.ts:72`
 
 Secuente intuicionista. `right === null` modela el succedente
 vacio (necesario para regla `notR` y `bottomL` sin formula
@@ -50,7 +54,10 @@ export interface LJSequent
 
 ## `LJProof`
 
-> Interface · `logic/profiles/sequent-lj/index.ts:75`
+> Interface · `logic/profiles/sequent-lj/index.ts:81`
+
+Árbol de derivación LJ.
+Cada nodo registra el secuente meta, la regla aplicada y las sub-derivaciones.
 
 ```ts
 export interface LJProof
@@ -59,7 +66,7 @@ export interface LJProof
 
 ## `proveLJ`
 
-> Function · `logic/profiles/sequent-lj/index.ts:416`
+> Function · `logic/profiles/sequent-lj/index.ts:422`
 
 Demuestra el secuente `seq` en LJ intuicionista (sin cortes).
 Devuelve `null` si no encuentra derivacion dentro del budget.
@@ -82,9 +89,9 @@ export function proveLJ(seq: LJSequent, options: { budget?: number } =
 
 ## `proveLJFormula`
 
-> Function · `logic/profiles/sequent-lj/index.ts:430`
+> Function · `logic/profiles/sequent-lj/index.ts:437`
 
-Atajo: ⊢ φ en LJ.
+Atajo: intenta derivar ⊢ φ en LJ (secuente con antecedente vacío).
 
 ```ts
 export function proveLJFormula( formula: LJFormula, options: { budget?: number } =
@@ -104,7 +111,9 @@ export function proveLJFormula( formula: LJFormula, options: { budget?: number }
 
 ## `isValid`
 
-> Function · `logic/profiles/sequent-lj/index.ts:441`
+> Function · `logic/profiles/sequent-lj/index.ts:449`
+
+Verifica estructuralmente que un árbol de derivación LJ es correcto.
 
 ```ts
 export function isValid(proof: LJProof): boolean
@@ -123,7 +132,9 @@ export function isValid(proof: LJProof): boolean
 
 ## `hasCut`
 
-> Function · `logic/profiles/sequent-lj/index.ts:619`
+> Function · `logic/profiles/sequent-lj/index.ts:628`
+
+Devuelve `true` si el árbol de derivación contiene alguna aplicación de la regla cut.
 
 ```ts
 export function hasCut(proof: LJProof): boolean
@@ -142,7 +153,11 @@ export function hasCut(proof: LJProof): boolean
 
 ## `eliminateCut`
 
-> Function · `logic/profiles/sequent-lj/index.ts:755`
+> Function · `logic/profiles/sequent-lj/index.ts:769`
+
+Elimina cortes de una derivación LJ (Hauptsatz de Gentzen).
+Usa reducciones principales para los casos estructurales y el prover
+cut-free como oráculo para los casos permutativos restantes.
 
 ```ts
 export function eliminateCut(proof: LJProof): LJProof
@@ -161,7 +176,7 @@ export function eliminateCut(proof: LJProof): LJProof
 
 ## `ljToLk`
 
-> Function · `logic/profiles/sequent-lj/index.ts:820`
+> Function · `logic/profiles/sequent-lj/index.ts:834`
 
 Toda derivacion LJ es tambien una derivacion LK (con succedente
 a lo sumo unitario). La conversion es estructural: copia el arbol,
@@ -185,7 +200,7 @@ export function ljToLk(proof: LJProof): unknown
 
 ## `lkToLj`
 
-> Function · `logic/profiles/sequent-lj/index.ts:840`
+> Function · `logic/profiles/sequent-lj/index.ts:854`
 
 Conversion LK → LJ. Falla cuando la derivacion LK usa
 multisuccedente esencial (ej. LEM, doble negacion clasica).
@@ -209,7 +224,7 @@ export function lkToLj(lkProof: unknown): LJProof |
 
 ## `glivenkoEmbed`
 
-> Function · `logic/profiles/sequent-lj/index.ts:932`
+> Function · `logic/profiles/sequent-lj/index.ts:946`
 
 ```ts
 export function glivenkoEmbed(formula: LJFormula): LJFormula
