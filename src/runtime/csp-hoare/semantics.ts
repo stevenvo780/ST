@@ -21,36 +21,48 @@ import { TICK } from './types';
 
 // ── Constructores cómodos ───────────────────────────────────
 
+/** The deadlocked process: offers no events and never terminates. */
 export const STOP: Process = { kind: 'stop' };
+/** The successfully terminated process: offers only the tick event `✓`. */
 export const SKIP: Process = { kind: 'skip' };
 
+/** Creates a prefixed process `event → cont`. */
 export function prefix(event: Event, cont: Process): Process {
   return { kind: 'prefix', event, cont };
 }
+/** Creates an external (deterministic) choice `left □ right`. */
 export function choice(left: Process, right: Process): Process {
   return { kind: 'choice', left, right };
 }
+/** Creates an internal (non-deterministic) choice `left ⊓ right`. */
 export function internal(left: Process, right: Process): Process {
   return { kind: 'internal', left, right };
 }
+/** Creates a parallel composition synchronized on the given `alphabet`. */
 export function parallel(left: Process, right: Process, alphabet: Event[]): Process {
   return { kind: 'parallel', left, right, alphabet };
 }
+/** Creates an interleaving composition (synchronized only on `✓`). */
 export function interleave(left: Process, right: Process): Process {
   return { kind: 'interleave', left, right };
 }
+/** Creates a sequential composition: `right` starts after `left` terminates. */
 export function sequence(left: Process, right: Process): Process {
   return { kind: 'sequence', left, right };
 }
+/** Creates a hiding operator that conceals `events` from the environment. */
 export function hide(process: Process, events: Event[]): Process {
   return { kind: 'hide', process, events };
 }
+/** Creates a renaming operator that maps events according to `mapping`. */
 export function rename(process: Process, mapping: Map<Event, Event>): Process {
   return { kind: 'rename', process, mapping };
 }
+/** Creates a recursive process `μname.body`. */
 export function recursion(name: string, body: Process): Process {
   return { kind: 'recursion', name, body };
 }
+/** Creates a process variable reference (for use inside `recursion` bodies). */
 export function processVar(name: string): Process {
   return { kind: 'var', name };
 }

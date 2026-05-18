@@ -16,6 +16,7 @@
 
 import type { ProofPackage } from '../proof-exchange';
 
+/** A proof known by a peer node, including its origin and reception time. */
 export interface KnownProofRecord {
   proof: ProofPackage;
   signature: string;
@@ -23,6 +24,10 @@ export interface KnownProofRecord {
   receivedAt: string;
 }
 
+/**
+ * A simulated P2P node in the gossip network.
+ * Tracks its peers, the proofs it has received, trusted keys, and revocations.
+ */
 export interface PeerNode {
   id: string;
   publicKey: string;
@@ -33,6 +38,7 @@ export interface PeerNode {
   revoked: Map<string, string>;
 }
 
+/** A message queued for delivery between two nodes in the simulated network. */
 export interface NetworkMessage {
   kind: 'announce' | 'request' | 'response' | 'revoke';
   from: string;
@@ -41,6 +47,7 @@ export interface NetworkMessage {
   timestamp: string;
 }
 
+/** Payload for an `announce` message: broadcasts a proof to a peer. */
 export interface AnnouncePayload {
   proofHash: string;
   proof: ProofPackage;
@@ -48,10 +55,12 @@ export interface AnnouncePayload {
   signerPublicKey: string;
 }
 
+/** Payload for a `request` message: asks a peer for a specific proof by hash. */
 export interface RequestPayload {
   proofHash: string;
 }
 
+/** Payload for a `response` message: delivers (or declines) a requested proof. */
 export interface ResponsePayload {
   proofHash: string;
   proof: ProofPackage | null;
@@ -59,6 +68,7 @@ export interface ResponsePayload {
   signerPublicKey: string | null;
 }
 
+/** Payload for a `revoke` message: invalidates a proof network-wide. */
 export interface RevokePayload {
   proofHash: string;
   reason: string;
@@ -83,6 +93,11 @@ function hashStringSync(input: string): string {
   return h1.toString(16).padStart(8, '0') + h2.toString(16).padStart(8, '0');
 }
 
+/**
+ * Computes a deterministic (non-cryptographic) hash for a `ProofPackage`,
+ * used as the network-level identifier within the simulation.
+ * Cryptographic integrity is provided by the signatures in `proof-exchange`.
+ */
 export function proofHash(pkg: ProofPackage): string {
   // Versión síncrona pensada para la simulación. Usa un canonical-ish
   // simple: ordena claves de primer nivel + serializa proof.
@@ -96,6 +111,7 @@ export function proofHash(pkg: ProofPackage): string {
   return hashStringSync(canonical);
 }
 
+/** Describes two proofs with the same statement but different hashes — a network conflict. */
 export interface ProofConflict {
   proofHashA: string;
   proofHashB: string;
@@ -391,6 +407,10 @@ export class GossipNetwork {
   }
 }
 
+/**
+ * Creates a new `PeerNode` with empty peer, proof, blacklist, and revocation sets.
+ * @param params.trustedKeys - Optional initial set of trusted signer public keys.
+ */
 export function createPeerNode(params: {
   id: string;
   publicKey: string;
@@ -407,6 +427,10 @@ export function createPeerNode(params: {
   };
 }
 
+/**
+ * Scans all nodes in the network for proofs with the same `(formula, profile)` but
+ * different hashes, and returns them as conflict pairs sorted lexicographically.
+ */
 export function detectConflicts(network: GossipNetwork): ProofConflict[] {
   // Conflicto = dos hashes distintos en nodos cualesquiera con el mismo
   // (formula, profile). Se reporta como par (A,B) con A<B lexicográfico.
@@ -438,6 +462,11 @@ export function detectConflicts(network: GossipNetwork): ProofConflict[] {
   return conflicts;
 }
 
+/**
+ * Performs a direct anti-entropy sync between two nodes, transferring all proofs
+ * each is missing from the other (respecting blacklists and revocations).
+ * @returns The number of proofs sent in each direction.
+ */
 export function syncPeers(
   network: GossipNetwork,
   nodeA: string,

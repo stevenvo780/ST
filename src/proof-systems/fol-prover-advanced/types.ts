@@ -28,8 +28,17 @@ export interface FOLClause {
   fromGoal?: boolean;
 }
 
+/** A first-order substitution: maps variable names to replacement terms. */
 export type Substitution = Map<string, FOLTerm>;
 
+/**
+ * The inference strategy used by the advanced resolution prover.
+ * - `binary`: standard binary resolution.
+ * - `hyperresolution`: resolves a positive clause against several negative ones simultaneously.
+ * - `set-of-support`: restricts resolution to clauses derived from the goal.
+ * - `ordered`: restricts resolution to maximal literals under a term ordering.
+ * - `unit-preference`: prefers unit clauses (single literal) during selection.
+ */
 export type RefinementStrategy =
   | 'binary'
   | 'hyperresolution'
@@ -37,6 +46,7 @@ export type RefinementStrategy =
   | 'ordered'
   | 'unit-preference';
 
+/** Term ordering used to orient equations and select maximal literals. */
 export type TermOrdering = 'KBO' | 'LPO' | 'none';
 
 export interface AdvancedProveOptions {
@@ -52,6 +62,7 @@ export interface AdvancedProveOptions {
   maxSteps?: number;
 }
 
+/** Records a single inference step in the advanced prover's derivation. */
 export interface ProofStep {
   rule: string;
   from: number[];
@@ -59,6 +70,7 @@ export interface ProofStep {
   substitution?: Substitution;
 }
 
+/** Aggregated statistics collected during a proof search run. */
 export interface ProofStats {
   resolutions: number;
   subsumed: number;
