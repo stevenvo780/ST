@@ -17,11 +17,13 @@
 //     no impuestas — `atom('foo')` también es legal.
 //   - Λ usa `tabs` (type-abstraction); t [T] usa `tapp`.
 
+/** Tipo en System F: variable atómica, función o cuantificación universal ∀X. */
 export type FType =
   | { kind: 'atom'; name: string }
   | { kind: 'arrow'; from: FType; to: FType }
   | { kind: 'forall'; bind: string; body: FType };
 
+/** Término en System F: variable, abstracción, aplicación, Λ-abstracción y aplicación de tipo. */
 export type FTerm =
   | { kind: 'var'; name: string }
   | { kind: 'abs'; param: string; paramType: FType; body: FTerm }
@@ -30,22 +32,34 @@ export type FTerm =
   | { kind: 'tapp'; fn: FTerm; typeArg: FType }; //  t [T]
 
 // ---------- Constructores convenientes ----------
+/** Crea una variable de tipo atómica con nombre `name`. */
 export const fAtom = (name: string): FType => ({ kind: 'atom', name });
+/** Crea el tipo función `from → to`. */
 export const fArrow = (from: FType, to: FType): FType => ({ kind: 'arrow', from, to });
+/** Crea el tipo `∀bind. body`. */
 export const fForall = (bind: string, body: FType): FType => ({ kind: 'forall', bind, body });
 
+/** Crea una referencia a variable de término. */
 export const fVar = (name: string): FTerm => ({ kind: 'var', name });
+/** Crea una abstracción `λparam:paramType. body`. */
 export const fAbs = (param: string, paramType: FType, body: FTerm): FTerm => ({
   kind: 'abs',
   param,
   paramType,
   body,
 });
+/** Crea una aplicación de término `fn arg`. */
 export const fApp = (fn: FTerm, arg: FTerm): FTerm => ({ kind: 'app', fn, arg });
+/** Crea una abstracción de tipo `Λbind. body`. */
 export const fTAbs = (bind: string, body: FTerm): FTerm => ({ kind: 'tabs', bind, body });
+/** Crea una aplicación de tipo `fn [typeArg]`. */
 export const fTApp = (fn: FTerm, typeArg: FType): FTerm => ({ kind: 'tapp', fn, typeArg });
 
 // ---------- Variables libres de tipo (sobre FType) ----------
+/**
+ * Calcula el conjunto de variables de tipo libres en `t`.
+ * @param acc - Acumulador (se modifica in-place y se retorna).
+ */
 export function freeTypeVars(t: FType, acc: Set<string> = new Set()): Set<string> {
   switch (t.kind) {
     case 'atom':
@@ -65,7 +79,10 @@ export function freeTypeVars(t: FType, acc: Set<string> = new Set()): Set<string
 }
 
 // ---------- α-equivalencia de tipos ----------
-// ∀X. T y ∀Y. T[X:=Y] son iguales módulo α.
+/**
+ * Comprueba α-equivalencia entre dos tipos de System F.
+ * `∀X. T` y `∀Y. T[X:=Y]` se consideran iguales.
+ */
 export function alphaEqType(a: FType, b: FType): boolean {
   return alphaEqTypeEnv(a, b, new Map(), new Map(), { n: 0 });
 }
@@ -106,8 +123,10 @@ function alphaEqTypeEnv(
 }
 
 // ---------- Well-formedness de tipos ----------
-// Un tipo está bien formado si todas sus variables libres están
-// declaradas en el contexto de tipos.
+/**
+ * Indica si `type` está bien formado: todas sus variables libres están
+ * declaradas en el contexto de tipos `ctx`.
+ */
 export function isWellFormed(type: FType, ctx: Set<string> = new Set()): boolean {
   switch (type.kind) {
     case 'atom':
@@ -123,6 +142,7 @@ export function isWellFormed(type: FType, ctx: Set<string> = new Set()): boolean
 }
 
 // ---------- Serialización legible ----------
+/** Serializa un `FType` en notación matemática (`∀X. …`, `A → B`). */
 export function fTypeToString(t: FType): string {
   switch (t.kind) {
     case 'atom':
@@ -139,6 +159,7 @@ export function fTypeToString(t: FType): string {
   }
 }
 
+/** Serializa un `FTerm` en notación legible para debugging y mensajes de error. */
 export function fTermToString(t: FTerm): string {
   switch (t.kind) {
     case 'var':
@@ -158,17 +179,21 @@ export function fTermToString(t: FTerm): string {
 }
 
 // ---------- Contexto de tipado ----------
-// Contiene tanto variables de término (con su tipo asignado) como el
-// conjunto de variables de tipo declaradas (Λ las introduce).
+/**
+ * Contexto de tipado de System F.
+ * Contiene variables de término (con su tipo) y variables de tipo declaradas (Λ las introduce).
+ */
 export interface FContext {
   term: Map<string, FType>;
   type: Set<string>;
 }
 
+/** Crea un contexto de tipado vacío. */
 export function emptyContext(): FContext {
   return { term: new Map(), type: new Set() };
 }
 
+/** Crea una copia independiente del contexto para extensiones locales. */
 export function cloneContext(ctx: FContext): FContext {
   return { term: new Map(ctx.term), type: new Set(ctx.type) };
 }

@@ -66,6 +66,7 @@ function thm(rule: string, hyps: HOLTerm[], concl: HOLTerm, derived?: HOLTheorem
 
 // REFL : |- t = t ---------------------------------------------
 
+/** Regla REFL: produce el teorema `⊢ t = t` para cualquier término `t`. */
 export function refl(t: HOLTerm): HOLTheorem {
   // typeOf valida bien-formación.
   typeOf(t);
@@ -74,6 +75,10 @@ export function refl(t: HOLTerm): HOLTheorem {
 
 // TRANS : |- a = b, |- b = c -> |- a = c ----------------------
 
+/**
+ * Regla TRANS: dados `⊢ a = b` y `⊢ b = c` produce `⊢ a = c`.
+ * @throws Si alguna premisa no es una igualdad o los extremos no encajan.
+ */
 export function trans(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheorem {
   const eq1 = destEq(thm1.concl);
   const eq2 = destEq(thm2.concl);
@@ -93,6 +98,10 @@ export function trans(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheorem {
 
 // MK_COMB : |- f = g, |- x = y -> |- f x = g y ----------------
 
+/**
+ * Regla MK_COMB: dados `⊢ f = g` y `⊢ x = y` produce `⊢ f x = g y`.
+ * @throws Si alguna premisa no es igualdad o `f` no tiene tipo función.
+ */
 export function mkCombRule(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheorem {
   const fg = destEq(thm1.concl);
   const xy = destEq(thm2.concl);
@@ -117,6 +126,11 @@ export function mkCombRule(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheorem {
 
 // ABS : |- s = t -> |- (λv.s) = (λv.t) ------------------------
 
+/**
+ * Regla ABS: dado `⊢ s = t` produce `⊢ (λv.s) = (λv.t)`.
+ * `v` no puede aparecer libre en las hipótesis de `thm1`.
+ * @throws Si `v` no es variable, la premisa no es igualdad, o la condición de variable es violada.
+ */
 export function abs(v: HOLTerm, thm1: HOLTheorem): HOLTheorem {
   if (v.kind !== 'var') {
     throw new Error(`ABS: el binder debe ser una variable, no ${v.kind}`);
@@ -142,6 +156,11 @@ export function abs(v: HOLTerm, thm1: HOLTheorem): HOLTheorem {
 // HOL Light original: BETA solo acepta el término exacto `(λx.t) x`.
 // Para usar β a forma `(λx.t) y` se compone con INST.
 
+/**
+ * Regla BETA: dado `(λv.t) v` produce `⊢ (λv.t) v = t`.
+ * Solo acepta la forma exacta donde el argumento es el propio binder; usar INST para otros.
+ * @throws Si `t` no es una aplicación de lambda o el argumento no coincide con el binder.
+ */
 export function beta(t: HOLTerm): HOLTheorem {
   if (t.kind !== 'comb' || t.fn.kind !== 'abs') {
     throw new Error(`BETA: necesita una aplicación de λ: ${termToString(t)}`);
@@ -160,6 +179,10 @@ export function beta(t: HOLTerm): HOLTheorem {
 
 // ASSUME(p) : p |- p ------------------------------------------
 
+/**
+ * Regla ASSUME: produce `p ⊢ p` (hipótesis no descargada).
+ * @throws Si `p` no tiene tipo `bool`.
+ */
 export function assume(p: HOLTerm): HOLTheorem {
   const ty = typeOf(p);
   if (!typeEq(ty, TyBool)) {
@@ -170,6 +193,10 @@ export function assume(p: HOLTerm): HOLTheorem {
 
 // EQ_MP : |- p = q (bool), |- p -> |- q -----------------------
 
+/**
+ * Regla EQ_MP: dados `⊢ p = q` y `⊢ p` produce `⊢ q` (modus ponens vía igualdad booleana).
+ * @throws Si la primera premisa no es igualdad de bools, o la segunda no es α-igual al LHS.
+ */
 export function eqMp(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheorem {
   const eq = destEq(thm1.concl);
   if (eq === null) {
@@ -192,6 +219,11 @@ export function eqMp(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheorem {
 // Equivalente: deriva la bi-implicación a partir de dos
 // teoremas que se "implican" via descarga de hipótesis.
 
+/**
+ * Regla DEDUCT_ANTISYM_RULE: dados `A ⊢ p` y `B ⊢ q` produce
+ * `(A \ {q}) ∪ (B \ {p}) ⊢ p ↔ q`.
+ * @throws Si alguna conclusión no es de tipo `bool`.
+ */
 export function deductAntisymRule(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheorem {
   if (!typeEq(typeOf(thm1.concl), TyBool)) {
     throw new Error(`DEDUCT_ANTISYM_RULE: thm1 no es bool: ${termToString(thm1.concl)}`);
@@ -207,6 +239,10 @@ export function deductAntisymRule(thm1: HOLTheorem, thm2: HOLTheorem): HOLTheore
 
 // INST_TYPE : sustitución de variables de tipo ----------------
 
+/**
+ * Regla INST_TYPE: instancia variables de tipo en `thm1` según `subst`.
+ * Deduplica hipótesis que colapsen tras la sustitución.
+ */
 export function instType(subst: Record<string, HOLType>, thm1: HOLTheorem): HOLTheorem {
   const newHyps = thm1.hyps.map((h) => instTypeInTerm(subst, h));
   const newConcl = instTypeInTerm(subst, thm1.concl);

@@ -15,6 +15,7 @@ import {
 
 export type { TextLayerState };
 
+/** Crea un `TextLayerState` vacío listo para recibir passages, claims y definiciones. */
 export function createTextLayerState(): TextLayerState {
   return {
     passages: new Map(),
@@ -34,7 +35,11 @@ const PARAGRAPH_ANCHOR_RE = /^p\d+(?:[-_.:][A-Za-z0-9._-]+)?$/;
 const RANGE_ANCHOR_RE = /^r\d+(?:-\d+)?$/;
 const BLOCK_ANCHOR_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
 
-// Parsear anchor path: "archivo.md#heading" -> Anchor
+/**
+ * Parsea una ruta de anchor con formato `"archivo.md#fragmento"` en un `Anchor`.
+ * Infiere el tipo (`heading`, `paragraph`, `range`, `block`) a partir del fragmento.
+ * @throws Si la cadena es inválida, vacía, tiene múltiples `#`, o el fragmento no se reconoce.
+ */
 export function parseAnchorPath(raw: string): Anchor {
   if (typeof raw !== 'string') {
     throw new Error('Anchor invalido: se esperaba una cadena');
@@ -70,7 +75,10 @@ export function parseAnchorPath(raw: string): Anchor {
   return { path, fragment, type };
 }
 
-// Registrar un passage
+/**
+ * Registra un passage en el estado, parseando `anchorPath` con `parseAnchorPath`.
+ * @returns Diagnósticos de error si el anchor es inválido; vacío en caso de éxito.
+ */
 export function registerPassage(
   state: TextLayerState,
   name: string,
@@ -87,7 +95,10 @@ export function registerPassage(
   return [];
 }
 
-// Registrar una formalización
+/**
+ * Registra una formalización (passage + fórmula) en el estado.
+ * Emite un warning si el passage referenciado no existe aún.
+ */
 export function registerFormalization(
   state: TextLayerState,
   name: string,
@@ -107,7 +118,10 @@ export function registerFormalization(
   return diags;
 }
 
-// Registrar un claim
+/**
+ * Registra un claim con fórmula directa o referencia a una formalización.
+ * Emite un warning si `formalizationRef` no apunta a ningún pasaje o formalización conocida.
+ */
 export function registerClaim(
   state: TextLayerState,
   name: string,
@@ -131,7 +145,10 @@ export function registerClaim(
   return diags;
 }
 
-// Registrar soporte
+/**
+ * Asocia una fuente bibliográfica (`sourceName`) como soporte de un claim.
+ * Emite un warning si el claim no existe en el estado.
+ */
 export function registerSupport(
   state: TextLayerState,
   claimName: string,
@@ -157,7 +174,10 @@ export function registerSupport(
   return diags;
 }
 
-// Registrar confianza
+/**
+ * Registra el nivel de confianza `value ∈ [0,1]` para un claim.
+ * @returns Error si `value` está fuera de rango; warning si el claim no existe.
+ */
 export function registerConfidence(
   state: TextLayerState,
   claimName: string,
@@ -189,7 +209,10 @@ export function registerConfidence(
   return diags;
 }
 
-// Registrar contexto
+/**
+ * Registra texto de contexto libre asociado a un claim.
+ * Emite un warning si el claim no existe en el estado.
+ */
 export function registerContext(
   state: TextLayerState,
   claimName: string,
@@ -214,7 +237,10 @@ export function registerContext(
   return diags;
 }
 
-// Compilar claims a la teoría
+/**
+ * Copia todos los claims con fórmula (directa o vía formalización) a `theory.claims`.
+ * @returns Diagnósticos de error para claims con referencia a formalización inexistente.
+ */
 export function compileClaimsToTheory(state: TextLayerState, theory: Theory): Diagnostic[] {
   const diags: Diagnostic[] = [];
 
@@ -238,7 +264,10 @@ export function compileClaimsToTheory(state: TextLayerState, theory: Theory): Di
   return diags;
 }
 
-// --- v3: Register a formal definition ---
+/**
+ * Registra una entrada de definición formal en el estado (v3).
+ * Emite un warning si el nombre ya fue definido anteriormente.
+ */
 export function registerDefinition(state: TextLayerState, entry: DefinitionEntry): Diagnostic[] {
   const diags: Diagnostic[] = [];
   if (state.definitions.has(entry.name)) {
@@ -251,7 +280,10 @@ export function registerDefinition(state: TextLayerState, entry: DefinitionEntry
   return diags;
 }
 
-// --- v3: Register a bibliographic source ---
+/**
+ * Registra una fuente bibliográfica en el estado (v3).
+ * Emite un warning si el `source.id` ya fue registrado.
+ */
 export function registerSource(state: TextLayerState, source: SourceInfo): Diagnostic[] {
   const diags: Diagnostic[] = [];
   if (state.sources.has(source.id)) {
@@ -264,7 +296,10 @@ export function registerSource(state: TextLayerState, source: SourceInfo): Diagn
   return diags;
 }
 
-// --- v3: Register an interpretation ---
+/**
+ * Registra una entrada de interpretación semántica bajo la clave `key` (v3).
+ * Sobreescribe silenciosamente si la clave ya existe.
+ */
 export function registerInterpretation(
   state: TextLayerState,
   key: string,
