@@ -11,6 +11,18 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.15.0] - 2026-05-24
+
+### Added — Ciclo 3 barrel + subpath exports
+
+- feat(proof-mining): extracción de lemmas auxiliares + persistencia expuesto vía barrel (`ProofMining`) y subpath `./reasoning/proof-mining` (C3-A, `82f9d71`).
+- feat(stnb): formato notebook + parser/serializer/executor/renderer HTML+Markdown expuesto vía barrel (`STNotebook`) y subpath `./format/stnb` (C3-B, `12e02a7`).
+- feat(dl-hybrid): differential dynamic logic subset perfil + invariant search expuesto vía barrels (`DLHybrid`, `DLHybridReasoning`) y subpaths `./logic/profiles/dl-hybrid`, `./reasoning/dl-hybrid` (C3-C, `d539c1b`).
+- feat(lemma-rag): tactics-RAG con embeddings determinísticos hash-based expuesto vía barrel (`LemmaRAG`) y subpath `./reasoning/lemma-rag` (C3-D, `8cb6789`).
+- exports: 5 subpath exports nuevos en `package.json` `exports` map para consumo granular desde AgoraFront/AgoraBack.
+
+---
+
 ## [4.14.1] - 2026-05-18
 
 ### Added — V5 wave 7b (post-4.14.0)

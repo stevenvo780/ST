@@ -441,3 +441,10 @@ export * as TypeTheory from './namespaces/type-theory';
 export * as Solvers from './namespaces/solvers';
 export * as Reasoning from './namespaces/reasoning';
 export * as Semantics from './namespaces/semantics';
+
+// === Ciclo 3 V4.15 features ===
+export * as ProofMining from './reasoning/proof-mining';
+export * as STNotebook from './format/stnb';
+export * as DLHybrid from './logic/profiles/dl-hybrid';
+export * as DLHybridReasoning from './reasoning/dl-hybrid';
+export * as LemmaRAG from './reasoning/lemma-rag';

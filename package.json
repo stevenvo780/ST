@@ -1,6 +1,6 @@
 {
   "name": "@stevenvo780/st-lang",
-  "version": "4.14.1",
+  "version": "4.15.0",
   "description": "ST — Lenguaje ejecutable con nucleo logico y capa textual. Motor multi-perfil (11 lógicas), derivaciones, tablas de verdad, contramodelos, aliases modales, Belnap 4-valores y capa textual para formalización de documentos.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,6 +24,31 @@
       "types": "./dist/protocol/handler.d.ts",
       "require": "./dist/protocol/handler.js",
       "default": "./dist/protocol/handler.js"
+    },
+    "./reasoning/proof-mining": {
+      "types": "./dist/reasoning/proof-mining/index.d.ts",
+      "require": "./dist/reasoning/proof-mining/index.js",
+      "default": "./dist/reasoning/proof-mining/index.js"
+    },
+    "./format/stnb": {
+      "types": "./dist/format/stnb/index.d.ts",
+      "require": "./dist/format/stnb/index.js",
+      "default": "./dist/format/stnb/index.js"
+    },
+    "./logic/profiles/dl-hybrid": {
+      "types": "./dist/logic/profiles/dl-hybrid/index.d.ts",
+      "require": "./dist/logic/profiles/dl-hybrid/index.js",
+      "default": "./dist/logic/profiles/dl-hybrid/index.js"
+    },
+    "./reasoning/dl-hybrid": {
+      "types": "./dist/reasoning/dl-hybrid/index.d.ts",
+      "require": "./dist/reasoning/dl-hybrid/index.js",
+      "default": "./dist/reasoning/dl-hybrid/index.js"
+    },
+    "./reasoning/lemma-rag": {
+      "types": "./dist/reasoning/lemma-rag/index.d.ts",
+      "require": "./dist/reasoning/lemma-rag/index.js",
+      "default": "./dist/reasoning/lemma-rag/index.js"
     }
   },
   "bin": {
