@@ -448,3 +448,4 @@ export * as STNotebook from './format/stnb';
 export * as DLHybrid from './logic/profiles/dl-hybrid';
 export * as DLHybridReasoning from './reasoning/dl-hybrid';
 export * as LemmaRAG from './reasoning/lemma-rag';
+export * as TacticDSL from './reasoning/tactic-dsl';

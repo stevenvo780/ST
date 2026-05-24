@@ -11,6 +11,17 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [4.15.1] - 2026-05-24
+
+### Added
+- Subpath export `./reasoning/tactic-dsl` para que consumers puedan importar directamente sin `createRequire()` workaround.
+- Re-export namespaced `TacticDSL` en barrel root (`src/index.ts`).
+
+### Fixed
+- Workaround `createRequire` en AgoraBack (`st_tactic_apply` tool) ya no necesario.
+
+---
+
 ## [4.15.0] - 2026-05-24
 
 ### Added — Ciclo 3 barrel + subpath exports
