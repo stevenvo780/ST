@@ -3,7 +3,7 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { describe, expect, it } from 'vitest';
 
-import { createInterpreter } from '../api';
+import { createInterpreter, evaluate, parse } from '../api';
 import { Interpreter } from '../runtime/interpreter';
 
 describe('Regression fixes', () => {
@@ -214,5 +214,57 @@ describe('Regression fixes', () => {
       (d) => d.severity === 'warning' && /IPC: búsqueda acotada/.test(d.message),
     );
     expect(hasWarn).toBe(true);
+  });
+
+  describe('statement `show:` suelto no hace runaway/OOM', () => {
+    // El parser entraba en loop infinito throw→recover→throw al encontrar un
+    // `show` sin handler en parseStatement: `show` estaba en el set de
+    // statement-starters de advanceToNextStatement, que retornaba sin avanzar,
+    // creciendo el array de diagnósticos hasta agotar ~4GB de heap.
+
+    it('parsea `show: P.` sin errores ni colgarse', () => {
+      const r = parse('logic classical.propositional\nshow: P.');
+      expect(r.ok).toBe(true);
+      expect(r.program?.statements.some((s) => s.kind === 'proof_block')).toBe(true);
+    });
+
+    it('`show: P.` (átomo NO demostrable) termina rápido con resultado', () => {
+      const r = evaluate('logic classical.propositional\nshow: P.');
+      expect(r.exitCode).toBe(0);
+      expect(r.results.length).toBe(1);
+      // No demostrable: la búsqueda acotada no halla derivación → status no-éxito.
+      expect(r.results[0].status).not.toBe('provable');
+      expect(r.results[0].status).not.toBe('valid');
+    });
+
+    it('`show: ⊤.` y `show: ⊥.` (templates del notebook) terminan', () => {
+      const verum = evaluate('logic classical.propositional\nshow: ⊤.');
+      expect(verum.exitCode).toBe(0);
+      expect(verum.results.length).toBe(1);
+
+      const falsum = evaluate('logic classical.propositional\nshow: ⊥.');
+      expect(falsum.exitCode).toBe(0);
+      expect(falsum.results.length).toBe(1);
+      expect(falsum.results[0].status).not.toBe('provable');
+    });
+
+    it('`show: P|!P.` (tautología) se demuestra', () => {
+      const r = evaluate('logic classical.propositional\nshow: P|!P.');
+      expect(r.exitCode).toBe(0);
+      expect(r.results[0].status).toBe('provable');
+    });
+
+    it('`show GOAL` sin colon ni punto sigue funcionando', () => {
+      const r = evaluate('logic classical.propositional\nshow P -> P');
+      expect(r.exitCode).toBe(0);
+      expect(r.results[0].status).toBe('provable');
+    });
+
+    it('recuperación de error en token starter avanza siempre (sin loop)', () => {
+      // Un `show` sin formula es un error de parseo; el parser debe recuperarse
+      // sin colgarse y reportar el diagnóstico.
+      const r = parse('logic classical.propositional\nshow:\ncheck valid (P -> P)');
+      expect(r.diagnostics.some((d) => d.severity === 'error')).toBe(true);
+    });
   });
 });

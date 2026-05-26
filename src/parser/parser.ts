@@ -172,6 +172,8 @@ export class Parser {
           return this.parseImportDecl();
         case TokenType.ASSUME:
           return this.parseProofBlock();
+        case TokenType.SHOW:
+          return this.parseShowStatement();
         case TokenType.THEORY:
           return this.parseTheoryDecl();
         case TokenType.PRINT:
@@ -649,6 +651,17 @@ export class Parser {
     s.expect(TokenType.QED);
 
     return { kind: 'proof_block', assumptions, goal, body, source: src };
+  }
+
+  // show FORMULA  o  show: FORMULA  (statement suelto: bloque de prueba degenerado sin qed)
+  private parseShowStatement(): ProofBlockNode {
+    const s = this.state;
+    const src = s.loc();
+    s.expect(TokenType.SHOW);
+    s.match(TokenType.COLON);
+    const goal = this.parseFormula();
+    s.match(TokenType.DOT);
+    return { kind: 'proof_block', assumptions: [], goal, body: [], source: src };
   }
 
   // theory Name(params) { ... } | theory Name extends Parent { ... }
@@ -1189,6 +1202,13 @@ export class Parser {
     let parenDepth = 0;
     let braceDepth = 0;
     let bracketDepth = 0;
+    // Consumir al menos el token ofensivo: si el error ocurrió en un token que
+    // ES un statement-starter (p.ej. 'show' sin handler), no avanzar aquí
+    // provocaría un loop infinito de throw→recover→throw que crece el array de
+    // diagnósticos hasta OOM. Garantizamos progreso saltando el primer token.
+    if (!s.isAtEnd()) {
+      s.advance();
+    }
     while (!s.isAtEnd()) {
       if (
         s.checkType(TokenType.NEWLINE) &&
