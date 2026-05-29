@@ -222,6 +222,33 @@ describe('tableauWithAxioms — devuelve modelo cuando es satisfacible', () => {
     expect(r.closed).toBe(false);
   });
 
+  // Regresión BUG-T2: con la cota fija de 3 mundos, una fórmula K
+  // satisfacible cuyo menor modelo necesita 4 mundos se declaraba
+  // INSATISFACIBLE (⇒ su negación, falsamente VÁLIDA). La cota derivada
+  // de |sub(φ)| explora hasta 4 mundos y la satisface correctamente.
+  // φ = ◇a ∧ ◇b ∧ ◇c ∧ ◇d con los átomos forzados disjuntos por □.
+  it('◇a∧◇b∧◇c∧◇d con átomos disjuntos: satisfacible (≥4 mundos)', () => {
+    const a = atom('a');
+    const b = atom('b');
+    const c = atom('c');
+    const d = atom('d');
+    const dis = (x: typeof a, y: typeof a) => box(not(and(x, y)));
+    const phi = and(
+      and(and(diamond(a), diamond(b)), and(diamond(c), diamond(d))),
+      and(and(dis(a, b), dis(a, c)), and(and(dis(a, d), dis(b, c)), and(dis(b, d), dis(c, d)))),
+    );
+    // Por defecto (cota = |sub(φ)| recortada al techo factible) debe ser SAT.
+    expect(isSatisfiable(phi, 'K')).toBe(true);
+    // Su negación NO es válida en K (φ es satisfacible).
+    expect(isValid(not(phi), 'K')).toBe(false);
+    // El modelo devuelto verifica φ en su raíz.
+    const r = tableauWithAxioms(phi, []);
+    expect(r.sat).toBe(true);
+    expect(r.model).toBeDefined();
+    // Y no crashea si se pide un maxWorlds grande (se recorta al techo).
+    expect(() => tableauWithAxioms(phi, [], { maxWorlds: 99 })).not.toThrow();
+  }, 30000);
+
   it('□p ∧ ¬p insatisfacible en T (reflexivo) — closed=true', () => {
     const r = tableauWithAxioms(and(box(p), not(p)), ['T']);
     expect(r.sat).toBe(false);

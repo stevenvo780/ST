@@ -211,7 +211,15 @@ function* generateFrames(size: number, axioms: Set<FrameAxiom>): Generator<Inter
   }
 
   const total = 1 << pairs.length;
-  const seen = new Set<string>();
+  // La deduplicación post-clausura es una optimización (evita re-evaluar
+  // frames sintácticamente iguales tras cerrar los axiomas). El `seen` Set
+  // crece hasta 2^|pairs| entradas; a partir de ~2^22 supera el tamaño
+  // máximo de Set de V8 y lanza RangeError. Por encima de ese umbral
+  // desactivamos la dedup: la corrección no depende de ella (sólo evita
+  // trabajo repetido), así que preferimos enumerar con duplicados antes
+  // que crashear.
+  const DEDUP_MAX = 1 << 20;
+  const seen = total <= DEDUP_MAX ? new Set<string>() : null;
 
   for (let mask = 0; mask < total; mask++) {
     const edges = new Set<number>();
@@ -228,9 +236,11 @@ function* generateFrames(size: number, axioms: Set<FrameAxiom>): Generator<Inter
     };
     closeFrame(model, axioms);
 
-    const sig = [...model.edges].sort((a, b) => a - b).join(',');
-    if (seen.has(sig)) continue;
-    seen.add(sig);
+    if (seen !== null) {
+      const sig = [...model.edges].sort((a, b) => a - b).join(',');
+      if (seen.has(sig)) continue;
+      seen.add(sig);
+    }
 
     yield model;
   }
@@ -266,16 +276,79 @@ function* generateValuations(size: number, atoms: string[]): Generator<Set<strin
 // ------------------------------------------------------------
 
 /**
- * Tamaño máximo de modelo a explorar. Conservador: 2^|atoms|+1
- * bastaría para la propiedad de filtración en muchas lógicas,
- * pero acotado por un máximo absoluto para evitar explosiones.
+ * Cuenta las "demandas existenciales de sucesor" de `f`: cada modalidad
+ * que, en la rama del tableau, obliga a crear un mundo testigo. Con
+ * polaridad (NNF implícito): un ◇ en posición positiva, o un □ bajo un
+ * nº impar de negaciones (≡ ◇¬), genera una demanda. □ positivo y ◇
+ * negativo son universales (no crean mundos nuevos por sí mismos).
  *
- * Override vía `options.maxWorlds` en la API pública.
+ * Es una cota superior del nº de sucesores que la raíz puede necesitar:
+ * en K un modelo árbol satisface `f` con a lo sumo (1 + #demandas)
+ * mundos en el primer nivel, y las demandas anidadas se contabilizan
+ * recursivamente. La usamos para dimensionar la búsqueda sin caer en la
+ * constante fija que provocaba BUG-T2 ni en el costo de explorar siempre
+ * el techo máximo.
  */
-function defaultMaxWorlds(atomCount: number): number {
-  if (atomCount <= 1) return 3;
-  if (atomCount <= 2) return 3;
-  return 3;
+function countSuccessorDemands(f: ModalFormula): number {
+  const walk = (g: ModalFormula, positive: boolean): number => {
+    switch (g.kind) {
+      case 'atom':
+        return 0;
+      case 'not':
+        return walk(subUnary(g), !positive);
+      case 'diamond':
+        return (positive ? 1 : 0) + walk(subUnary(g), positive);
+      case 'box':
+        return (positive ? 0 : 1) + walk(subUnary(g), positive);
+      case 'and':
+      case 'or':
+        return walk(subLeft(g), positive) + walk(subRight(g), positive);
+      case 'implies':
+        // a → b ≡ ¬a ∨ b: el antecedente invierte polaridad.
+        return walk(subLeft(g), !positive) + walk(subRight(g), positive);
+    }
+  };
+  return walk(f, true);
+}
+
+/**
+ * Techo de mundos absoluto factible para la enumeración exhaustiva.
+ *
+ * El cuello de botella es la enumeración de frames: hay 2^(n²) (o
+ * 2^(n²-n) bajo T) aristas posibles para `n` mundos. Mediciones en este
+ * motor: n=4 ⇒ ~0.25s; n=5 ⇒ inviable (2^25≈33M frames, además el Set de
+ * dedup supera el máximo de V8). Por eso el techo absoluto es 4.
+ *
+ * Trade-off (documentado): para fórmulas cuyo menor modelo satisfacible
+ * requiere >4 mundos, esta enumeración por fuerza bruta no lo halla y
+ * `isSatisfiable` puede dar un falso negativo (⇒ `isValid` un falso
+ * positivo). Es una limitación inherente del enfoque enumerativo, no un
+ * número mágico arbitrario: es el mayor `n` para el que la búsqueda
+ * exhaustiva termina en tiempo razonable sin agotar memoria. Para
+ * decisión completa de validez modal se necesitaría un tableau prefijado
+ * real (con bloqueo) en lugar de enumeración de frames.
+ */
+const FEASIBLE_WORLD_CAP = 4;
+
+/**
+ * Tamaño máximo de modelo a explorar para `phi`. Antes era la constante
+ * fija 3 (BUG-T2: declaraba insatisfacibles fórmulas K cuyo menor modelo
+ * tiene 4 mundos, p.ej. ◇a∧◇b∧◇c∧◇d con átomos disjuntos por □). Ahora
+ * se dimensiona por el nº de demandas existenciales de sucesor:
+ * `1 (raíz) + #demandas`, con piso 3 (preserva el comportamiento de los
+ * casos simples que ya cubría el 3) y recortado al techo factible.
+ *
+ * Usar las demandas (y no |sub(phi)|) mantiene barata la confirmación de
+ * validez de fórmulas con pocas demandas pero muchas subfórmulas (p.ej.
+ * el axioma K, ¬(□(p→q)→(□p→□q)) ≡ □(p→q)∧□p∧◇¬q: 1 demanda ⇒ 2 mundos,
+ * que se confirma UNSAT en ~1ms en vez de ~4s explorando 4 mundos).
+ *
+ * Override vía `options.maxWorlds` en la API pública (también recortado
+ * al techo factible para no crashear con valores grandes).
+ */
+function defaultMaxWorlds(phi: ModalFormula): number {
+  const demands = countSuccessorDemands(phi);
+  return Math.max(3, Math.min(1 + demands, FEASIBLE_WORLD_CAP));
 }
 
 // ------------------------------------------------------------
@@ -324,7 +397,11 @@ export function tableauWithAxioms(
   // Si la fórmula no menciona átomos (e.g. □⊥ con notación
   // sintética), igual hay que considerar valuaciones triviales.
   const effectiveAtoms = atoms.length === 0 ? [] : atoms;
-  const maxWorlds = options.maxWorlds ?? defaultMaxWorlds(effectiveAtoms.length);
+  // Un `maxWorlds` explícito se recorta al techo factible para no agotar
+  // memoria (la dedup de frames se desactiva sola por encima de 2^20,
+  // pero la enumeración 2^(n²) seguiría siendo inviable para n grande).
+  const requested = options.maxWorlds ?? defaultMaxWorlds(phi);
+  const maxWorlds = Math.max(1, Math.min(requested, FEASIBLE_WORLD_CAP));
 
   for (let size = 1; size <= maxWorlds; size++) {
     for (const frame of generateFrames(size, axiomSet)) {

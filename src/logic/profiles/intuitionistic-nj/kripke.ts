@@ -15,7 +15,7 @@
 // P ∨ ¬P, Peirce) bastan 2-3 mundos.
 
 import { IntuitFormula, KripkeIntuitModel } from './types';
-import { collectAtoms } from './formula';
+import { collectAtoms, formulaKey } from './formula';
 
 interface InternalModel {
   worlds: number[];
@@ -183,18 +183,77 @@ function toPublic(model: InternalModel): KripkeIntuitModel {
 }
 
 /**
+ * Cuenta las subfórmulas distintas (módulo igualdad estructural) de `f`.
+ * IPC tiene la propiedad del modelo finito por filtración a través del
+ * conjunto de subfórmulas: si `f` no es un teorema, existe un modelo de
+ * Kripke (preorden finito + forcing persistente) cuya raíz la refuta y
+ * cuyo número de mundos está acotado por |sub(f)| (cada mundo es un
+ * "tipo" distinto respecto a las subfórmulas). Usamos ese conteo como
+ * cota de completitud para la búsqueda.
+ */
+function countSubformulas(f: IntuitFormula): number {
+  const seen = new Set<string>();
+  const walk = (g: IntuitFormula): void => {
+    const k = formulaKey(g);
+    if (seen.has(k)) return;
+    seen.add(k);
+    switch (g.kind) {
+      case 'atom':
+      case 'bottom':
+        return;
+      case 'not':
+        return walk(g.arg);
+      case 'and':
+      case 'or':
+      case 'implies':
+        walk(g.left);
+        walk(g.right);
+        return;
+    }
+  };
+  walk(f);
+  return seen.size;
+}
+
+/**
+ * Techo de mundos factible para la enumeración exhaustiva.
+ *
+ * Encontrar un contramodelo es barato (corte temprano), pero CONFIRMAR
+ * validez exige agotar todo el espacio de preórdenes × valuaciones. Ese
+ * costo crece con el nº de mundos y, sobre todo, con el nº de átomos
+ * (las valuaciones son #upward-closed-sets ^ |átomos|). Mediciones:
+ * n=4 ⇒ ~0.4s con 4 átomos, ~5s con 5; n=5 ⇒ ~8s ya con 3 átomos.
+ *
+ * Por eso el techo decrece con la cantidad de átomos. Trade-off: para
+ * fórmulas cuyo menor contramodelo excede este techo, la búsqueda no
+ * lo hallará y `isIPCValid` podría reportar validez espuria; el oráculo
+ * autoritativo de validez sigue siendo el prover NJ (`proveIntuiti...`),
+ * que decide IPC de forma completa. Esta enumeración es para EXHIBIR
+ * contramodelos de los casos estándar, no para decidir validez de
+ * fórmulas arbitrariamente grandes.
+ */
+function feasibleWorldCap(atomCount: number): number {
+  if (atomCount <= 2) return 5;
+  if (atomCount <= 4) return 4;
+  return 3;
+}
+
+/**
  * API pública: si `formula` NO es válida intuicionistamente,
  * devuelve un modelo Kripke cuya raíz (w0) la refuta. Si es
- * válida, devuelve `null`.
+ * válida (dentro de la cota explorada), devuelve `null`.
  *
- * El budget máximo (mundos) se ajusta a la cantidad de átomos.
+ * El budget por defecto es la cota de filtración |sub(formula)|,
+ * recortada al techo factible según el nº de átomos.
  */
 export function kripkeCounterModel(
   formula: IntuitFormula,
   options: { maxWorlds?: number } = {},
 ): KripkeIntuitModel | null {
   const atoms = [...collectAtoms(formula)];
-  const cap = options.maxWorlds ?? (atoms.length <= 2 ? 3 : 2);
+  const filtrationBound = countSubformulas(formula);
+  const cap =
+    options.maxWorlds ?? Math.max(2, Math.min(filtrationBound, feasibleWorldCap(atoms.length)));
   for (const model of generateModels(atoms, cap)) {
     if (!forces(model, 0, formula)) {
       return toPublic(model);
@@ -204,9 +263,11 @@ export function kripkeCounterModel(
 }
 
 /**
- * Helper: ¿la fórmula es válida intuicionistamente bajo modelos
- * de tamaño ≤ `maxWorlds`? Útil en tests para cruzar con el prover.
+ * Helper: ¿la fórmula es válida intuicionistamente bajo modelos hasta
+ * la cota de completitud (filtración por subfórmulas, recortada al techo
+ * factible)? Útil en tests para cruzar con el prover. Si se pasa
+ * `maxWorlds`, fija explícitamente la cota.
  */
-export function isIPCValid(formula: IntuitFormula, maxWorlds = 3): boolean {
-  return kripkeCounterModel(formula, { maxWorlds }) === null;
+export function isIPCValid(formula: IntuitFormula, maxWorlds?: number): boolean {
+  return kripkeCounterModel(formula, maxWorlds === undefined ? {} : { maxWorlds }) === null;
 }

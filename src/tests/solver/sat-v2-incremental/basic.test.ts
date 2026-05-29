@@ -116,6 +116,26 @@ describe('IncrementalCDCL — assumptions', () => {
     // El core debe incluir al menos -a (la culpable directa).
     expect(r.failedAssumptions!).toContain(-1);
   });
+
+  // Regresión BUG-SAT-1: un assumption bloqueado por propagación de
+  // otra assumption previa debe devolver el cono completo de antecedentes,
+  // no [lit] solo. Antes devolvía [-2] (que es SAT) en vez de [-1,-2].
+  it('assumption bloqueado por otra assumption: core es el cono, no [lit] solo', () => {
+    const s = new IncrementalCDCL(3);
+    s.addClause([1, 2]); // a ∨ b
+    s.addClause([2, 3]); // b ∨ c
+    const r = s.solve([-1, -2]); // ¬a fuerza b; ¬b queda bloqueado
+    expect(r.sat).toBe(false);
+    expect(r.unsatCore).toBeDefined();
+    // El core devuelto debe ser realmente UNSAT contra la base.
+    const verify = new IncrementalCDCL(3);
+    verify.addClause([1, 2]);
+    verify.addClause([2, 3]);
+    expect(verify.solve(r.unsatCore).sat).toBe(false);
+    // Concretamente debe contener ambas assumptions culpables.
+    expect(r.unsatCore!).toContain(-1);
+    expect(r.unsatCore!).toContain(-2);
+  });
 });
 
 describe('IncrementalCDCL — push/pop', () => {

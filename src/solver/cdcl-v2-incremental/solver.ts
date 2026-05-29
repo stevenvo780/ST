@@ -561,10 +561,11 @@ export class IncrementalCDCL {
     for (const lit of assumptions) {
       // Si ya está fijada a nivel 0 con polaridad opuesta ⇒ UNSAT bajo este lit.
       if (this.litIsFalse(lit)) {
+        const core = this.deriveCoreFromBlockedAssumption(lit, enqueuedAssumptions);
         return {
           sat: false,
-          unsatCore: this.deriveCoreFromBlockedAssumption(lit),
-          failedAssumptions: this.deriveCoreFromBlockedAssumption(lit),
+          unsatCore: core,
+          failedAssumptions: core,
           stats,
         };
       }
@@ -708,13 +709,49 @@ export class IncrementalCDCL {
   }
 
   /**
-   * Cuando un assumption `lit` está bloqueado por unit propagation desde
-   * unidades originales (sin assumptions activas), devuelve [lit] solo:
-   * ese assumption es incompatible con la base. Para v1, este es el caso
-   * trivial — sin lookup hacia atrás del antecedente.
+   * Un assumption `lit` está bloqueado: `var(lit)` ya quedó fijada con
+   * polaridad opuesta antes de poder decidirlo. Esa fijación puede venir
+   * de unidades originales (nivel 0) o de assumptions previas que la
+   * forzaron vía propagación. El unsat core no es `[lit]` solo: hay que
+   * incluir el cono de antecedentes que volvió `lit` insatisfacible.
+   *
+   * Recorremos hacia atrás el grafo de implicación desde `var(lit)`,
+   * marcando cada variable involucrada, y recolectamos:
+   *   - `lit` mismo (la assumption que se intentaba decidir), y
+   *   - toda assumption previa cuya variable cayó en el cono.
+   *
+   * Si el cono no contiene ninguna assumption previa (la base sola ya
+   * implica `¬lit`), el core es `[lit]` — correcto: ese único assumption
+   * es incompatible con las cláusulas permanentes.
    */
-  private deriveCoreFromBlockedAssumption(lit: number): number[] {
-    return [lit];
+  private deriveCoreFromBlockedAssumption(lit: number, assumptionList: number[]): number[] {
+    const seen = new Uint8Array(this.numVars + 1);
+    const stack: number[] = [];
+
+    const blockedVar = Math.abs(lit);
+    seen[blockedVar] = 1;
+    stack.push(blockedVar);
+
+    while (stack.length > 0) {
+      const v = stack.pop();
+      if (v === undefined) break;
+      const ante = this.varAnte[v];
+      if (ante === undefined || ante === NO_ANTECEDENT) continue;
+      const c = this.clauses[ante];
+      if (!c) continue;
+      for (let i = 0; i < c.length; i++) {
+        const u = Math.abs(c[i]);
+        if (u === 0 || seen[u]) continue;
+        seen[u] = 1;
+        stack.push(u);
+      }
+    }
+
+    const core: number[] = [lit];
+    for (const a of assumptionList) {
+      if (seen[Math.abs(a)]) core.push(a);
+    }
+    return core;
   }
 
   /**

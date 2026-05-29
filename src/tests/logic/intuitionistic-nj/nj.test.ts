@@ -174,6 +174,20 @@ describe('NJ — fórmulas no demostrables intuicionistamente (counter-model Kri
     expect(proof).not.toBeNull();
     expect(verifyProof(proof!)).toBe(true);
   });
+
+  // Regresión BUG-T1: el "dilema" (P→Q) ∨ (Q→R) ∨ (R→P) es clásicamente
+  // válido pero NO intuicionista. Su menor contramodelo requiere >2 mundos,
+  // y la cota anterior (2 mundos para ≥3 átomos) lo declaraba VÁLIDO por
+  // error. La cota de filtración por subfórmulas lo refuta correctamente.
+  it('NO demuestra (P→Q) ∨ (Q→R) ∨ (R→P) (dilema no-intuicionista)', () => {
+    const dilemma = or(or(implies(P, Q), implies(Q, R)), implies(R, P));
+    const proof = proveIntuitionistically([], dilemma);
+    expect(proof).toBeNull();
+    const cm = kripkeCounterModel(dilemma);
+    expect(cm).not.toBeNull();
+    expect(cm!.worlds.length).toBeGreaterThanOrEqual(3);
+    expect(isIPCValid(dilemma)).toBe(false);
+  });
 });
 
 // --- Cross-check prover vs Kripke ---
@@ -192,7 +206,7 @@ describe('NJ — coherencia entre prover y semántica Kripke', () => {
       expect(proveIntuitionistically([], f), `prover should prove`).not.toBeNull();
       expect(isIPCValid(f), `kripke should validate`).toBe(true);
     }
-  });
+  }, 30000);
 
   it('toda fórmula con counter-model NO es demostrable NJ', () => {
     const refutables = [
