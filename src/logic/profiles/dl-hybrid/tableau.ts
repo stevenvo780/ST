@@ -67,8 +67,12 @@ function withDefaults(opts?: DLOptions): Required<DLOptions> {
  * estados de salida (o un símbolo de no determinación). Para los casos en
  * los que la salida es no-acotadamente infinita (asignación no
  * determinista), muestreamos un set discreto.
+ *
+ * `unsupported` se activa cuando el programa contiene una ODE que
+ * classifyOde marca como 'unsupported'. En ese caso outcomes es vacío y
+ * el llamador debe propagar 'unknown' en lugar de evaluar la post-condición.
  */
-type StepResult = { outcomes: State[]; blocked?: boolean };
+type StepResult = { outcomes: State[]; blocked?: boolean; unsupported?: boolean };
 
 /**
  * Devuelve TODOS los estados de salida posibles tras ejecutar `prog`
@@ -97,16 +101,21 @@ function executeProgram(prog: HybridProgram, s: State, opts: Required<DLOptions>
     }
     case 'seq': {
       const first = executeProgram(prog.left, s, opts);
+      if (first.unsupported) return { outcomes: [], unsupported: true };
       const combined: State[] = [];
+      let seqUnsupported = false;
       for (const mid of first.outcomes) {
         const after = executeProgram(prog.right, mid, opts);
+        if (after.unsupported) { seqUnsupported = true; break; }
         combined.push(...after.outcomes);
       }
+      if (seqUnsupported) return { outcomes: [], unsupported: true };
       return { outcomes: combined };
     }
     case 'choice': {
       const a = executeProgram(prog.left, s, opts);
       const b = executeProgram(prog.right, s, opts);
+      if (a.unsupported || b.unsupported) return { outcomes: [], unsupported: true };
       return { outcomes: [...a.outcomes, ...b.outcomes] };
     }
     case 'loop': {
@@ -117,6 +126,7 @@ function executeProgram(prog: HybridProgram, s: State, opts: Required<DLOptions>
         const next: State[] = [];
         for (const st of current) {
           const step = executeProgram(prog.body, st, opts);
+          if (step.unsupported) return { outcomes: [], unsupported: true };
           next.push(...step.outcomes);
         }
         if (next.length === 0) break;
@@ -128,9 +138,7 @@ function executeProgram(prog: HybridProgram, s: State, opts: Required<DLOptions>
     case 'ode': {
       const klass = classifyOde(prog.system);
       if (klass.kind === 'unsupported') {
-        // No podemos evaluar — devolvemos un outcome especial: el propio
-        // estado, marcando blocked si no hay dominio para verificar.
-        return { outcomes: [s], blocked: false };
+        return { outcomes: [], unsupported: true };
       }
       const out: State[] = [];
       const dt = opts.odeHorizon / Math.max(1, opts.odeSamples - 1);
@@ -162,9 +170,10 @@ function executeProgram(prog: HybridProgram, s: State, opts: Required<DLOptions>
 
 /**
  * Evalúa una fórmula dL sobre un estado concreto. Para modalidades
- * recurre a `executeProgram`.
+ * recurre a `executeProgram`. Retorna `'unknown'` cuando la evaluación
+ * topa con una ODE no soportada y no puede decidirse de forma sonora.
  */
-function evalFormula(f: DLFormula, s: State, opts: Required<DLOptions>): boolean {
+function evalFormula(f: DLFormula, s: State, opts: Required<DLOptions>): boolean | 'unknown' {
   switch (f.kind) {
     case 'true':
       return true;
@@ -172,32 +181,65 @@ function evalFormula(f: DLFormula, s: State, opts: Required<DLOptions>): boolean
       return false;
     case 'comp':
       return evalQuantifierFree(f, s);
-    case 'not':
-      return !evalFormula(f.arg, s, opts);
-    case 'and':
-      return evalFormula(f.left, s, opts) && evalFormula(f.right, s, opts);
-    case 'or':
-      return evalFormula(f.left, s, opts) || evalFormula(f.right, s, opts);
-    case 'implies':
-      return !evalFormula(f.left, s, opts) || evalFormula(f.right, s, opts);
-    case 'iff':
-      return evalFormula(f.left, s, opts) === evalFormula(f.right, s, opts);
+    case 'not': {
+      const v = evalFormula(f.arg, s, opts);
+      if (v === 'unknown') return 'unknown';
+      return !v;
+    }
+    case 'and': {
+      const l = evalFormula(f.left, s, opts);
+      if (l === false) return false;
+      const r = evalFormula(f.right, s, opts);
+      if (r === false) return false;
+      if (l === 'unknown' || r === 'unknown') return 'unknown';
+      return true;
+    }
+    case 'or': {
+      const l = evalFormula(f.left, s, opts);
+      if (l === true) return true;
+      const r = evalFormula(f.right, s, opts);
+      if (r === true) return true;
+      if (l === 'unknown' || r === 'unknown') return 'unknown';
+      return false;
+    }
+    case 'implies': {
+      const l = evalFormula(f.left, s, opts);
+      if (l === false) return true;
+      const r = evalFormula(f.right, s, opts);
+      if (r === true) return true;
+      if (l === 'unknown' || r === 'unknown') return 'unknown';
+      return false;
+    }
+    case 'iff': {
+      const l = evalFormula(f.left, s, opts);
+      const r = evalFormula(f.right, s, opts);
+      if (l === 'unknown' || r === 'unknown') return 'unknown';
+      return l === r;
+    }
     case 'box': {
       const step = executeProgram(f.program, s, opts);
+      if (step.unsupported) return 'unknown';
       // [α]φ: en TODOS los outcomes φ debe valer.
       // Si el test bloquea (sin outcomes), [?ψ]φ es vacuously true.
+      let sawUnknown = false;
       for (const out of step.outcomes) {
-        if (!evalFormula(f.post, out, opts)) return false;
+        const v = evalFormula(f.post, out, opts);
+        if (v === false) return false;
+        if (v === 'unknown') sawUnknown = true;
       }
-      return true;
+      return sawUnknown ? 'unknown' : true;
     }
     case 'diamond': {
       const step = executeProgram(f.program, s, opts);
+      if (step.unsupported) return 'unknown';
       // ⟨α⟩φ: existe un outcome donde φ vale.
+      let sawUnknown = false;
       for (const out of step.outcomes) {
-        if (evalFormula(f.post, out, opts)) return true;
+        const v = evalFormula(f.post, out, opts);
+        if (v === true) return true;
+        if (v === 'unknown') sawUnknown = true;
       }
-      return false;
+      return sawUnknown ? 'unknown' : false;
     }
   }
 }
@@ -261,15 +303,21 @@ export interface DLCheckResult {
 /**
  * Decide si `f` es válida sobre toda la malla muestreada (criterio de
  * validez universal acotada). Si encuentra contraejemplo lo retorna.
+ * Si algún estado resulta 'unknown' (ODE no soportada) y ninguno produce
+ * contraejemplo, retorna {status:'unknown'} para no afirmar validez sin respaldo.
  */
 export function checkValid(f: DLFormula, opts?: DLOptions): DLCheckResult {
   const o = withDefaults(opts);
   const states = generateInitialStates(f, o);
+  let sawUnknown = false;
   for (const s of states) {
-    if (!evalFormula(f, s, o)) {
+    const v = evalFormula(f, s, o);
+    if (v === false) {
       return { status: 'invalid', witness: s, statesChecked: states.length };
     }
+    if (v === 'unknown') sawUnknown = true;
   }
+  if (sawUnknown) return { status: 'unknown', statesChecked: states.length };
   return { status: 'valid', statesChecked: states.length };
 }
 
@@ -277,19 +325,24 @@ export function checkValid(f: DLFormula, opts?: DLOptions): DLCheckResult {
 export function checkSatisfiable(f: DLFormula, opts?: DLOptions): DLCheckResult {
   const o = withDefaults(opts);
   const states = generateInitialStates(f, o);
+  let sawUnknown = false;
   for (const s of states) {
-    if (evalFormula(f, s, o)) {
+    const v = evalFormula(f, s, o);
+    if (v === true) {
       return { status: 'satisfiable', witness: s, statesChecked: states.length };
     }
+    if (v === 'unknown') sawUnknown = true;
   }
+  if (sawUnknown) return { status: 'unknown', statesChecked: states.length };
   return { status: 'unsatisfiable', statesChecked: states.length };
 }
 
 /**
  * Evalúa la fórmula en un estado específico — útil para casos donde el
  * usuario quiere chequear desde una pre-condición concreta.
+ * Retorna `'unknown'` si la evaluación topa con una ODE no soportada.
  */
-export function evalInState(f: DLFormula, s: State, opts?: DLOptions): boolean {
+export function evalInState(f: DLFormula, s: State, opts?: DLOptions): boolean | 'unknown' {
   return evalFormula(f, s, withDefaults(opts));
 }
 

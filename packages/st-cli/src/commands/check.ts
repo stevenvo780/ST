@@ -39,7 +39,19 @@ export function runCheck(filePath: string, opts: CheckOptions): number {
   const resolvedProfile = profile ? (resolveProfile(profile) ?? profile) : 'classical.propositional';
 
   // Strip ;; comment lines (metadata headers) — st-lang doesn't parse them
-  const source = rawSource.split('\n').filter(line => !line.trim().startsWith(';;')).join('\n');
+  const strippedLines = rawSource.split('\n').filter(line => !line.trim().startsWith(';;'));
+
+  // Wrap bare formula lines (not already starting with a known statement keyword or // comment)
+  const statementRe = /^(logic|check|derive|let|assume|prove|lemma|theorem|axiom)\s/i;
+  const wrappedLines = strippedLines.map(line => {
+    const t = line.trim();
+    if (t && !statementRe.test(t) && !t.startsWith('//')) {
+      return `check valid ${t}`;
+    }
+    return line;
+  });
+
+  const source = wrappedLines.join('\n');
 
   // Prepend logic declaration if source doesn't already have one
   let fullSource = source;

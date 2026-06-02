@@ -12,6 +12,7 @@ import { describe, it } from 'vitest';
 import { fc } from './generators';
 import {
   proveIntuitionistically,
+  kripkeCounterModel,
   atom as iatom,
   not as inot,
   and as iand,
@@ -75,4 +76,26 @@ describe('property: intuitionistic ⊆ classical', () => {
       { numRuns: 100 },
     );
   });
+
+  // Inverse property (soundness of NJ prover w.r.t. Kripke semantics):
+  // si kripkeCounterModel(φ) retorna no-null, existe un mundo Kripke que
+  // refuta φ, luego φ NO es intuit-válida ⇒ proveIntuitionistically debe
+  // retornar null. Un counterexample aquí significaría que el prover
+  // demostró algo que la semántica de Kripke refuta (unsound).
+  it('kripke-refutable ⇒ NOT intuit-provable', () => {
+    fc.assert(
+      fc.property(intuitFormulaArb(2), (phi) => {
+        const counter = kripkeCounterModel(phi);
+        if (counter === null) return true; // skip — válida (dentro de la cota)
+        const intuitProof = proveIntuitionistically([], phi, { budget: 3000 });
+        if (intuitProof !== null) {
+          throw new Error(
+            `kripke-refutable pero el prover la PROBO (unsound): phi=${JSON.stringify(phi)}, model=${JSON.stringify(counter)}`,
+          );
+        }
+        return true;
+      }),
+      { numRuns: 100 },
+    );
+  }, 30000);
 });

@@ -15,6 +15,12 @@ export interface FormalizeResult {
 
 const DEFAULT_ANCHOR = 'mcp.input#p1';
 
+// Covers CR, LF, and the two Unicode line-terminator code points (U+2028 LINE
+// SEPARATOR, U+2029 PARAGRAPH SEPARATOR).  Literal U+2028/U+2029 cannot appear
+// inside a regex literal in TypeScript (they are treated as line endings by the
+// spec), so we use RegExp() with unicode escapes.
+const LINE_TERM_RE = new RegExp('[\r\n\u2028\u2029]', 'g');
+
 /**
  * Construye un programa ST que registra un pasaje (text-layer) y
  * lo formaliza con la fórmula propuesta. El runtime de st-lang
@@ -28,16 +34,23 @@ const DEFAULT_ANCHOR = 'mcp.input#p1';
  */
 export function runFormalize(input: FormalizeInputT): FormalizeResult {
   const { text, formula, profile } = input;
-  const anchor = input.anchor && input.anchor.length > 0 ? input.anchor : DEFAULT_ANCHOR;
-  // El parser de st-lang acepta `passage([[ruta#seccion]])` como anchor.
-  // Comentamos el texto natural en línea para que quede en el programa
-  // como evidencia documental sin afectar la semántica.
-  const safeText = text.replace(/\r?\n/g, ' ').slice(0, 500);
+  const rawAnchor = input.anchor && input.anchor.length > 0 ? input.anchor : DEFAULT_ANCHOR;
+  const anchor = rawAnchor.replace(LINE_TERM_RE, ' ');
+  // Embed the anchor as an ST string literal — passage([["..."]]) — so it is
+  // consumed by the string-token branch of the parser.  This prevents
+  // token-level injection through the [[...]] scan loop regardless of what
+  // structural characters the anchor contains (e.g. "]]", ")", "/*", etc.).
+  const anchorLiteral = anchor.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const safeText = text.replace(LINE_TERM_RE, ' ').slice(0, 500);
+  // Strip line-terminators from the formula: it is placed after "formalize p1 as"
+  // with no further structural quoting, so any injected newline would open a new
+  // ST statement.
+  const safeFormula = formula.replace(LINE_TERM_RE, ' ');
   const source = [
     `logic ${profile}`,
     `// ${safeText}`,
-    `let p1 = passage([[${anchor}]])`,
-    `let f1 = formalize p1 as ${formula}`,
+    `let p1 = passage([["${anchorLiteral}"]])`,
+    `let f1 = formalize p1 as ${safeFormula}`,
   ].join('\n');
   const r = evaluate(source, '<st-mcp:formalize>');
   const summary = r.ok

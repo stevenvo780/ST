@@ -40,7 +40,9 @@ export function runCountermodel(formula: string, opts: CountermodelOptions): num
       stderr: result.stderr,
       diagnostics: result.diagnostics,
     });
-    return hasCountermodel ? 0 : 1;
+    if (hasCountermodel) return 0;
+    if (!result.ok) return 2;
+    return 1;
   }
 
   if (result.stdout) console.log(result.stdout);
