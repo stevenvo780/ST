@@ -1,6 +1,6 @@
 {
   "name": "@stevenvo780/st-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ST — proof assistant CLI powered by @stevenvo780/st-lang. Commands: check, derive, countermodel, formalize, export, repl.",
   "type": "commonjs",
   "bin": {

@@ -1,6 +1,6 @@
 {
   "name": "@stevenvo780/st-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server exponiendo las tools core de ST (check / derive / countermodel / formalize) sobre 11 perfiles lógicos. Usable desde Claude Code, Cursor, ChatGPT con MCP y cualquier cliente compatible con el Model Context Protocol vía transport stdio.",
   "license": "MIT",
   "author": "Steven Vallejo <stevenvallejo780@gmail.com>",

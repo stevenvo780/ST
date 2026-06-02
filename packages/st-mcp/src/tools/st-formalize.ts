@@ -35,12 +35,10 @@ const LINE_TERM_RE = new RegExp('[\r\n\u2028\u2029]', 'g');
 export function runFormalize(input: FormalizeInputT): FormalizeResult {
   const { text, formula, profile } = input;
   const rawAnchor = input.anchor && input.anchor.length > 0 ? input.anchor : DEFAULT_ANCHOR;
-  const anchor = rawAnchor.replace(LINE_TERM_RE, ' ');
-  // Embed the anchor as an ST string literal — passage([["..."]]) — so it is
-  // consumed by the string-token branch of the parser.  This prevents
-  // token-level injection through the [[...]] scan loop regardless of what
-  // structural characters the anchor contains (e.g. "]]", ")", "/*", etc.).
-  const anchorLiteral = anchor.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  // El anchor va crudo dentro de passage([[ ... ]]). Quitamos line-terminators y
+  // corchetes: sin `]` no se puede cerrar el scan `[[...]]` antes de tiempo, lo
+  // que cierra la inyección de tokens; un anchor normal (ruta#fragmento) no los usa.
+  const anchor = rawAnchor.replace(LINE_TERM_RE, ' ').replace(/[[\]]/g, '');
   const safeText = text.replace(LINE_TERM_RE, ' ').slice(0, 500);
   // Strip line-terminators from the formula: it is placed after "formalize p1 as"
   // with no further structural quoting, so any injected newline would open a new
@@ -49,7 +47,7 @@ export function runFormalize(input: FormalizeInputT): FormalizeResult {
   const source = [
     `logic ${profile}`,
     `// ${safeText}`,
-    `let p1 = passage([["${anchorLiteral}"]])`,
+    `let p1 = passage([[${anchor}]])`,
     `let f1 = formalize p1 as ${safeFormula}`,
   ].join('\n');
   const r = evaluate(source, '<st-mcp:formalize>');
