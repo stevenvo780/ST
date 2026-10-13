@@ -22,7 +22,7 @@ export function captureSnapshot(state: STSnapshotState, opts?: CaptureOptions): 
         assignments: { ...c.assignments },
       })),
     },
-    tags: opts?.tags,
+    tags: opts?.tags?.slice(),
     message: opts?.message,
   };
 }
